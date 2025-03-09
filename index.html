@@ -4,72 +4,6 @@
   <meta charset="UTF-8" />
   <title>Control tarea GQ</title>
   <link rel="stylesheet" href="style.css" />
-  <style>
-    /* Estilos mínimos de ejemplo */
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0; padding: 0;
-      background: #f0f0f0;
-    }
-    header {
-      background: #4a90e2; 
-      color: #fff;
-      padding: 1rem; 
-      text-align: center;
-    }
-    h1 { margin: 0; }
-
-    .container {
-      max-width: 800px;
-      margin: auto;
-      padding: 1rem;
-      background: #fff;
-      min-height: calc(100vh - 140px); /* header + footer approx */
-    }
-    .auth-section, .dashboard {
-      margin-bottom: 2rem;
-      border: 1px solid #ccc; 
-      padding: 1rem;
-      border-radius: 5px;
-      background: #fafafa;
-    }
-    .form-group {
-      margin-bottom: 0.5rem;
-    }
-    label { font-weight: bold; }
-    input {
-      padding: 0.3rem; 
-      width: 200px;
-      margin-left: 0.5rem;
-    }
-    button {
-      margin-right: 0.5rem;
-      padding: 0.4rem 0.8rem;
-      cursor: pointer;
-    }
-    .auth-message { 
-      margin-top: 0.5rem; 
-      font-weight: bold; 
-      color: red;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 0.5rem;
-      text-align: left;
-    }
-    footer {
-      background: #4a90e2; 
-      color: #fff; 
-      text-align: center; 
-      padding: 1rem;
-      margin-top: 1rem;
-    }
-  </style>
 </head>
 <body>
   <header>
@@ -77,45 +11,43 @@
   </header>
 
   <div class="container">
-    <!-- Sección de Registro / Login -->
-    <section class="auth-section">
-      <h2>Registro / Login</h2>
-      <form id="authForm">
-        <div class="form-group">
-          <label for="email">Correo:</label>
-          <input type="email" id="email" required />
-        </div>
-        <div class="form-group">
-          <label for="password">Contraseña:</label>
-          <input type="password" id="password" required />
-        </div>
-        <button type="submit" id="btnRegister">Registrarse</button>
-        <button type="button" id="btnLogin">Iniciar Sesión</button>
-        <p class="auth-message" id="authMessage"></p>
-      </form>
-    </section>
+    <!-- Panel lateral para alternar vistas (solo visible si admin, o lo puedes mostrar siempre) -->
+    <div class="sidebar">
+      <button id="btnTareas">Tareas</button>
+      <button id="btnUsuarios">Administrar Usuarios</button>
+    </div>
 
-    <!-- Dashboard de tareas -->
-    <section class="dashboard" id="dashboardSection" style="display:none;">
+    <!-- Sección de Tareas -->
+    <section class="dashboard" id="dashboardSection">
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
       <button id="btnLogout">Cerrar Sesión</button>
 
-      <!-- Solo Supervisor/Admin pueden crear/eliminar tareas -->
+      <!-- Formulario para crear una tarea (solo Supervisor/Admin) -->
       <div id="taskCreation" style="display:none; margin-top:1rem;">
         <h3>Crear Tarea</h3>
-        <input type="text" id="newTaskName" placeholder="Nombre de la tarea" />
-        <input type="text" id="newTaskAssigned" placeholder="Asignar a (email)" />
+        <div class="form-inline">
+          <input type="text" id="newTaskName" placeholder="Nombre de la tarea" />
+          <input type="text" id="newTaskAssigned" placeholder="Asignar a (email)" />
+        </div>
+        <div class="form-inline">
+          <input type="text" id="newEmpresa" placeholder="Empresa" />
+          <input type="text" id="newGrupo" placeholder="Grupo Cliente" />
+          <input type="text" id="newFolio" placeholder="Folio proyecto" />
+        </div>
         <button id="createTaskBtn">Crear Tarea</button>
       </div>
 
-      <!-- Tabla de tareas -->
+      <!-- Tabla de Tareas -->
       <table id="tasksTable">
         <thead>
           <tr>
+            <th>ID Tarea</th>
+            <th>Fecha Asignación</th>
             <th>Nombre</th>
             <th>Asignado a</th>
             <th>Estado</th>
+            <th>Indicador</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -127,7 +59,7 @@
 
     <!-- Sección de Administración de Usuarios (solo Admin) -->
     <section class="dashboard" id="adminUsersSection" style="display:none;">
-      <h3>Administrar Usuarios</h3>
+      <h2>Administrar Usuarios</h2>
       <table id="usersTable">
         <thead>
           <tr>
@@ -139,13 +71,13 @@
         <tbody id="usersBody"></tbody>
       </table>
     </section>
+
   </div>
 
   <footer>
     <p>© 2025 Control Tarea GQ</p>
   </footer>
 
-  <!-- Tu script principal -->
   <script type="module" src="script.js"></script>
 </body>
 </html>

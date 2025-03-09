@@ -1,5 +1,3 @@
-// script.js
-
 /****************************************************
  * IMPORTAR Firebase (versión 9.x) desde la CDN
  ****************************************************/
@@ -9,7 +7,6 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   onAuthStateChanged,
-  updatePassword,
   signOut
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 import {
@@ -27,7 +24,6 @@ import {
 
 /****************************************************
  * CONFIGURACIÓN DE TU PROYECTO FIREBASE
- * (reemplaza con TUS datos)
  ****************************************************/
 const firebaseConfig = {
   apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
@@ -41,7 +37,6 @@ const firebaseConfig = {
 
 // Inicializa la app
 const app = initializeApp(firebaseConfig);
-// Servicios
 const auth = getAuth(app);
 const db = getFirestore(app);
 
@@ -53,8 +48,11 @@ const ALL_ROLES = ["consultor","senior","supervisor","admin"];
 const TASK_STATES = ["Asignado","En proceso","Por revisar","Reportar","Finalizado"];
 
 /****************************************************
- * HTML elements
+ * Elementos HTML
  ****************************************************/
+const btnTareas = document.getElementById("btnTareas");
+const btnUsuarios = document.getElementById("btnUsuarios");
+
 const authSection = document.querySelector(".auth-section");
 const authForm = document.getElementById("authForm");
 const emailInput = document.getElementById("email");
@@ -71,6 +69,9 @@ const btnLogout = document.getElementById("btnLogout");
 const taskCreationDiv = document.getElementById("taskCreation");
 const newTaskName = document.getElementById("newTaskName");
 const newTaskAssigned = document.getElementById("newTaskAssigned");
+const newEmpresa = document.getElementById("newEmpresa");
+const newGrupo = document.getElementById("newGrupo");
+const newFolio = document.getElementById("newFolio");
 const createTaskBtn = document.getElementById("createTaskBtn");
 
 const tasksTableBody = document.getElementById("tasksBody");
@@ -79,9 +80,20 @@ const adminUsersSection = document.getElementById("adminUsersSection");
 const usersTableBody = document.getElementById("usersBody");
 
 /****************************************************
+ * MOSTRAR/OCULTAR SECCIONES
+ ****************************************************/
+btnTareas.addEventListener("click", () => {
+  dashboardSection.style.display = "block";
+  adminUsersSection.style.display = "none";
+});
+btnUsuarios.addEventListener("click", () => {
+  dashboardSection.style.display = "none";
+  adminUsersSection.style.display = "block";
+});
+
+/****************************************************
  * LÓGICA DE REGISTRO E INICIO DE SESIÓN
  ****************************************************/
-// Al cargar el DOM, escuchamos el form
 document.addEventListener("DOMContentLoaded", () => {
   // Evita que el form recargue
   authForm.addEventListener("submit", (e) => e.preventDefault());
@@ -101,17 +113,31 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Ingresa el nombre de la tarea y el email de la persona asignada.");
       return;
     }
+
     try {
-      // Crear tarea en Firestore
-      const docRef = await addDoc(collection(db, "tasks"), {
+      // Generamos un ID correlativo = total tareas + 1
+      const allTasks = await getDocs(collection(db, "tasks"));
+      const idTareaCorrelativo = allTasks.size + 1;
+
+      await addDoc(collection(db, "tasks"), {
+        idTarea: idTareaCorrelativo,
+        fechaAsignacion: new Date().toLocaleDateString("es-CL"),
         name: newTaskName.value.trim(),
         assignedTo: newTaskAssigned.value.trim().toLowerCase(),
+        empresa: newEmpresa.value.trim(),
+        grupoCliente: newGrupo.value.trim(),
+        folioProyecto: newFolio.value.trim(),
         status: "Asignado",
         createdAt: new Date(),
         createdBy: currentUser.uid
       });
+
+      // Limpia los campos
       newTaskName.value = "";
       newTaskAssigned.value = "";
+      newEmpresa.value = "";
+      newGrupo.value = "";
+      newFolio.value = "";
     } catch (error) {
       console.error("Error al crear tarea", error);
     }
@@ -130,25 +156,32 @@ onAuthStateChanged(auth, async (user) => {
     userEmailSpan.textContent = user.email;
 
     // Carga su rol desde Firestore
-    const userDoc = doc(db, "users", user.uid);
-    const snap = await getDoc(userDoc);
+    const userDocRef = doc(db, "users", user.uid);
+    const snap = await getDoc(userDocRef);
     if (snap.exists()) {
       currentRole = snap.data().role;
     } else {
       // Si no existe doc, lo creamos con rol consultor
-      // y si su email es jonattangm@hotmail.com => admin
+      // y si su email es X => admin
       let roleToAssign = DEFAULT_ROLE;
-      if (user.email === "jonattangm@hotmail.com") {
+      if (user.email.toLowerCase() === "jonattangm@hotmail.com") {
         roleToAssign = "admin";
       }
-      await setDoc(userDoc, { role: roleToAssign });
+      await setDoc(userDocRef, { role: roleToAssign, email: user.email.toLowerCase() });
       currentRole = roleToAssign;
     }
     userRoleSpan.textContent = currentRole;
 
-    // Muestra dashboard, oculta form
+    // Muestra dashboard, oculta login
     authSection.style.display = "none";
     dashboardSection.style.display = "block";
+
+    // Si es Admin, mostramos AdminUsersSection sólo si hace clic en el botón
+    if (currentRole === "admin") {
+      btnUsuarios.style.display = "inline-block";
+    } else {
+      btnUsuarios.style.display = "none";
+    }
 
     // Muestra sección de crear tarea solo si role es supervisor o admin
     if (["supervisor","admin"].includes(currentRole)) {
@@ -157,12 +190,9 @@ onAuthStateChanged(auth, async (user) => {
       taskCreationDiv.style.display = "none";
     }
 
-    // Muestra la sección de admin users si es admin
+    // Carga la lista de usuarios solo si admin
     if (currentRole === "admin") {
-      adminUsersSection.style.display = "block";
-      loadAllUsers(); // Carga la tabla de usuarios
-    } else {
-      adminUsersSection.style.display = "none";
+      loadAllUsers();
     }
 
     // Escucha las tareas en tiempo real
@@ -190,8 +220,8 @@ async function registerUser() {
     return;
   }
   try {
-    const userCred = await createUserWithEmailAndPassword(auth, email, password);
-    // El onAuthStateChanged se encargará de asignar rol
+    await createUserWithEmailAndPassword(auth, email, password);
+    // el onAuthStateChanged se encarga del resto
   } catch (error) {
     authMessage.textContent = `Error al crear usuario: ${error.message}`;
   }
@@ -208,7 +238,6 @@ async function loginUser() {
   }
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    // onAuthStateChanged gestionará el resto
   } catch (error) {
     authMessage.textContent = `Error al iniciar sesión: ${error.message}`;
   }
@@ -222,40 +251,41 @@ function listenTasks() {
   onSnapshot(tasksRef, (snapshot) => {
     const tasks = [];
     snapshot.forEach((doc) => {
-      tasks.push({ ...doc.data(), id: doc.id });
+      tasks.push({ ...doc.data(), docId: doc.id });
     });
     renderTasks(tasks);
   });
 }
 
 /****************************************************
- * RENDER DE TAREAS (filtradas según rol)
+ * RENDER DE TAREAS 
  ****************************************************/
 function renderTasks(tasks) {
   tasksTableBody.innerHTML = "";
 
-  // Filtrar tareas si es consultor: solo las asignadas a él
+  // Filtra según rol
   let filtered = tasks;
   if (currentRole === "consultor") {
+    // Solo ve las suyas
     filtered = tasks.filter(t => t.assignedTo === currentUser.email.toLowerCase());
-  } else if (currentRole === "senior") {
-    // Si deseas filtrar también, ajusta la lógica;
-    // aquí dejamos que el senior vea todas
-    filtered = tasks;
-  } else if (currentRole === "supervisor") {
-    // Ve todas
-    filtered = tasks;
-  } else if (currentRole === "admin") {
-    // Ve todas
-    filtered = tasks;
   }
 
   filtered.forEach(task => {
     const tr = document.createElement("tr");
 
+    // ID Tarea
+    const tdID = document.createElement("td");
+    tdID.textContent = task.idTarea || "N/A";
+    tr.appendChild(tdID);
+
+    // Fecha de asignación
+    const tdFecha = document.createElement("td");
+    tdFecha.textContent = task.fechaAsignacion || "N/A";
+    tr.appendChild(tdFecha);
+
     // Nombre
     const tdName = document.createElement("td");
-    tdName.textContent = task.name;
+    tdName.textContent = task.name || "(Sin nombre)";
     tr.appendChild(tdName);
 
     // Asignado a
@@ -263,45 +293,67 @@ function renderTasks(tasks) {
     tdAssigned.textContent = task.assignedTo;
     tr.appendChild(tdAssigned);
 
-    // Estado (dropdown para cambiar estado)
+    // Estado (dropdown)
     const tdStatus = document.createElement("td");
     const selectStatus = document.createElement("select");
-    TASK_STATES.forEach(st => {
+    // Ajustamos opciones según rol consultor
+    let possibleStates = TASK_STATES.slice(); // copia
+    if (currentRole === "consultor") {
+      // El consultor solo puede usar: Asignado, En proceso, Por revisar
+      // Y además, si está en "Por revisar", no puede cambiarlo
+      // No puede usar "Reportar" ni "Finalizado"
+      if (task.status === "Por revisar") {
+        // no puede cambiar nada
+        possibleStates = ["Por revisar"];
+      } else {
+        possibleStates = ["Asignado","En proceso","Por revisar"];
+      }
+    }
+
+    possibleStates.forEach(st => {
       const opt = document.createElement("option");
       opt.value = st;
       opt.textContent = st;
       if (st === task.status) opt.selected = true;
       selectStatus.appendChild(opt);
     });
-    // Maneja cambio de estado con restricciones
+
     selectStatus.addEventListener("change", () => {
       const newSt = selectStatus.value;
       if (!canChangeStatus(currentRole, task.status, newSt)) {
         alert("No tienes permiso para este cambio de estado.");
         selectStatus.value = task.status; // revert
       } else {
-        updateTaskStatus(task.id, newSt);
+        updateTaskStatus(task.docId, newSt);
       }
     });
     tdStatus.appendChild(selectStatus);
     tr.appendChild(tdStatus);
 
+    // Indicador de color
+    const tdIndicator = document.createElement("td");
+    const indicator = document.createElement("span");
+    indicator.classList.add("status-indicator");
+    // Convierte el status a clase
+    const lowerStatus = task.status.toLowerCase().replace(" ", "-");
+    indicator.classList.add(`status-${lowerStatus}`);
+    tdIndicator.appendChild(indicator);
+    tr.appendChild(tdIndicator);
+
     // Acciones
     const tdActions = document.createElement("td");
-
-    // El Supervisor y Admin pueden eliminar
     if (["supervisor","admin"].includes(currentRole)) {
       const btnDel = document.createElement("button");
       btnDel.textContent = "Eliminar";
       btnDel.addEventListener("click", async () => {
         if (confirm("¿Deseas eliminar esta tarea?")) {
-          await deleteDoc(doc(db, "tasks", task.id));
+          await deleteDoc(doc(db, "tasks", task.docId));
         }
       });
       tdActions.appendChild(btnDel);
     }
-
     tr.appendChild(tdActions);
+
     tasksTableBody.appendChild(tr);
   });
 }
@@ -310,39 +362,48 @@ function renderTasks(tasks) {
  * LÓGICA DE CAMBIO DE ESTADO SEGÚN ROL
  ****************************************************/
 function canChangeStatus(role, currentSt, newSt) {
-  // Reglas según la descripción:
-  // 1. Consultor: puede pasar de "Asignado"/"En proceso" a "Por revisar"
-  //    No puede volver atrás ni poner "Reportar" o "Finalizado".
+  // CONSULTOR:
+  // - Puede mover Asignado ↔ En proceso
+  // - Puede mover Asignado/En proceso -> Por revisar
+  // - No puede usar "Reportar" ni "Finalizado"
+  // - No puede cambiar si ya está en "Por revisar"
   if (role === "consultor") {
-    if (currentSt === "Asignado" || currentSt === "En proceso") {
-      return (newSt === "Por revisar");
+    // Si la tarea ya está en "Por revisar", no se cambia
+    if (currentSt === "Por revisar") return false;
+
+    // Mover Asignado <-> En proceso
+    if ((currentSt === "Asignado" && newSt === "En proceso") ||
+        (currentSt === "En proceso" && newSt === "Asignado")) {
+      return true;
+    }
+    // Asignado/En proceso -> Por revisar
+    if ((currentSt === "Asignado" || currentSt === "En proceso") && newSt === "Por revisar") {
+      return true;
     }
     return false;
   }
 
-  // 2. Senior: mismos permisos que consultor, pero puede revertir "Por revisar" a "Asignado" o "En proceso",
-  //    y puede poner "Reportar" ? => la descripción dice si pone "Reportar" no puede revertirlo
+  // SENIOR: Reglas previas + puede poner "Reportar" 
+  //  y revertir "Por revisar" a "Asignado"/"En proceso"
   if (role === "senior") {
     if (currentSt === "Asignado" || currentSt === "En proceso") {
-      // Puede hacer lo de consultor => "Por revisar"
-      if (newSt === "Por revisar" || newSt === "Reportar") {
-        return true;
-      }
+      // puede ir a "Por revisar" o "Reportar"
+      if (newSt === "Por revisar" || newSt === "Reportar") return true;
     }
     if (currentSt === "Por revisar") {
-      // Puede revertir a "Asignado" o "En proceso", o poner "Reportar"
-      return (["Asignado","En proceso","Reportar"].includes(newSt));
+      // revertir a Asignado/En proceso o poner "Reportar"
+      return ["Asignado","En proceso","Reportar"].includes(newSt);
     }
-    // Si ya está en "Reportar" o "Finalizado", no puede revertir
+    // si está en "Reportar" o "Finalizado", no revertir
     return false;
   }
 
-  // 3. Supervisor: puede poner cualquier estado
+  // SUPERVISOR: puede mover a cualquier estado
   if (role === "supervisor") {
     return true;
   }
 
-  // 4. Admin: puede todo
+  // ADMIN: puede todo
   if (role === "admin") {
     return true;
   }
@@ -350,16 +411,16 @@ function canChangeStatus(role, currentSt, newSt) {
   return false;
 }
 
-async function updateTaskStatus(taskId, newStatus) {
+async function updateTaskStatus(docId, newStatus) {
   try {
-    await updateDoc(doc(db, "tasks", taskId), { status: newStatus });
+    await updateDoc(doc(db, "tasks", docId), { status: newStatus });
   } catch (error) {
     console.error("Error al cambiar estado:", error);
   }
 }
 
 /****************************************************
- * ADMIN: Cambiar roles (solo si currentRole === 'admin')
+ * ADMIN: Cambiar roles
  ****************************************************/
 async function loadAllUsers() {
   usersTableBody.innerHTML = "";
@@ -368,16 +429,9 @@ async function loadAllUsers() {
     const userData = docu.data();
     const tr = document.createElement("tr");
 
-    // Email
+    // Muestra el email guardado o el UID
     const tdEmail = document.createElement("td");
-    tdEmail.textContent = docu.id; // uid? o si guardaste doc con user.email
-    // Si guardaste doc con docId = user.uid, tendrías que guardar email aparte. 
-    // Para simplicidad, supongo docu.id = user.uid no es su email. 
-    // Vamos a suponer que en userData hay un 'email' guardado si queremos.
-    // O reestructurar. Este ejemplo asume docu.id = UID y no hay email guardado. 
-    // Ajustamos la demo: simplemente no mostrará el email real.
-    // Si quieres mostrar email real, en setDoc(...) pon {role, email} al crear usuario.
-    tdEmail.textContent = userData.email ? userData.email : docu.id; 
+    tdEmail.textContent = userData.email ? userData.email : docu.id;
 
     const tdRole = document.createElement("td");
     tdRole.textContent = userData.role;
@@ -395,6 +449,7 @@ async function loadAllUsers() {
       const newR = selectRole.value;
       try {
         await updateDoc(doc(db, "users", docu.id), { role: newR });
+        tdRole.textContent = newR;
         alert(`Rol actualizado a ${newR}`);
       } catch (error) {
         console.error("Error actualizando rol:", error);
