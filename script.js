@@ -13,7 +13,7 @@ import {
 // TU CONFIGURACIÓN DE FIREBASE
 // Reemplaza con los datos que te proporciona Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyCFo...",
+  apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
   authDomain: "control-tarea-gq.firebaseapp.com",
   projectId: "control-tarea-gq",
   storageBucket: "control-tarea-gq.firebasestorage.app",
