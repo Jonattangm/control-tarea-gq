@@ -5,7 +5,6 @@
   <title>Control tarea GQ</title>
   <link rel="stylesheet" href="style.css" />
   <style>
-    /* Estilos básicos */
     body {
       font-family: Arial, sans-serif;
       margin: 0; padding: 0;
@@ -44,11 +43,6 @@
       padding: 0.4rem 0.8rem;
       cursor: pointer;
     }
-    .auth-message { 
-      margin-top: 0.5rem; 
-      font-weight: bold; 
-      color: red;
-    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -58,13 +52,6 @@
       border: 1px solid #ccc;
       padding: 0.5rem;
       text-align: left;
-    }
-    footer {
-      background: #4a90e2; 
-      color: #fff; 
-      text-align: center; 
-      padding: 1rem;
-      margin-top: 1rem;
     }
   </style>
 </head>
@@ -88,17 +75,17 @@
         </div>
         <button type="submit" id="btnRegister">Registrarse</button>
         <button type="button" id="btnLogin">Iniciar Sesión</button>
-        <p class="auth-message" id="authMessage"></p>
+        <p id="authMessage" style="color: red;"></p>
       </form>
     </section>
 
-    <!-- Dashboard de tareas -->
+    <!-- Dashboard de Actividades -->
     <section class="dashboard" id="dashboardSection" style="display:none;">
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
       <button id="btnLogout">Cerrar Sesión</button>
 
-      <!-- Solo Supervisor/Admin pueden crear/eliminar tareas -->
+      <!-- Creación de Tareas (Solo Supervisores y Admin) -->
       <div id="taskCreation" style="display:none; margin-top:1rem;">
         <h3>Crear Tarea</h3>
         <input type="text" id="newTaskName" placeholder="Nombre de la tarea" />
@@ -106,21 +93,21 @@
         <button id="createTaskBtn">Crear Tarea</button>
       </div>
 
-      <!-- Tabla de tareas -->
+      <!-- Tabla de Tareas -->
       <table id="tasksTable">
         <thead>
           <tr>
             <th>Nombre</th>
             <th>Asignado a</th>
             <th>Estado</th>
-            <th>Acciones</th>
+            <th id="actionsHeader">Acciones</th>
           </tr>
         </thead>
         <tbody id="tasksBody"></tbody>
       </table>
     </section>
 
-    <!-- Sección de Administración de Usuarios (solo Admin) -->
+    <!-- Administración de Usuarios (Solo Admin) -->
     <section class="dashboard" id="adminUsersSection" style="display:none;">
       <h3>Administrar Usuarios</h3>
       <table id="usersTable">
@@ -140,7 +127,6 @@
     <p>© 2025 Control Tarea GQ</p>
   </footer>
 
-  <!-- Tu script principal -->
   <script type="module" src="script.js"></script>
 </body>
 </html>
