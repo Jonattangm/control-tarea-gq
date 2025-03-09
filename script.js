@@ -30,7 +30,7 @@ import {
  * (reemplaza con TUS datos)
  ****************************************************/
 const firebaseConfig = {
-  apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
+  apiKey: "TU_API_KEY",
   authDomain: "control-tarea-gq.firebaseapp.com",
   projectId: "control-tarea-gq",
   storageBucket: "control-tarea-gq.appspot.com",
@@ -191,20 +191,11 @@ async function registerUser() {
   }
   try {
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
-    const userId = userCred.user.uid; // Obtiene el UID del usuario
-
-    // Guarda el usuario en Firestore con el campo "email"
-    await setDoc(doc(db, "users", userId), {
-      email: email.toLowerCase(),
-      role: DEFAULT_ROLE // Se asigna "consultor" por defecto
-    });
-
-    alert("Usuario registrado correctamente.");
+    // El onAuthStateChanged se encargará de asignar rol
   } catch (error) {
     authMessage.textContent = `Error al crear usuario: ${error.message}`;
   }
 }
-
 
 async function loginUser() {
   authMessage.textContent = "";
@@ -371,58 +362,50 @@ async function updateTaskStatus(taskId, newStatus) {
  * ADMIN: Cambiar roles (solo si currentRole === 'admin')
  ****************************************************/
 async function loadAllUsers() {
-  usersTableBody.innerHTML = ""; // Limpia la tabla antes de llenarla
+  usersTableBody.innerHTML = "";
+  const qSnap = await getDocs(collection(db, "users"));
+  qSnap.forEach((docu) => {
+    const userData = docu.data();
+    const tr = document.createElement("tr");
 
-  try {
-    const qSnap = await getDocs(collection(db, "users"));
-    
-    qSnap.forEach((docu) => {
-      const userData = docu.data();
-      const userId = docu.id; // UID del usuario en Firestore
+    // Email
+    const tdEmail = document.createElement("td");
+    tdEmail.textContent = docu.id; // uid? o si guardaste doc con user.email
+    // Si guardaste doc con docId = user.uid, tendrías que guardar email aparte. 
+    // Para simplicidad, supongo docu.id = user.uid no es su email. 
+    // Vamos a suponer que en userData hay un 'email' guardado si queremos.
+    // O reestructurar. Este ejemplo asume docu.id = UID y no hay email guardado. 
+    // Ajustamos la demo: simplemente no mostrará el email real.
+    // Si quieres mostrar email real, en setDoc(...) pon {role, email} al crear usuario.
+    tdEmail.textContent = userData.email ? userData.email : docu.id; 
 
-      const tr = document.createElement("tr");
+    const tdRole = document.createElement("td");
+    tdRole.textContent = userData.role;
 
-      // Email
-      const tdEmail = document.createElement("td");
-      tdEmail.textContent = userData.email || userId; // Usa el email si está en Firestore, sino el UID
-      
-      // Rol actual
-      const tdRole = document.createElement("td");
-      tdRole.textContent = userData.role;
-
-      // Dropdown para cambiar rol
-      const tdChange = document.createElement("td");
-      const selectRole = document.createElement("select");
-      ALL_ROLES.forEach(r => {
-        const opt = document.createElement("option");
-        opt.value = r;
-        opt.textContent = r;
-        if (r === userData.role) opt.selected = true;
-        selectRole.appendChild(opt);
-      });
-
-      // Evento para cambiar el rol
-      selectRole.addEventListener("change", async () => {
-        const newRole = selectRole.value;
-        try {
-          await updateDoc(doc(db, "users", userId), { role: newRole });
-          tdRole.textContent = newRole; // Actualiza visualmente
-          alert(`Rol actualizado a ${newRole}`);
-        } catch (error) {
-          console.error("Error actualizando rol:", error);
-        }
-      });
-
-      tdChange.appendChild(selectRole);
-      tr.appendChild(tdEmail);
-      tr.appendChild(tdRole);
-      tr.appendChild(tdChange);
-
-      usersTableBody.appendChild(tr);
+    const tdChange = document.createElement("td");
+    const selectRole = document.createElement("select");
+    ALL_ROLES.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r;
+      opt.textContent = r;
+      if (r === userData.role) opt.selected = true;
+      selectRole.appendChild(opt);
     });
+    selectRole.addEventListener("change", async () => {
+      const newR = selectRole.value;
+      try {
+        await updateDoc(doc(db, "users", docu.id), { role: newR });
+        alert(`Rol actualizado a ${newR}`);
+      } catch (error) {
+        console.error("Error actualizando rol:", error);
+      }
+    });
+    tdChange.appendChild(selectRole);
 
-  } catch (error) {
-    console.error("Error cargando usuarios:", error);
-  }
+    tr.appendChild(tdEmail);
+    tr.appendChild(tdRole);
+    tr.appendChild(tdChange);
+
+    usersTableBody.appendChild(tr);
+  });
 }
-
