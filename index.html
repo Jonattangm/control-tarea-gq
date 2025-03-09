@@ -5,7 +5,7 @@
   <title>Control tarea GQ</title>
   <link rel="stylesheet" href="style.css" />
   <style>
-    /* Estilos mínimos de ejemplo */
+    /* Estilos básicos */
     body {
       font-family: Arial, sans-serif;
       margin: 0; padding: 0;
@@ -18,13 +18,12 @@
       text-align: center;
     }
     h1 { margin: 0; }
-
     .container {
       max-width: 800px;
       margin: auto;
       padding: 1rem;
       background: #fff;
-      min-height: calc(100vh - 140px); /* header + footer approx */
+      min-height: calc(100vh - 140px);
     }
     .auth-section, .dashboard {
       margin-bottom: 2rem;
@@ -33,9 +32,7 @@
       border-radius: 5px;
       background: #fafafa;
     }
-    .form-group {
-      margin-bottom: 0.5rem;
-    }
+    .form-group { margin-bottom: 0.5rem; }
     label { font-weight: bold; }
     input {
       padding: 0.3rem; 
@@ -78,7 +75,7 @@
 
   <div class="container">
     <!-- Sección de Registro / Login -->
-    <section class="auth-section">
+    <section class="auth-section" id="authSection">
       <h2>Registro / Login</h2>
       <form id="authForm">
         <div class="form-group">
@@ -119,9 +116,7 @@
             <th>Acciones</th>
           </tr>
         </thead>
-        <tbody id="tasksBody">
-          <!-- Se llena dinámicamente -->
-        </tbody>
+        <tbody id="tasksBody"></tbody>
       </table>
     </section>
 
@@ -131,7 +126,7 @@
       <table id="usersTable">
         <thead>
           <tr>
-            <th>Email</th>
+            <th>Email / UID</th>
             <th>Rol</th>
             <th>Cambiar Rol</th>
           </tr>
