@@ -191,11 +191,20 @@ async function registerUser() {
   }
   try {
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
-    // El onAuthStateChanged se encargará de asignar rol
+    const userId = userCred.user.uid; // Obtiene el UID del usuario
+
+    // Guarda el usuario en Firestore con el campo "email"
+    await setDoc(doc(db, "users", userId), {
+      email: email.toLowerCase(),
+      role: DEFAULT_ROLE // Se asigna "consultor" por defecto
+    });
+
+    alert("Usuario registrado correctamente.");
   } catch (error) {
     authMessage.textContent = `Error al crear usuario: ${error.message}`;
   }
 }
+
 
 async function loginUser() {
   authMessage.textContent = "";
