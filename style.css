@@ -22,7 +22,7 @@ header {
   margin-top: 1rem;
 }
 
-/* Panel lateral */
+/* Barra lateral */
 .sidebar {
   width: 200px;
   padding: 1rem;
@@ -32,7 +32,7 @@ header {
   gap: 0.5rem;
 }
 
-/* Área de contenido */
+/* Secciones y tablas */
 .dashboard {
   flex: 1;
   margin: 0 1rem;
@@ -42,7 +42,6 @@ header {
   border-radius: 5px;
 }
 
-/* Secciones y tablas */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -94,5 +93,5 @@ footer {
   color: #fff;
   text-align: center;
   padding: 1rem;
-  /* Quitamos position:fixed para no tapar contenido */
+  /* Quitamos position: fixed para no tapar contenido */
 }

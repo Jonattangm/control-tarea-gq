@@ -11,19 +11,37 @@
   </header>
 
   <div class="container">
-    <!-- Panel lateral para alternar vistas (solo visible si admin, o lo puedes mostrar siempre) -->
-    <div class="sidebar">
+    <!-- Barra lateral: oculta por defecto -->
+    <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
       <button id="btnUsuarios">Administrar Usuarios</button>
     </div>
 
-    <!-- Sección de Tareas -->
-    <section class="dashboard" id="dashboardSection">
+    <!-- Sección de Login/Registro, visible por defecto -->
+    <section class="auth-section" id="authSection" style="display:block;">
+      <h2>Registro / Login</h2>
+      <form id="authForm">
+        <div class="form-group">
+          <label for="email">Correo:</label>
+          <input type="email" id="email" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Contraseña:</label>
+          <input type="password" id="password" required />
+        </div>
+        <button type="submit" id="btnRegister">Registrarse</button>
+        <button type="button" id="btnLogin">Iniciar Sesión</button>
+        <p class="auth-message" id="authMessage"></p>
+      </form>
+    </section>
+
+    <!-- Dashboard de tareas, oculto por defecto -->
+    <section class="dashboard" id="dashboardSection" style="display:none;">
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
       <button id="btnLogout">Cerrar Sesión</button>
 
-      <!-- Formulario para crear una tarea (solo Supervisor/Admin) -->
+      <!-- Solo Supervisor/Admin pueden crear/eliminar tareas -->
       <div id="taskCreation" style="display:none; margin-top:1rem;">
         <h3>Crear Tarea</h3>
         <div class="form-inline">
@@ -51,13 +69,11 @@
             <th>Acciones</th>
           </tr>
         </thead>
-        <tbody id="tasksBody">
-          <!-- Se llena dinámicamente -->
-        </tbody>
+        <tbody id="tasksBody"></tbody>
       </table>
     </section>
 
-    <!-- Sección de Administración de Usuarios (solo Admin) -->
+    <!-- Sección de Administración de Usuarios (solo Admin), oculta por defecto -->
     <section class="dashboard" id="adminUsersSection" style="display:none;">
       <h2>Administrar Usuarios</h2>
       <table id="usersTable">
@@ -71,7 +87,6 @@
         <tbody id="usersBody"></tbody>
       </table>
     </section>
-
   </div>
 
   <footer>
