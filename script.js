@@ -205,6 +205,62 @@ async function registerUser() {
   }
 }
 
+async function loadAllUsers() {
+  usersTableBody.innerHTML = ""; // Limpia la tabla antes de llenarla
+
+  try {
+    const qSnap = await getDocs(collection(db, "users"));
+    
+    qSnap.forEach((docu) => {
+      const userData = docu.data();
+      const userId = docu.id; // UID del usuario en Firestore
+
+      const tr = document.createElement("tr");
+
+      // Email
+      const tdEmail = document.createElement("td");
+      tdEmail.textContent = userData.email || userId; // Usa el email si está en Firestore, sino el UID
+      
+      // Rol actual
+      const tdRole = document.createElement("td");
+      tdRole.textContent = userData.role;
+
+      // Dropdown para cambiar rol
+      const tdChange = document.createElement("td");
+      const selectRole = document.createElement("select");
+      ALL_ROLES.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r;
+        opt.textContent = r;
+        if (r === userData.role) opt.selected = true;
+        selectRole.appendChild(opt);
+      });
+
+      // Evento para cambiar el rol
+      selectRole.addEventListener("change", async () => {
+        const newRole = selectRole.value;
+        try {
+          await updateDoc(doc(db, "users", userId), { role: newRole });
+          tdRole.textContent = newRole; // Actualiza visualmente
+          alert(`Rol actualizado a ${newRole}`);
+        } catch (error) {
+          console.error("Error actualizando rol:", error);
+        }
+      });
+
+      tdChange.appendChild(selectRole);
+      tr.appendChild(tdEmail);
+      tr.appendChild(tdRole);
+      tr.appendChild(tdChange);
+
+      usersTableBody.appendChild(tr);
+    });
+
+  } catch (error) {
+    console.error("Error cargando usuarios:", error);
+  }
+}
+
 
 async function loginUser() {
   authMessage.textContent = "";
