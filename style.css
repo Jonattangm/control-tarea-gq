@@ -1,28 +1,29 @@
-/* Estilos generales */
+/* Reset box-sizing */
 * {
   box-sizing: border-box;
 }
+
+/* Generales */
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #f9f9f9;
   color: #333;
+  background: #f9f9f9;
 }
-
-/* Contenedor principal */
 .main-container {
   display: flex;
-  min-height: 100vh;
-  /* Sin margin-top para que ocupe la pantalla completa */
+  width: 100%;
+  min-height: 100vh; 
 }
 
-/* Sección de Login/Registro con fondo gradiente */
+/* Sección Login/Registro con gradiente */
 .auth-section {
   flex: 1;
-  background: linear-gradient(135deg, #81c2f7, #e684ae);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; /* bajado un poco */
+  background: linear-gradient(135deg, #81c2f7, #e684ae);
+  padding-top: 4rem; /* espacio extra arriba */
 }
 .auth-container {
   background: #fff;
@@ -31,6 +32,7 @@ body {
   max-width: 360px;
   width: 100%;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  margin-bottom: 4rem; /* para que no pegue al footer */
 }
 .auth-container h2 {
   margin-top: 0;
@@ -47,14 +49,30 @@ body {
   color: red;
 }
 
-/* Barra lateral */
+/* Footer (solo login) */
+#loginFooter {
+  background: #4a90e2;
+  color: #fff;
+  text-align: center;
+  padding: 1rem;
+  width: 100%;
+}
+
+/* Sidebar */
 .sidebar {
   width: 200px;
   background: #f0f0f0;
   padding: 1rem;
-  display: flex;
+  display: none;
   flex-direction: column;
-  gap: 0.5rem;
+  justify-content: space-between;
+}
+.sidebar-bottom {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  padding-top: 1rem;
+  border-top: 1px solid #ccc;
 }
 
 /* Dashboard */
@@ -65,9 +83,6 @@ body {
   padding: 1rem;
   border: 1px solid #ccc;
   border-radius: 5px;
-}
-.dashboard h2 {
-  margin-top: 0;
 }
 
 /* Tablas y formularios */
@@ -86,25 +101,23 @@ th, td {
   gap: 0.5rem;
   margin: 0.5rem 0;
 }
-
-/* Filtros */
 .filters-container {
+  margin-bottom: 1rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 .filters-container input {
-  width: 120px;
+  width: 140px;
 }
 
-/* Indicadores */
+/* Indicador */
 .status-indicator {
   display: inline-block;
   width: 15px;
   height: 15px;
   border-radius: 3px;
-  margin-right: 8px;
+  margin-left: 8px;
   vertical-align: middle;
 }
 
@@ -125,22 +138,14 @@ th, td {
   background: #4caf50;
 }
 .status-sii {
-  background: #3f51b5; /* azul oscuro */
+  background: #3f51b5;
 }
 .status-municipalidad {
-  background: #9c27b0; /* morado */
+  background: #9c27b0;
 }
 .status-tesoreria {
-  background: #8bc34a; /* verde claro */
+  background: #8bc34a;
 }
 .status-bpo {
-  background: #795548; /* café */
-}
-
-/* Footer (solo login) */
-footer {
-  background: #4a90e2;
-  color: #fff;
-  text-align: center;
-  padding: 1rem;
+  background: #795548;
 }

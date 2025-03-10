@@ -35,23 +35,46 @@
     <!-- Barra lateral (oculta hasta que el usuario haga login) -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
-      <button id="btnUsuarios">Administrar Usuarios</button>
+      <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
+      <div class="sidebar-bottom">
+        <button id="btnLogout">Cerrar Sesión</button>
+      </div>
     </div>
 
     <!-- Sección de Tareas / Dashboard (oculta hasta login) -->
     <section class="dashboard" id="dashboardSection" style="display:none;">
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
-      <button id="btnLogout">Cerrar Sesión</button>
 
       <!-- Filtros -->
       <div class="filters-container">
-        <input type="text" id="filterFecha" placeholder="Filtrar por Fecha" />
-        <input type="text" id="filterAsignado" placeholder="Filtrar por Asignado" />
-        <input type="text" id="filterEstado" placeholder="Filtrar por Estado" />
-        <input type="text" id="filterEmpresa" placeholder="Filtrar por Empresa" />
-        <input type="text" id="filterGrupo" placeholder="Filtrar por Grupo" />
-        <input type="text" id="filterFolio" placeholder="Filtrar por Folio" />
+        <div class="form-inline">
+          <input type="text" id="filterFecha" placeholder="Filtrar por Fecha" />
+          <!-- Filtro “Asignado a” se ocultará para consultor (vía script) -->
+          <input type="text" id="filterAsignado" placeholder="Filtrar por Asignado" />
+          <input type="checkbox" id="chkExcludeAsignado" /> Excluir
+        </div>
+
+        <div class="form-inline">
+          <input type="text" id="filterEstado" placeholder="Filtrar por Estado" />
+          <input type="checkbox" id="chkExcludeEstado" /> Excluir
+        </div>
+
+        <div class="form-inline">
+          <input type="text" id="filterEmpresa" placeholder="Filtrar por Empresa" />
+          <input type="checkbox" id="chkExcludeEmpresa" /> Excluir
+        </div>
+
+        <div class="form-inline">
+          <input type="text" id="filterGrupo" placeholder="Filtrar por Grupo" />
+          <input type="checkbox" id="chkExcludeGrupo" /> Excluir
+        </div>
+
+        <div class="form-inline">
+          <input type="text" id="filterFolio" placeholder="Filtrar por Folio" />
+          <input type="checkbox" id="chkExcludeFolio" /> Excluir
+        </div>
+
         <button id="btnAplicarFiltros">Aplicar Filtros</button>
         <button id="btnLimpiarFiltros">Limpiar Filtros</button>
       </div>
@@ -61,7 +84,7 @@
         <h3>Crear Tarea</h3>
         <div class="form-inline">
           <input type="text" id="newTaskName" placeholder="Nombre de la tarea" />
-          <input type="text" id="newTaskAssigned" placeholder="Asignado a (email)" />
+          <input type="text" id="newTaskAssigned" placeholder="Asignado a (nombre usuario o email)" />
         </div>
         <div class="form-inline">
           <input type="text" id="newEmpresa" placeholder="Empresa" />
@@ -81,13 +104,13 @@
             <th>ID Tarea</th>
             <th>Fecha Asignación</th>
             <th>Nombre</th>
-            <th>Asignado a</th>
-            <th>Estado + Indicador</th>
+            <th class="colAsignado">Asignado a</th>
+            <th>Estado</th>
             <th>Empresa</th>
             <th>Grupo</th>
             <th>Folio</th>
             <th>Horas Asignadas</th>
-            <th>Acciones</th>
+            <th class="colAcciones">Acciones</th>
           </tr>
         </thead>
         <tbody id="tasksBody"></tbody>
@@ -101,8 +124,9 @@
         <thead>
           <tr>
             <th>Email</th>
+            <th>Nombre Usuario</th>
             <th>Rol</th>
-            <th>Cambiar Rol</th>
+            <th>Cambiar Nombre / Rol</th>
           </tr>
         </thead>
         <tbody id="usersBody"></tbody>
@@ -111,7 +135,7 @@
 
   </div>
 
-  <!-- Footer: solo visible en login -->
+  <!-- Footer solo en login -->
   <footer id="loginFooter">
     <p>© 2025 Control Tarea GQ</p>
   </footer>
