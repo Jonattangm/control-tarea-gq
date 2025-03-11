@@ -7,7 +7,6 @@
 </head>
 <body>
   <div class="main-container">
-
     <!-- Sección de Login/Registro (visible inicialmente) -->
     <section id="authSection" class="auth-section" style="display:block;">
       <div class="auth-container">
@@ -45,32 +44,32 @@
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
 
-      <!-- Filtros compactos -->
+      <!-- Filtros -->
       <h3>Filtrar y Excluir</h3>
       <div class="filters-container">
         <div class="form-inline">
           <input type="text" id="filterFecha" placeholder="Filtrar por Fecha" />
-          <label><input type="checkbox" id="chkExcludeFecha" style="margin-right:3px;" />Excluir</label>
+          <label><input type="checkbox" id="chkExcludeFecha" />Excluir</label>
         </div>
         <div class="form-inline" id="rowFilterAsignado">
-          <input type="text" id="filterAsignado" placeholder="Filtrar por Asignado (email)" />
-          <label><input type="checkbox" id="chkExcludeAsignado" style="margin-right:3px;" />Excluir</label>
+          <input type="text" id="filterAsignado" placeholder="Filtrar por email Asignado" />
+          <label><input type="checkbox" id="chkExcludeAsignado" />Excluir</label>
         </div>
         <div class="form-inline">
           <input type="text" id="filterEstado" placeholder="Filtrar por Estado" />
-          <label><input type="checkbox" id="chkExcludeEstado" style="margin-right:3px;" />Excluir</label>
+          <label><input type="checkbox" id="chkExcludeEstado" />Excluir</label>
         </div>
         <div class="form-inline">
           <input type="text" id="filterEmpresa" placeholder="Filtrar por Empresa" />
-          <label><input type="checkbox" id="chkExcludeEmpresa" style="margin-right:3px;" />Excluir</label>
+          <label><input type="checkbox" id="chkExcludeEmpresa" />Excluir</label>
         </div>
         <div class="form-inline">
           <input type="text" id="filterGrupo" placeholder="Filtrar por Grupo" />
-          <label><input type="checkbox" id="chkExcludeGrupo" style="margin-right:3px;" />Excluir</label>
+          <label><input type="checkbox" id="chkExcludeGrupo" />Excluir</label>
         </div>
         <div class="form-inline">
           <input type="text" id="filterFolio" placeholder="Filtrar por Folio" />
-          <label><input type="checkbox" id="chkExcludeFolio" style="margin-right:3px;" />Excluir</label>
+          <label><input type="checkbox" id="chkExcludeFolio" />Excluir</label>
         </div>
         <div class="form-inline">
           <button id="btnAplicarFiltros">Aplicar Filtros</button>
@@ -81,11 +80,11 @@
       <!-- Formulario para crear/editar tareas -->
       <div id="taskCreation" style="display:none; margin-top:1rem;">
         <h3 id="frmTareaTitle">Crear Tarea</h3>
-        <!-- Eliminamos la necesidad de poner Asignado a (email) manualmente,
-             se pide Nombre de usuario -> buscaremos su email. -->
+        <!-- Campo "Responsable" => Nombre del usuario, 
+             buscaremos su email internamente. -->
         <div class="form-inline">
-          <input type="text" id="newTaskName" placeholder="Nombre de la tarea" />
-          <input type="text" id="newUserName" placeholder="Nombre Usuario (Responsable)" />
+          <input type="text" id="newTaskName" placeholder="Actividad" />
+          <input type="text" id="newUserName" placeholder="Responsable (Name)" />
         </div>
         <div class="form-inline">
           <input type="text" id="newEmpresa" placeholder="Empresa" />
@@ -98,20 +97,21 @@
         <button id="createTaskBtn">Crear Tarea</button>
       </div>
 
-      <!-- Tabla de Tareas -->
+      <!-- Tabla de Tareas (11 columnas) -->
       <table id="tasksTable">
         <thead>
           <tr>
-            <th>ID Tarea</th>
-            <th>Fecha Asignación</th>
-            <th>Responsable</th> <!-- Nuevo: Nombre Usuario -->
-            <th>Asignado a (email)</th>
-            <th>Estado</th>
-            <th>Empresa</th>
-            <th>Grupo</th>
-            <th>Folio</th>
-            <th>Horas Asignadas</th>
-            <th class="colAcciones">Acciones</th>
+            <th>ID Tarea</th>                <!-- 1 -->
+            <th>Fecha Asignación</th>        <!-- 2 -->
+            <th class="colResponsable">Responsable</th>  <!-- 3, oculta a consultor -->
+            <th>Actividad</th>              <!-- 4 -->
+            <th>Estado</th>                 <!-- 5 -->
+            <th>Empresa</th>                <!-- 6 -->
+            <th>Grupo</th>                  <!-- 7 -->
+            <th>Folio</th>                  <!-- 8 -->
+            <th>Horas Asignadas</th>        <!-- 9 -->
+            <th class="colAcciones">Acciones</th>         <!-- 10, oculta a consultor/senior -->
+            <th class="colAsignado">Asignado a (email)</th> <!-- 11, oculta para todos -->
           </tr>
         </thead>
         <tbody id="tasksBody"></tbody>
