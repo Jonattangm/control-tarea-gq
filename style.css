@@ -13,7 +13,7 @@ body {
 .main-container {
   display: flex;
   width: 100%;
-  min-height: 100vh; 
+  min-height: 100vh;
 }
 
 /* Sección Login/Registro con gradiente */
@@ -21,9 +21,9 @@ body {
   flex: 1;
   display: flex;
   justify-content: center;
-  align-items: flex-start; 
+  align-items: flex-start;
   background: linear-gradient(135deg, #81c2f7, #e684ae);
-  padding-top: 4rem; 
+  padding-top: 4rem;
 }
 .auth-container {
   background: #fff;
@@ -32,7 +32,7 @@ body {
   max-width: 360px;
   width: 100%;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  margin-bottom: 4rem; 
+  margin-bottom: 4rem;
 }
 .auth-container h2 {
   margin-top: 0;
@@ -102,10 +102,10 @@ th, td {
   margin: 0.5rem 0;
 }
 .filters-container {
-  margin-bottom: 1rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 .filters-container input {
   width: 140px;
