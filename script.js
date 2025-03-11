@@ -23,7 +23,7 @@ import {
  * CONFIG
  ****************************************************/
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
+  apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
   authDomain: "control-tarea-gq.firebaseapp.com",
   projectId: "control-tarea-gq",
   storageBucket: "control-tarea-gq.appspot.com",
