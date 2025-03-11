@@ -20,7 +20,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 /****************************************************
- * CONFIG
+ * CONFIGURACIÓN FIREBASE
  ****************************************************/
 const firebaseConfig = {
   apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
@@ -35,16 +35,16 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 /****************************************************
- * CONSTANTES
+ * CONSTANTES y VARIABLES
  ****************************************************/
+const DEFAULT_ROLE = "consultor";
 let currentUser = null;
 let currentRole = null;
-let allTasks = []; 
-let editTaskId = null; // Para modo edición
-let allUserNames = []; // Para autocompletar Asignado
+let allTasks = [];
+let editTaskId = null; // modo edición
 
-// Estados
-const TASK_STATES = [
+// Estados (para autocompletar)
+const ALL_STATES = [
   "Asignado","En proceso","Por revisar","Reportar","Finalizado",
   "SII","Municipalidad","Tesoreria","BPO"
 ];
@@ -57,7 +57,6 @@ const loginFooter = document.getElementById("loginFooter");
 const sidebar = document.getElementById("sidebar");
 const btnTareas = document.getElementById("btnTareas");
 const btnUsuarios = document.getElementById("btnUsuarios");
-
 const dashboardSection = document.getElementById("dashboardSection");
 const adminUsersSection = document.getElementById("adminUsersSection");
 
@@ -67,10 +66,10 @@ const passInput = document.getElementById("password");
 const btnRegister = document.getElementById("btnRegister");
 const btnLogin = document.getElementById("btnLogin");
 const authMessage = document.getElementById("authMessage");
+const btnLogout = document.getElementById("btnLogout");
 
 const userEmailSpan = document.getElementById("userEmail");
 const userRoleSpan = document.getElementById("userRole");
-const btnLogout = document.getElementById("btnLogout");
 
 const frmTareaTitle = document.getElementById("frmTareaTitle");
 const taskCreationDiv = document.getElementById("taskCreation");
@@ -81,17 +80,16 @@ const newGrupo = document.getElementById("newGrupo");
 const newFolio = document.getElementById("newFolio");
 const newHoras = document.getElementById("newHoras");
 const createTaskBtn = document.getElementById("createTaskBtn");
-
 const tasksTableBody = document.getElementById("tasksBody");
 const usersTableBody = document.getElementById("usersBody");
 
 /* Filtros */
 const filterFecha = document.getElementById("filterFecha");
 const chkExcludeFecha = document.getElementById("chkExcludeFecha");
-const filterEstado = document.getElementById("filterEstado");
-const chkExcludeEstado = document.getElementById("chkExcludeEstado");
 const filterAsignado = document.getElementById("filterAsignado");
 const chkExcludeAsignado = document.getElementById("chkExcludeAsignado");
+const filterEstado = document.getElementById("filterEstado");
+const chkExcludeEstado = document.getElementById("chkExcludeEstado");
 const filterEmpresa = document.getElementById("filterEmpresa");
 const chkExcludeEmpresa = document.getElementById("chkExcludeEmpresa");
 const filterGrupo = document.getElementById("filterGrupo");
@@ -101,30 +99,40 @@ const chkExcludeFolio = document.getElementById("chkExcludeFolio");
 
 const btnAplicarFiltros = document.getElementById("btnAplicarFiltros");
 const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
+
 const listUsersDataList = document.getElementById("listUsers");
+const listStates = document.getElementById("listStates");
 
 /****************************************************
  * DOMContentLoaded
  ****************************************************/
-document.addEventListener("DOMContentLoaded", () => {
-  authForm?.addEventListener("submit", (e) => e.preventDefault());
-  btnRegister?.addEventListener("click", registerUser);
-  btnLogin?.addEventListener("click", loginUser);
-  btnLogout?.addEventListener("click", async () => await signOut(auth));
+document.addEventListener("DOMContentLoaded", async () => {
+  // Evita recargar form
+  authForm.addEventListener("submit", (e) => e.preventDefault());
+  btnRegister.addEventListener("click", registerUser);
+  btnLogin.addEventListener("click", loginUser);
+  btnLogout.addEventListener("click", async () => await signOut(auth));
 
-  createTaskBtn?.addEventListener("click", handleTaskForm);
+  createTaskBtn.addEventListener("click", handleTaskForm);
 
-  btnTareas?.addEventListener("click", () => {
+  btnTareas.addEventListener("click", () => {
     dashboardSection.style.display = "block";
     adminUsersSection.style.display = "none";
   });
-  btnUsuarios?.addEventListener("click", () => {
+  btnUsuarios.addEventListener("click", () => {
     dashboardSection.style.display = "none";
     adminUsersSection.style.display = "block";
   });
 
-  btnAplicarFiltros?.addEventListener("click", aplicarFiltros);
-  btnLimpiarFiltros?.addEventListener("click", limpiarFiltros);
+  btnAplicarFiltros.addEventListener("click", aplicarFiltros);
+  btnLimpiarFiltros.addEventListener("click", limpiarFiltros);
+
+  // Llenar autocompletado de ESTADOS (listStates)
+  ALL_STATES.forEach(st => {
+    const opt = document.createElement("option");
+    opt.value = st;
+    listStates.appendChild(opt);
+  });
 });
 
 /****************************************************
@@ -139,8 +147,8 @@ onAuthStateChanged(auth, async (user) => {
     if (snap.exists()) {
       currentRole = snap.data().role;
     } else {
-      await setDoc(userDoc, { role: "consultor", email: user.email.toLowerCase() });
-      currentRole = "consultor";
+      await setDoc(userDoc, { role: DEFAULT_ROLE, email: user.email.toLowerCase() });
+      currentRole = DEFAULT_ROLE;
     }
 
     // Muestra Dashboard
@@ -152,36 +160,34 @@ onAuthStateChanged(auth, async (user) => {
     userEmailSpan.textContent = user.email;
     userRoleSpan.textContent = currentRole;
 
-    // Ocultar/mostrar columnas
+    // Rol Senior => ver Asignado, no ver Acciones
+    // Supervisor => igual admin (ver todo, excepto admin users)
+    // Consultor => no ver Asignado, no ver Acciones
     if (currentRole === "consultor") {
       document.querySelectorAll(".colAsignado, .colAcciones").forEach(col => {
         col.style.display = "none";
       });
+      // Oculta rowFilterAsignado
       document.getElementById("rowFilterAsignado").style.display = "none";
     } else if (currentRole === "senior") {
-      // muestra Asignado
       document.querySelectorAll(".colAsignado").forEach(col => {
         col.style.display = "";
       });
-      // oculta Acciones
       document.querySelectorAll(".colAcciones").forEach(col => {
         col.style.display = "none";
       });
-    } else {
-      // admin y supervisor => ver todo
+    } else if (currentRole === "supervisor") {
+      // Mismas vistas que admin, excepto Admin Users
       document.querySelectorAll(".colAsignado, .colAcciones").forEach(col => {
         col.style.display = "";
       });
-    }
-
-    // Supervisor = admin except Admin Users
-    if (currentRole === "admin") {
+      btnUsuarios.style.display = "none";
+    } else if (currentRole === "admin") {
+      document.querySelectorAll(".colAsignado, .colAcciones").forEach(col => {
+        col.style.display = "";
+      });
       btnUsuarios.style.display = "inline-block";
       loadAllUsers();
-    } else if (currentRole === "supervisor") {
-      btnUsuarios.style.display = "none";
-    } else {
-      btnUsuarios.style.display = "none";
     }
 
     if (["admin","supervisor"].includes(currentRole)) {
@@ -190,11 +196,9 @@ onAuthStateChanged(auth, async (user) => {
       taskCreationDiv.style.display = "none";
     }
 
-    await loadAllUserNames(); // carga listUsersDataList
     listenTasks();
-
   } else {
-    // no user
+    // No user
     currentUser = null;
     currentRole = null;
     authSection.style.display = "block";
@@ -204,28 +208,6 @@ onAuthStateChanged(auth, async (user) => {
     adminUsersSection.style.display = "none";
   }
 });
-
-/****************************************************
- * loadAllUserNames => para autocompletar
- ****************************************************/
-async function loadAllUserNames() {
-  allUserNames = [];
-  listUsersDataList.innerHTML = "";
-  const snap = await getDocs(collection(db, "users"));
-  snap.forEach(docu => {
-    const dat = docu.data();
-    // si tiene name, lo agregamos
-    if (dat.name) {
-      allUserNames.push(dat.name.trim());
-    }
-  });
-  // Pintamos en <datalist> 
-  allUserNames.forEach(n => {
-    const option = document.createElement("option");
-    option.value = n;
-    listUsersDataList.appendChild(option);
-  });
-}
 
 /****************************************************
  * REGISTRO / LOGIN
@@ -261,40 +243,16 @@ async function loginUser() {
  ****************************************************/
 async function handleTaskForm() {
   if (!newTaskName.value.trim() || !newTaskAssigned.value.trim()) {
-    alert("Completa al menos Nombre y Asignado a (Name).");
+    alert("Completa al menos Nombre y Asignado a (nombre usuario o email).");
     return;
   }
   try {
-    // Verifica si el nombre de usuario existe
-    const nameUsr = newTaskAssigned.value.trim();
-    if (!allUserNames.includes(nameUsr)) {
-      alert("Error: no existe el usuario con nombre '" + nameUsr + "'.");
-      return;
-    }
-
-    // ID correlativo
-    const colRef = collection(db, "tasks");
-    const snapshot = await getDocs(colRef);
-    let maxId = 0;
-    snapshot.forEach(d => {
-      const dt = d.data();
-      if (dt.idTarea && dt.idTarea > maxId) {
-        maxId = dt.idTarea;
-      }
-    });
-    const nextId = maxId + 1;
-
-    // No hay modo edición en el enunciado (?), o lo mantenemos?
-    // Mantenemos la edición en la tabla? => Se solicitó mover a "Editar" en la tabla...
-    // En la consigna se dijo "quinto lugar, en tema de diseño ..." => Sí, ya lo hicimos en la anterior. 
-    // Reemplazamos la lógica con un "Create only" or "Edit if needed"?  
-    // Usamos la variable 'editTaskId' si la retuvimos?
-
     if (editTaskId) {
       // Modo edición
+      const assignedName = newTaskAssigned.value.trim();
       await updateDoc(doc(db, "tasks", editTaskId), {
         name: newTaskName.value.trim(),
-        assignedTo: nameUsr,
+        assignedTo: assignedName,
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
@@ -304,11 +262,22 @@ async function handleTaskForm() {
       clearTaskForm();
     } else {
       // Crear
+      const colRef = collection(db, "tasks");
+      const snapshot = await getDocs(colRef);
+      let maxId = 0;
+      snapshot.forEach(d => {
+        const data = d.data();
+        if (data.idTarea && data.idTarea > maxId) {
+          maxId = data.idTarea;
+        }
+      });
+      const nextId = maxId + 1;
+
       await addDoc(colRef, {
         idTarea: nextId,
         fechaAsignacion: new Date().toLocaleDateString("es-CL"),
         name: newTaskName.value.trim(),
-        assignedTo: nameUsr, // Guardamos el name
+        assignedTo: newTaskAssigned.value.trim(), // Guardamos el Name
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
@@ -332,7 +301,7 @@ function clearTaskForm() {
   newGrupo.value = "";
   newFolio.value = "";
   newHoras.value = "";
-  editTaskId = null;
+  editTaskId = null; 
   document.getElementById("frmTareaTitle").textContent = "Crear Tarea";
   createTaskBtn.textContent = "Crear Tarea";
 }
@@ -354,27 +323,17 @@ function listenTasks() {
 /****************************************************
  * RENDER TAREAS
  ****************************************************/
-function renderTasks(tasksArray) {
+async function renderTasks(tasksArray) {
   tasksTableBody.innerHTML = "";
 
-  let arr = tasksArray.slice();
-  // Filtra consultor => assignedTo == su name
-  if (currentRole === "consultor" && currentUser) {
-    // Debemos buscar su 'name' => es la data en doc 'users'? 
-    // Asumimos que en userDoc se guardó name
-    // Omisión: si su name no existe => no ve nada
-    // Podríamos cargar su name cuando onAuthStateChanged => de user doc => store in a var
-    // Para simplificar, supongamos que 'currentUserName' lo guardamos. 
-    // Revisamos en userDoc: name?
-  }
-  // Dejar la lógica en filtrar con un userDoc approach => simplest is to store userName in local var
-  // For the sake of the code, let's assume we have "currentUserName" from userDoc
-  // We'll do that in onAuthStateChanged:
-  let currentUserName = sessionStorage.getItem("myName") || ""; 
-  // ... we'll do it properly in code => see below onAuthStateChanged for real approach.
+  // Filtra consultor => assignedTo == su NAME
+  // Para ello, necesitamos su name => guardado en Firestore (?)
+  // Si no hay name => no ve nada
+  let myName = await findUserName(currentUser?.uid); // busco su name
 
-  if (currentRole === "consultor" && currentUserName) {
-    arr = arr.filter(t => (t.assignedTo||"") === currentUserName);
+  let arr = tasksArray.slice();
+  if (currentRole === "consultor" && myName) {
+    arr = arr.filter(t => (t.assignedTo||"").toLowerCase() === myName.toLowerCase());
   }
 
   arr.forEach(task => {
@@ -385,19 +344,18 @@ function renderTasks(tasksArray) {
     tdId.textContent = task.idTarea ?? "N/A";
     tr.appendChild(tdId);
 
-    // Fecha
+    // Fecha Asignación
     const tdFecha = document.createElement("td");
     tdFecha.textContent = task.fechaAsignacion ?? "--";
     tr.appendChild(tdFecha);
 
-    // Nombre
+    // Nombre Tarea
     const tdName = document.createElement("td");
     tdName.textContent = task.name || "";
     tr.appendChild(tdName);
 
     // Asignado a
     const tdAsig = document.createElement("td");
-    tdAsig.classList.add("colAsignado");
     tdAsig.textContent = task.assignedTo || "";
     tr.appendChild(tdAsig);
 
@@ -405,21 +363,17 @@ function renderTasks(tasksArray) {
     const tdEstado = document.createElement("td");
     const selectStatus = document.createElement("select");
 
-    let possibleStates = [...TASK_STATES];
+    // Logica
+    let possibleStates = [...ALL_STATES];
     if (currentRole === "consultor") {
       if (["Finalizado","Reportar","Por revisar"].includes(task.status)) {
-        // no mover
         possibleStates = [task.status];
       } else {
-        // no final ni reportar
         possibleStates = ["Asignado","En proceso","Por revisar","SII","Municipalidad","Tesoreria","BPO"];
       }
     }
-    if (currentRole === "senior") {
-      if (["Finalizado","Reportar"].includes(task.status)) {
-        // no mover
-        possibleStates = [task.status];
-      }
+    if (currentRole === "senior" && ["Finalizado","Reportar"].includes(task.status)) {
+      possibleStates = [task.status];
     }
 
     possibleStates.forEach(st => {
@@ -429,19 +383,19 @@ function renderTasks(tasksArray) {
       if (st === task.status) opt.selected = true;
       selectStatus.appendChild(opt);
     });
-
     selectStatus.addEventListener("change", () => {
       const newSt = selectStatus.value;
-      // confirm consultor -> porrevisar
+
+      // confirm consultor -> por revisar
       if (currentRole === "consultor" && newSt === "Por revisar" && task.status !== "Por revisar") {
-        if (!confirm("¿Seguro de pasar la tarea a 'Por revisar'?")) {
+        if (!confirm("¿Pasar a Por revisar?")) {
           selectStatus.value = task.status;
           return;
         }
       }
       // confirm senior -> reportar
       if (currentRole === "senior" && newSt === "Reportar" && task.status !== "Reportar") {
-        if (!confirm("¿Seguro de pasar la tarea a 'Reportar'?")) {
+        if (!confirm("¿Pasar a Reportar?")) {
           selectStatus.value = task.status;
           return;
         }
@@ -460,7 +414,6 @@ function renderTasks(tasksArray) {
     indicator.classList.add("status-indicator");
     const lowered = (task.status||"").toLowerCase().replace(" ", "-");
     indicator.classList.add(`status-${lowered}`);
-
     tdEstado.appendChild(selectStatus);
     tdEstado.appendChild(indicator);
     tr.appendChild(tdEstado);
@@ -488,31 +441,29 @@ function renderTasks(tasksArray) {
     // Acciones
     const tdAcc = document.createElement("td");
     tdAcc.classList.add("colAcciones");
-    // Admin o Supervisor => Botón Editar + Eliminar
     if (["admin","supervisor"].includes(currentRole)) {
+      // Editar
       const btnEdit = document.createElement("button");
       btnEdit.textContent = "Editar";
       btnEdit.addEventListener("click", () => {
         editTaskId = task.docId;
-        frmTareaTitle.textContent = "Editar Tarea (ID: "+(task.idTarea || "N/A")+")";
+        frmTareaTitle.textContent = "Editar Tarea (ID: "+(task.idTarea||"N/A")+")";
         createTaskBtn.textContent = "Actualizar Tarea";
-
         newTaskName.value = task.name || "";
+        newTaskAssigned.value = task.assignedTo || "";
         newEmpresa.value = task.empresa || "";
         newGrupo.value = task.grupoCliente || "";
         newFolio.value = task.folioProyecto || "";
         newHoras.value = task.horasAsignadas || "";
-
-        // Asignado => Name
-        newTaskAssigned.value = task.assignedTo || "";
       });
       tdAcc.appendChild(btnEdit);
 
+      // Eliminar
       const btnDel = document.createElement("button");
       btnDel.textContent = "Eliminar";
       btnDel.style.marginLeft = "5px";
       btnDel.addEventListener("click", async () => {
-        if (confirm("¿Deseas eliminar la tarea?")) {
+        if (confirm("¿Eliminar la tarea?")) {
           await deleteDoc(doc(db, "tasks", task.docId));
         }
       });
@@ -528,18 +479,18 @@ function renderTasks(tasksArray) {
  * canChangeStatus
  ****************************************************/
 function canChangeStatus(role, currentSt, newSt) {
-  // consultor: no mover si final,reportar,porrevisar
+  // Consultor => no mover si ya en Final,Reportar,PorRevisar
+  // Senior => no mover si ya en Final,Reportar
   if (role === "consultor") {
     if (["Finalizado","Reportar","Por revisar"].includes(currentSt)) return false;
     if (["Finalizado","Reportar"].includes(newSt)) return false;
     return true;
   }
-  // senior: no mover si final/reportar
   if (role === "senior") {
     if (["Finalizado","Reportar"].includes(currentSt)) return false;
     return true;
   }
-  // sup, admin => todo
+  // sup, admin => total
   return true;
 }
 
@@ -552,7 +503,20 @@ async function updateTaskStatus(docId, newStatus) {
 }
 
 /****************************************************
- * ADMIN: CARGAR/MODIFICAR USUARIOS
+ * Otras Funciones
+ ****************************************************/
+async function findUserName(uid) {
+  if (!uid) return "";
+  const ref = doc(db, "users", uid);
+  const sp = await getDoc(ref);
+  if (!sp.exists()) return "";
+  const dat = sp.data();
+  if (!dat.name) return "";
+  return dat.name;
+}
+
+/****************************************************
+ * ADMIN: CARGAR USUARIOS
  ****************************************************/
 async function loadAllUsers() {
   usersTableBody.innerHTML = "";
@@ -605,14 +569,14 @@ async function loadAllUsers() {
       }
     });
     tdChange.appendChild(selectRole);
-
     tr.appendChild(tdChange);
+
     usersTableBody.appendChild(tr);
   });
 }
 
 /****************************************************
- * FILTROS (con excluir)
+ * FILTROS
  ****************************************************/
 function aplicarFiltros() {
   if (!allTasks) return;
@@ -620,14 +584,19 @@ function aplicarFiltros() {
 
   const valFecha = filterFecha.value.trim().toLowerCase();
   const exFecha = chkExcludeFecha.checked;
-  const valEst = filterEstado.value.trim().toLowerCase();
-  const exEst = chkExcludeEstado.checked;
+
   const valAsig = filterAsignado.value.trim().toLowerCase();
   const exAsig = chkExcludeAsignado.checked;
+
+  const valEst = filterEstado.value.trim().toLowerCase();
+  const exEst = chkExcludeEstado.checked;
+
   const valEmp = filterEmpresa.value.trim().toLowerCase();
   const exEmp = chkExcludeEmpresa.checked;
+
   const valGru = filterGrupo.value.trim().toLowerCase();
   const exGru = chkExcludeGrupo.checked;
+
   const valFol = filterFolio.value.trim().toLowerCase();
   const exFol = chkExcludeFolio.checked;
 
@@ -635,59 +604,85 @@ function aplicarFiltros() {
     // Fecha
     if (valFecha) {
       const has = (t.fechaAsignacion||"").toLowerCase().includes(valFecha);
-      if (exFecha) { if (has) return false; } else if (!has) return false;
+      if (exFecha) {
+        if (has) return false;
+      } else {
+        if (!has) return false;
+      }
+    }
+    // Asignado
+    if (valAsig) {
+      const assigned = (t.assignedTo||"").toLowerCase();
+      const match = assigned.includes(valAsig);
+      if (exAsig) {
+        if (match) return false;
+      } else {
+        if (!match) return false;
+      }
     }
     // Estado
     if (valEst) {
       const st = (t.status||"").toLowerCase();
       const match = st.includes(valEst);
-      if (exEst) { if (match) return false; } else if (!match) return false;
-    }
-    // Asignado => name
-    if (valAsig) {
-      const asig = (t.assignedTo||"").toLowerCase();
-      const match = asig.includes(valAsig);
-      if (exAsig) { if (match) return false; } else if (!match) return false;
+      if (exEst) {
+        if (match) return false;
+      } else {
+        if (!match) return false;
+      }
     }
     // Empresa
     if (valEmp) {
       const e = (t.empresa||"").toLowerCase();
       const match = e.includes(valEmp);
-      if (exEmp) { if (match) return false; } else if (!match) return false;
+      if (exEmp) {
+        if (match) return false;
+      } else {
+        if (!match) return false;
+      }
     }
     // Grupo
     if (valGru) {
       const g = (t.grupoCliente||"").toLowerCase();
       const match = g.includes(valGru);
-      if (exGru) { if (match) return false; } else if (!match) return false;
+      if (exGru) {
+        if (match) return false;
+      } else {
+        if (!match) return false;
+      }
     }
     // Folio
     if (valFol) {
       const f = (t.folioProyecto||"").toLowerCase();
       const match = f.includes(valFol);
-      if (exFol) { if (match) return false; } else if (!match) return false;
+      if (exFol) {
+        if (match) return false;
+      } else {
+        if (!match) return false;
+      }
     }
-
     return true;
   });
 
-  // Filtra adicional por consultor => assignedTo == su name
+  // Filtra adicional consultor => assignedTo == su "name"? 
+  // Pero el actual code is assignedTo == user.email => not correct if tasks store name?
+  // We fix => userDoc might have name. We'll do findUserName below if needed.
   if (currentRole === "consultor") {
-    // su name => lo guardamos en session o algo
-    let myName = sessionStorage.getItem("myName") || "";
-    arr = arr.filter(t => t.assignedTo === myName);
+    findUserName(currentUser?.uid).then(name => {
+      const finalArr = arr.filter(t => (t.assignedTo||"").toLowerCase() === (name||"").toLowerCase());
+      renderTasks(finalArr);
+    });
+  } else {
+    renderTasks(arr);
   }
-
-  renderTasks(arr);
 }
 
 function limpiarFiltros() {
   filterFecha.value = "";
   chkExcludeFecha.checked = false;
-  filterEstado.value = "";
-  chkExcludeEstado.checked = false;
   filterAsignado.value = "";
   chkExcludeAsignado.checked = false;
+  filterEstado.value = "";
+  chkExcludeEstado.checked = false;
   filterEmpresa.value = "";
   chkExcludeEmpresa.checked = false;
   filterGrupo.value = "";
@@ -696,9 +691,21 @@ function limpiarFiltros() {
   chkExcludeFolio.checked = false;
 
   if (currentRole === "consultor") {
-    let myName = sessionStorage.getItem("myName") || "";
-    renderTasks(allTasks.filter(t => t.assignedTo === myName));
+    findUserName(currentUser?.uid).then(name => {
+      renderTasks(allTasks.filter(t => (t.assignedTo||"").toLowerCase() === (name||"").toLowerCase()));
+    });
   } else {
     renderTasks(allTasks);
   }
+}
+
+/****************************************************
+ * findUserName => obtiene name de userDoc
+ ****************************************************/
+async function findUserName(uid) {
+  if (!uid) return "";
+  const ref = doc(db, "users", uid);
+  const sp = await getDoc(ref);
+  if (!sp.exists()) return "";
+  return sp.data().name || "";
 }
