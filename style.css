@@ -104,7 +104,7 @@ th, td {
 .filters-container {
   margin-bottom: 1rem;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
 }
 .filters-container input {
