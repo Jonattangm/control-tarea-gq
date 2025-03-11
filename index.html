@@ -6,7 +6,10 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+  <!-- Contenedor Principal -->
   <div class="main-container">
+
     <!-- Sección de Login/Registro (visible inicialmente) -->
     <section id="authSection" class="auth-section" style="display:block;">
       <div class="auth-container">
@@ -29,77 +32,74 @@
       </div>
     </section>
 
-    <!-- Barra lateral (oculta hasta login) -->
+    <!-- Barra lateral (oculta hasta que el usuario haga login) -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
-      <!-- Administrar Usuarios solo para Admin -->
       <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
       <div class="sidebar-bottom">
         <button id="btnLogout">Cerrar Sesión</button>
       </div>
     </div>
 
-    <!-- Sección Tareas (oculta hasta login) -->
+    <!-- Sección de Tareas / Dashboard (oculta hasta login) -->
     <section class="dashboard" id="dashboardSection" style="display:none;">
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
 
-      <!-- Contenedor de Crear Tarea + Filtros en la derecha -->
-      <div class="top-container">
-        <!-- Form Crear/Editar Tarea -->
-        <div id="taskCreation" style="display:none;">
-          <h3 id="frmTareaTitle">Crear Tarea</h3>
-          <div class="form-inline">
-            <input type="text" id="newTaskName" placeholder="Nombre de la tarea" />
-            <input list="listUsers" id="newTaskAssigned" placeholder="Asignado a (Nombre)" />
-            <datalist id="listUsers"></datalist>
-          </div>
-          <div class="form-inline">
-            <input type="text" id="newEmpresa" placeholder="Empresa" />
-            <input type="text" id="newGrupo" placeholder="Grupo Cliente" />
-            <input type="text" id="newFolio" placeholder="Folio proyecto" />
-          </div>
-          <div class="form-inline">
-            <input type="text" id="newHoras" placeholder="Horas Asignadas (ej: 2:30)" />
-          </div>
-          <button id="createTaskBtn">Crear Tarea</button>
+      <!-- Filtros -->
+      <div class="filters-container">
+        <div class="form-inline">
+          <input type="text" id="filterFecha" placeholder="Filtrar por Fecha" />
+          <label><input type="checkbox" id="chkExcludeFecha" style="margin-right:3px;" />Excluir</label>
         </div>
 
-        <!-- Filtros + Excluir -->
-        <div id="filtersSection">
-          <h3>Filtrar y Excluir</h3>
-          <div class="filters-container">
-            <div class="form-inline">
-              <input type="text" id="filterFecha" placeholder="Filtrar por Fecha" />
-              <label><input type="checkbox" id="chkExcludeFecha" style="margin-right:3px;" />Excluir</label>
-            </div>
-            <div class="form-inline" id="rowFilterAsignado">
-              <input type="text" id="filterAsignado" placeholder="Filtrar por Asignado (Name)" />
-              <label><input type="checkbox" id="chkExcludeAsignado" style="margin-right:3px;" />Excluir</label>
-            </div>
-            <div class="form-inline">
-              <input list="listStates" id="filterEstado" placeholder="Filtrar por Estado" />
-              <datalist id="listStates"></datalist>
-              <label><input type="checkbox" id="chkExcludeEstado" style="margin-right:3px;" />Excluir</label>
-            </div>
-            <div class="form-inline">
-              <input type="text" id="filterEmpresa" placeholder="Empresa" />
-              <label><input type="checkbox" id="chkExcludeEmpresa" style="margin-right:3px;" />Excluir</label>
-            </div>
-            <div class="form-inline">
-              <input type="text" id="filterGrupo" placeholder="Grupo" />
-              <label><input type="checkbox" id="chkExcludeGrupo" style="margin-right:3px;" />Excluir</label>
-            </div>
-            <div class="form-inline">
-              <input type="text" id="filterFolio" placeholder="Folio" />
-              <label><input type="checkbox" id="chkExcludeFolio" style="margin-right:3px;" />Excluir</label>
-            </div>
-            <div class="form-inline">
-              <button id="btnAplicarFiltros">Aplicar</button>
-              <button id="btnLimpiarFiltros">Limpiar</button>
-            </div>
-          </div>
+        <div class="form-inline" id="rowFilterAsignado">
+          <input type="text" id="filterAsignado" placeholder="Filtrar por Asignado" />
+          <label><input type="checkbox" id="chkExcludeAsignado" style="margin-right:3px;" />Excluir</label>
         </div>
+
+        <div class="form-inline">
+          <input type="text" id="filterEstado" placeholder="Filtrar por Estado" />
+          <label><input type="checkbox" id="chkExcludeEstado" style="margin-right:3px;" />Excluir</label>
+        </div>
+
+        <div class="form-inline">
+          <input type="text" id="filterEmpresa" placeholder="Filtrar por Empresa" />
+          <label><input type="checkbox" id="chkExcludeEmpresa" style="margin-right:3px;" />Excluir</label>
+        </div>
+
+        <div class="form-inline">
+          <input type="text" id="filterGrupo" placeholder="Filtrar por Grupo" />
+          <label><input type="checkbox" id="chkExcludeGrupo" style="margin-right:3px;" />Excluir</label>
+        </div>
+
+        <div class="form-inline">
+          <input type="text" id="filterFolio" placeholder="Filtrar por Folio" />
+          <label><input type="checkbox" id="chkExcludeFolio" style="margin-right:3px;" />Excluir</label>
+        </div>
+
+        <div class="form-inline">
+          <button id="btnAplicarFiltros">Aplicar Filtros</button>
+          <button id="btnLimpiarFiltros">Limpiar Filtros</button>
+        </div>
+      </div>
+
+      <!-- Formulario para crear/editar tareas -->
+      <div id="taskCreation" style="display:none; margin-top:1rem;">
+        <h3 id="frmTareaTitle">Crear Tarea</h3>
+        <div class="form-inline">
+          <input type="text" id="newTaskName" placeholder="Nombre de la tarea" />
+          <input type="text" id="newTaskAssigned" placeholder="Asignado a (nombre usuario o email)" />
+        </div>
+        <div class="form-inline">
+          <input type="text" id="newEmpresa" placeholder="Empresa" />
+          <input type="text" id="newGrupo" placeholder="Grupo Cliente" />
+          <input type="text" id="newFolio" placeholder="Folio proyecto" />
+        </div>
+        <div class="form-inline">
+          <input type="text" id="newHoras" placeholder="Horas Asignadas (ej: 2:30)" />
+        </div>
+        <button id="createTaskBtn">Crear Tarea</button>
       </div>
 
       <!-- Tabla de Tareas -->
@@ -122,7 +122,7 @@
       </table>
     </section>
 
-    <!-- Sección Administrar Usuarios (solo Admin) -->
+    <!-- Sección de Administración de Usuarios (solo Admin) -->
     <section class="dashboard" id="adminUsersSection" style="display:none;">
       <h2>Administrar Usuarios</h2>
       <table id="usersTable">

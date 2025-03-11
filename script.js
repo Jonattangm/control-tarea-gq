@@ -20,7 +20,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 /****************************************************
- * CONFIGURACIÓN FIREBASE
+ * CONFIG
  ****************************************************/
 const firebaseConfig = {
   apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
@@ -30,33 +30,36 @@ const firebaseConfig = {
   messagingSenderId: "449145637626",
   appId: "1:449145637626:web:23b51b68fcadd6eaa11743"
 };
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 /****************************************************
- * CONSTANTES y VARIABLES
+ * CONSTANTES
  ****************************************************/
 const DEFAULT_ROLE = "consultor";
 let currentUser = null;
 let currentRole = null;
-let allTasks = [];
-let editTaskId = null; // modo edición
+let allTasks = []; 
+let editTaskId = null; // Para modo edición
 
-// Estados (para autocompletar)
-const ALL_STATES = [
+// Agregamos estados extras
+const TASK_STATES = [
   "Asignado","En proceso","Por revisar","Reportar","Finalizado",
   "SII","Municipalidad","Tesoreria","BPO"
 ];
 
 /****************************************************
- * REFERENCIAS DOM
+ * DOM
  ****************************************************/
 const authSection = document.getElementById("authSection");
 const loginFooter = document.getElementById("loginFooter");
+
 const sidebar = document.getElementById("sidebar");
 const btnTareas = document.getElementById("btnTareas");
 const btnUsuarios = document.getElementById("btnUsuarios");
+
 const dashboardSection = document.getElementById("dashboardSection");
 const adminUsersSection = document.getElementById("adminUsersSection");
 
@@ -66,12 +69,11 @@ const passInput = document.getElementById("password");
 const btnRegister = document.getElementById("btnRegister");
 const btnLogin = document.getElementById("btnLogin");
 const authMessage = document.getElementById("authMessage");
-const btnLogout = document.getElementById("btnLogout");
 
 const userEmailSpan = document.getElementById("userEmail");
 const userRoleSpan = document.getElementById("userRole");
+const btnLogout = document.getElementById("btnLogout");
 
-const frmTareaTitle = document.getElementById("frmTareaTitle");
 const taskCreationDiv = document.getElementById("taskCreation");
 const newTaskName = document.getElementById("newTaskName");
 const newTaskAssigned = document.getElementById("newTaskAssigned");
@@ -80,6 +82,7 @@ const newGrupo = document.getElementById("newGrupo");
 const newFolio = document.getElementById("newFolio");
 const newHoras = document.getElementById("newHoras");
 const createTaskBtn = document.getElementById("createTaskBtn");
+
 const tasksTableBody = document.getElementById("tasksBody");
 const usersTableBody = document.getElementById("usersBody");
 
@@ -100,39 +103,28 @@ const chkExcludeFolio = document.getElementById("chkExcludeFolio");
 const btnAplicarFiltros = document.getElementById("btnAplicarFiltros");
 const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
 
-const listUsersDataList = document.getElementById("listUsers");
-const listStates = document.getElementById("listStates");
-
 /****************************************************
  * DOMContentLoaded
  ****************************************************/
-document.addEventListener("DOMContentLoaded", async () => {
-  // Evita recargar form
-  authForm.addEventListener("submit", (e) => e.preventDefault());
-  btnRegister.addEventListener("click", registerUser);
-  btnLogin.addEventListener("click", loginUser);
-  btnLogout.addEventListener("click", async () => await signOut(auth));
+document.addEventListener("DOMContentLoaded", () => {
+  authForm?.addEventListener("submit", (e) => e.preventDefault());
+  btnRegister?.addEventListener("click", registerUser);
+  btnLogin?.addEventListener("click", loginUser);
+  btnLogout?.addEventListener("click", async () => await signOut(auth));
 
-  createTaskBtn.addEventListener("click", handleTaskForm);
+  createTaskBtn?.addEventListener("click", handleTaskForm);
 
-  btnTareas.addEventListener("click", () => {
+  btnTareas?.addEventListener("click", () => {
     dashboardSection.style.display = "block";
     adminUsersSection.style.display = "none";
   });
-  btnUsuarios.addEventListener("click", () => {
+  btnUsuarios?.addEventListener("click", () => {
     dashboardSection.style.display = "none";
     adminUsersSection.style.display = "block";
   });
 
-  btnAplicarFiltros.addEventListener("click", aplicarFiltros);
-  btnLimpiarFiltros.addEventListener("click", limpiarFiltros);
-
-  // Llenar autocompletado de ESTADOS (listStates)
-  ALL_STATES.forEach(st => {
-    const opt = document.createElement("option");
-    opt.value = st;
-    listStates.appendChild(opt);
-  });
+  btnAplicarFiltros?.addEventListener("click", aplicarFiltros);
+  btnLimpiarFiltros?.addEventListener("click", limpiarFiltros);
 });
 
 /****************************************************
@@ -160,9 +152,7 @@ onAuthStateChanged(auth, async (user) => {
     userEmailSpan.textContent = user.email;
     userRoleSpan.textContent = currentRole;
 
-    // Rol Senior => ver Asignado, no ver Acciones
-    // Supervisor => igual admin (ver todo, excepto admin users)
-    // Consultor => no ver Asignado, no ver Acciones
+    // Ocultar/mostrar columnas según rol
     if (currentRole === "consultor") {
       document.querySelectorAll(".colAsignado, .colAcciones").forEach(col => {
         col.style.display = "none";
@@ -170,33 +160,27 @@ onAuthStateChanged(auth, async (user) => {
       // Oculta rowFilterAsignado
       document.getElementById("rowFilterAsignado").style.display = "none";
     } else if (currentRole === "senior") {
-      document.querySelectorAll(".colAsignado").forEach(col => {
-        col.style.display = "";
-      });
+      // Solo oculta colAcciones
       document.querySelectorAll(".colAcciones").forEach(col => {
         col.style.display = "none";
       });
-    } else if (currentRole === "supervisor") {
-      // Mismas vistas que admin, excepto Admin Users
-      document.querySelectorAll(".colAsignado, .colAcciones").forEach(col => {
-        col.style.display = "";
-      });
-      btnUsuarios.style.display = "none";
-    } else if (currentRole === "admin") {
-      document.querySelectorAll(".colAsignado, .colAcciones").forEach(col => {
-        col.style.display = "";
-      });
-      btnUsuarios.style.display = "inline-block";
-      loadAllUsers();
     }
 
-    if (["admin","supervisor"].includes(currentRole)) {
+    if (["supervisor","admin"].includes(currentRole)) {
       taskCreationDiv.style.display = "block";
     } else {
       taskCreationDiv.style.display = "none";
     }
 
+    if (currentRole === "admin") {
+      btnUsuarios.style.display = "inline-block";
+      loadAllUsers();
+    } else {
+      btnUsuarios.style.display = "none";
+    }
+
     listenTasks();
+
   } else {
     // No user
     currentUser = null;
@@ -241,6 +225,7 @@ async function loginUser() {
 /****************************************************
  * CREAR/EDITAR TAREA
  ****************************************************/
+// Botón del formulario de tareas
 async function handleTaskForm() {
   if (!newTaskName.value.trim() || !newTaskAssigned.value.trim()) {
     alert("Completa al menos Nombre y Asignado a (nombre usuario o email).");
@@ -248,11 +233,11 @@ async function handleTaskForm() {
   }
   try {
     if (editTaskId) {
-      // Modo edición
-      const assignedName = newTaskAssigned.value.trim();
+      // Modo edición: Actualizar
+      const assignedEmail = await convertUserNameToEmail(newTaskAssigned.value.trim());
       await updateDoc(doc(db, "tasks", editTaskId), {
         name: newTaskName.value.trim(),
-        assignedTo: assignedName,
+        assignedTo: assignedEmail,
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
@@ -261,7 +246,7 @@ async function handleTaskForm() {
       alert("Tarea actualizada correctamente.");
       clearTaskForm();
     } else {
-      // Crear
+      // Modo creación
       const colRef = collection(db, "tasks");
       const snapshot = await getDocs(colRef);
       let maxId = 0;
@@ -272,12 +257,13 @@ async function handleTaskForm() {
         }
       });
       const nextId = maxId + 1;
+      const assignedEmail = await convertUserNameToEmail(newTaskAssigned.value.trim());
 
       await addDoc(colRef, {
         idTarea: nextId,
         fechaAsignacion: new Date().toLocaleDateString("es-CL"),
         name: newTaskName.value.trim(),
-        assignedTo: newTaskAssigned.value.trim(), // Guardamos el Name
+        assignedTo: assignedEmail,
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
@@ -301,7 +287,7 @@ function clearTaskForm() {
   newGrupo.value = "";
   newFolio.value = "";
   newHoras.value = "";
-  editTaskId = null; 
+  editTaskId = null; // Quita modo edición
   document.getElementById("frmTareaTitle").textContent = "Crear Tarea";
   createTaskBtn.textContent = "Crear Tarea";
 }
@@ -326,14 +312,20 @@ function listenTasks() {
 async function renderTasks(tasksArray) {
   tasksTableBody.innerHTML = "";
 
-  // Filtra consultor => assignedTo == su NAME
-  // Para ello, necesitamos su name => guardado en Firestore (?)
-  // Si no hay name => no ve nada
-  let myName = await findUserName(currentUser?.uid); // busco su name
+  // Para mostrar “Asignado a” -> buscar user name si existe
+  const allUsers = {};
+  const usersSnap = await getDocs(collection(db, "users"));
+  usersSnap.forEach(uDoc => {
+    const dat = uDoc.data();
+    if (dat.email) {
+      allUsers[dat.email.toLowerCase()] = dat.name || null; 
+    }
+  });
 
+  // Filtra si consultor => solo sus tareas
   let arr = tasksArray.slice();
-  if (currentRole === "consultor" && myName) {
-    arr = arr.filter(t => (t.assignedTo||"").toLowerCase() === myName.toLowerCase());
+  if (currentRole === "consultor" && currentUser) {
+    arr = arr.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase());
   }
 
   arr.forEach(task => {
@@ -349,31 +341,37 @@ async function renderTasks(tasksArray) {
     tdFecha.textContent = task.fechaAsignacion ?? "--";
     tr.appendChild(tdFecha);
 
-    // Nombre Tarea
+    // Nombre
     const tdName = document.createElement("td");
     tdName.textContent = task.name || "";
     tr.appendChild(tdName);
 
-    // Asignado a
-    const tdAsig = document.createElement("td");
-    tdAsig.textContent = task.assignedTo || "";
-    tr.appendChild(tdAsig);
+    // Asignado a -> Nombre de usuario si existe
+    const tdAssigned = document.createElement("td");
+    let userName = allUsers[(task.assignedTo||"").toLowerCase()];
+    tdAssigned.textContent = userName ? userName : task.assignedTo;
+    tr.appendChild(tdAssigned);
 
     // Estado + indicador
     const tdEstado = document.createElement("td");
     const selectStatus = document.createElement("select");
 
-    // Logica
-    let possibleStates = [...ALL_STATES];
+    // Lógica de qué estados mostrar
+    let possibleStates = TASK_STATES.slice();
     if (currentRole === "consultor") {
+      // No final/reportar, no revertir por revisar
       if (["Finalizado","Reportar","Por revisar"].includes(task.status)) {
+        // no puede cambiar
         possibleStates = [task.status];
       } else {
         possibleStates = ["Asignado","En proceso","Por revisar","SII","Municipalidad","Tesoreria","BPO"];
       }
     }
-    if (currentRole === "senior" && ["Finalizado","Reportar"].includes(task.status)) {
-      possibleStates = [task.status];
+    if (currentRole === "senior") {
+      // no mover si final/reportar
+      if (["Finalizado","Reportar"].includes(task.status)) {
+        possibleStates = [task.status];
+      }
     }
 
     possibleStates.forEach(st => {
@@ -383,19 +381,19 @@ async function renderTasks(tasksArray) {
       if (st === task.status) opt.selected = true;
       selectStatus.appendChild(opt);
     });
+
     selectStatus.addEventListener("change", () => {
       const newSt = selectStatus.value;
-
       // confirm consultor -> por revisar
       if (currentRole === "consultor" && newSt === "Por revisar" && task.status !== "Por revisar") {
-        if (!confirm("¿Pasar a Por revisar?")) {
+        if (!confirm("¿Seguro de pasar la tarea a Por revisar?")) {
           selectStatus.value = task.status;
           return;
         }
       }
       // confirm senior -> reportar
       if (currentRole === "senior" && newSt === "Reportar" && task.status !== "Reportar") {
-        if (!confirm("¿Pasar a Reportar?")) {
+        if (!confirm("¿Seguro de pasar la tarea a Reportar?")) {
           selectStatus.value = task.status;
           return;
         }
@@ -414,43 +412,52 @@ async function renderTasks(tasksArray) {
     indicator.classList.add("status-indicator");
     const lowered = (task.status||"").toLowerCase().replace(" ", "-");
     indicator.classList.add(`status-${lowered}`);
+
     tdEstado.appendChild(selectStatus);
     tdEstado.appendChild(indicator);
     tr.appendChild(tdEstado);
 
     // Empresa
-    const tdEmp = document.createElement("td");
-    tdEmp.textContent = task.empresa || "";
-    tr.appendChild(tdEmp);
+    const tdEmpresa = document.createElement("td");
+    tdEmpresa.textContent = task.empresa || "";
+    tr.appendChild(tdEmpresa);
 
     // Grupo
-    const tdGru = document.createElement("td");
-    tdGru.textContent = task.grupoCliente || "";
-    tr.appendChild(tdGru);
+    const tdGrupo = document.createElement("td");
+    tdGrupo.textContent = task.grupoCliente || "";
+    tr.appendChild(tdGrupo);
 
     // Folio
-    const tdFol = document.createElement("td");
-    tdFol.textContent = task.folioProyecto || "";
-    tr.appendChild(tdFol);
+    const tdFolio = document.createElement("td");
+    tdFolio.textContent = task.folioProyecto || "";
+    tr.appendChild(tdFolio);
 
     // Horas
-    const tdHrs = document.createElement("td");
-    tdHrs.textContent = task.horasAsignadas || "";
-    tr.appendChild(tdHrs);
+    const tdHoras = document.createElement("td");
+    tdHoras.textContent = task.horasAsignadas || "";
+    tr.appendChild(tdHoras);
 
     // Acciones
     const tdAcc = document.createElement("td");
     tdAcc.classList.add("colAcciones");
-    if (["admin","supervisor"].includes(currentRole)) {
-      // Editar
+    // Admin o Supervisor => Botón "Editar" y "Eliminar"
+    if ((currentRole === "admin") || (currentRole === "supervisor")) {
+      // Botón Editar
       const btnEdit = document.createElement("button");
       btnEdit.textContent = "Editar";
       btnEdit.addEventListener("click", () => {
+        // Carga datos en el form
         editTaskId = task.docId;
-        frmTareaTitle.textContent = "Editar Tarea (ID: "+(task.idTarea||"N/A")+")";
+        document.getElementById("frmTareaTitle").textContent = "Editar Tarea (ID: "+task.idTarea+")";
         createTaskBtn.textContent = "Actualizar Tarea";
         newTaskName.value = task.name || "";
-        newTaskAssigned.value = task.assignedTo || "";
+        // Convert assignedTo -> name si existe
+        let userName = allUsers[(task.assignedTo||"").toLowerCase()];
+        if (userName) {
+          newTaskAssigned.value = userName;
+        } else {
+          newTaskAssigned.value = task.assignedTo;
+        }
         newEmpresa.value = task.empresa || "";
         newGrupo.value = task.grupoCliente || "";
         newFolio.value = task.folioProyecto || "";
@@ -458,12 +465,12 @@ async function renderTasks(tasksArray) {
       });
       tdAcc.appendChild(btnEdit);
 
-      // Eliminar
+      // Botón Eliminar
       const btnDel = document.createElement("button");
       btnDel.textContent = "Eliminar";
       btnDel.style.marginLeft = "5px";
       btnDel.addEventListener("click", async () => {
-        if (confirm("¿Eliminar la tarea?")) {
+        if (confirm("¿Deseas eliminar la tarea?")) {
           await deleteDoc(doc(db, "tasks", task.docId));
         }
       });
@@ -476,21 +483,27 @@ async function renderTasks(tasksArray) {
 }
 
 /****************************************************
- * canChangeStatus
+ * CAMBIO DE ESTADO
  ****************************************************/
 function canChangeStatus(role, currentSt, newSt) {
-  // Consultor => no mover si ya en Final,Reportar,PorRevisar
-  // Senior => no mover si ya en Final,Reportar
+  // Consultor: NO mover si (Finalizado, Reportar, Por revisar)
+  // Senior: NO mover si (Finalizado, Reportar)
   if (role === "consultor") {
+    // Si ya está en Finalizado, Reportar o Por revisar => no mover
     if (["Finalizado","Reportar","Por revisar"].includes(currentSt)) return false;
+
+    // no puede usar finalizado, reportar
     if (["Finalizado","Reportar"].includes(newSt)) return false;
     return true;
   }
+
   if (role === "senior") {
+    // no mover si finalizado/reportar
     if (["Finalizado","Reportar"].includes(currentSt)) return false;
     return true;
   }
-  // sup, admin => total
+
+  // Supervisor, Admin => todo
   return true;
 }
 
@@ -503,20 +516,22 @@ async function updateTaskStatus(docId, newStatus) {
 }
 
 /****************************************************
- * Otras Funciones
+ * Convertir nombre a email
  ****************************************************/
-async function findUserName(uid) {
-  if (!uid) return "";
-  const ref = doc(db, "users", uid);
-  const sp = await getDoc(ref);
-  if (!sp.exists()) return "";
-  const dat = sp.data();
-  if (!dat.name) return "";
-  return dat.name;
+async function convertUserNameToEmail(nameOrEmail) {
+  const colRef = collection(db, "users");
+  const snapshot = await getDocs(colRef);
+  for (const docu of snapshot.docs) {
+    const dat = docu.data();
+    if ((dat.name||"").toLowerCase() === nameOrEmail) {
+      return dat.email || docu.id;
+    }
+  }
+  return nameOrEmail; // asume que es email si no coincide
 }
 
 /****************************************************
- * ADMIN: CARGAR USUARIOS
+ * ADMIN: Cargar/Modificar usuarios
  ****************************************************/
 async function loadAllUsers() {
   usersTableBody.innerHTML = "";
@@ -569,19 +584,20 @@ async function loadAllUsers() {
       }
     });
     tdChange.appendChild(selectRole);
-    tr.appendChild(tdChange);
 
+    tr.appendChild(tdChange);
     usersTableBody.appendChild(tr);
   });
 }
 
 /****************************************************
- * FILTROS
+ * FILTROS (con excluir)
  ****************************************************/
 function aplicarFiltros() {
   if (!allTasks) return;
   let arr = allTasks.slice();
 
+  // Captura
   const valFecha = filterFecha.value.trim().toLowerCase();
   const exFecha = chkExcludeFecha.checked;
 
@@ -601,7 +617,7 @@ function aplicarFiltros() {
   const exFol = chkExcludeFolio.checked;
 
   arr = arr.filter(t => {
-    // Fecha
+    // Filtro/Exclusión por Fecha Asignación
     if (valFecha) {
       const has = (t.fechaAsignacion||"").toLowerCase().includes(valFecha);
       if (exFecha) {
@@ -660,20 +676,16 @@ function aplicarFiltros() {
         if (!match) return false;
       }
     }
+
     return true;
   });
 
-  // Filtra adicional consultor => assignedTo == su "name"? 
-  // Pero el actual code is assignedTo == user.email => not correct if tasks store name?
-  // We fix => userDoc might have name. We'll do findUserName below if needed.
-  if (currentRole === "consultor") {
-    findUserName(currentUser?.uid).then(name => {
-      const finalArr = arr.filter(t => (t.assignedTo||"").toLowerCase() === (name||"").toLowerCase());
-      renderTasks(finalArr);
-    });
-  } else {
-    renderTasks(arr);
+  // Filtra adicional por consultor
+  if (currentRole === "consultor" && currentUser) {
+    arr = arr.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase());
   }
+
+  renderTasks(arr);
 }
 
 function limpiarFiltros() {
@@ -690,22 +702,10 @@ function limpiarFiltros() {
   filterFolio.value = "";
   chkExcludeFolio.checked = false;
 
-  if (currentRole === "consultor") {
-    findUserName(currentUser?.uid).then(name => {
-      renderTasks(allTasks.filter(t => (t.assignedTo||"").toLowerCase() === (name||"").toLowerCase()));
-    });
+  // Filtra adicional por consultor
+  if (currentRole === "consultor" && currentUser) {
+    renderTasks(allTasks.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase()));
   } else {
     renderTasks(allTasks);
   }
-}
-
-/****************************************************
- * findUserName => obtiene name de userDoc
- ****************************************************/
-async function findUserName(uid) {
-  if (!uid) return "";
-  const ref = doc(db, "users", uid);
-  const sp = await getDoc(ref);
-  if (!sp.exists()) return "";
-  return sp.data().name || "";
 }
