@@ -50,38 +50,43 @@
       <div class="filters-container">
         <div class="form-inline">
           <input type="text" id="filterFecha" placeholder="Filtrar por Fecha" />
-          <!-- Filtro “Asignado a” se ocultará para consultor (vía script) -->
+          <label><input type="checkbox" id="chkExcludeFecha" style="margin-right:3px;" />Excluir</label>
+        </div>
+
+        <div class="form-inline" id="rowFilterAsignado">
           <input type="text" id="filterAsignado" placeholder="Filtrar por Asignado" />
-          <input type="checkbox" id="chkExcludeAsignado" /> Excluir
+          <label><input type="checkbox" id="chkExcludeAsignado" style="margin-right:3px;" />Excluir</label>
         </div>
 
         <div class="form-inline">
           <input type="text" id="filterEstado" placeholder="Filtrar por Estado" />
-          <input type="checkbox" id="chkExcludeEstado" /> Excluir
+          <label><input type="checkbox" id="chkExcludeEstado" style="margin-right:3px;" />Excluir</label>
         </div>
 
         <div class="form-inline">
           <input type="text" id="filterEmpresa" placeholder="Filtrar por Empresa" />
-          <input type="checkbox" id="chkExcludeEmpresa" /> Excluir
+          <label><input type="checkbox" id="chkExcludeEmpresa" style="margin-right:3px;" />Excluir</label>
         </div>
 
         <div class="form-inline">
           <input type="text" id="filterGrupo" placeholder="Filtrar por Grupo" />
-          <input type="checkbox" id="chkExcludeGrupo" /> Excluir
+          <label><input type="checkbox" id="chkExcludeGrupo" style="margin-right:3px;" />Excluir</label>
         </div>
 
         <div class="form-inline">
           <input type="text" id="filterFolio" placeholder="Filtrar por Folio" />
-          <input type="checkbox" id="chkExcludeFolio" /> Excluir
+          <label><input type="checkbox" id="chkExcludeFolio" style="margin-right:3px;" />Excluir</label>
         </div>
 
-        <button id="btnAplicarFiltros">Aplicar Filtros</button>
-        <button id="btnLimpiarFiltros">Limpiar Filtros</button>
+        <div class="form-inline">
+          <button id="btnAplicarFiltros">Aplicar Filtros</button>
+          <button id="btnLimpiarFiltros">Limpiar Filtros</button>
+        </div>
       </div>
 
-      <!-- Creación de tareas (solo Supervisor/Admin) -->
+      <!-- Formulario para crear/editar tareas -->
       <div id="taskCreation" style="display:none; margin-top:1rem;">
-        <h3>Crear Tarea</h3>
+        <h3 id="frmTareaTitle">Crear Tarea</h3>
         <div class="form-inline">
           <input type="text" id="newTaskName" placeholder="Nombre de la tarea" />
           <input type="text" id="newTaskAssigned" placeholder="Asignado a (nombre usuario o email)" />
@@ -132,7 +137,6 @@
         <tbody id="usersBody"></tbody>
       </table>
     </section>
-
   </div>
 
   <!-- Footer solo en login -->
