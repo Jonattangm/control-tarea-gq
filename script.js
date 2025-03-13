@@ -40,7 +40,7 @@ const db = getFirestore(app);
 let currentUser = null;
 let currentRole = null;
 let allTasks = [];
-let editTaskId = null; // para editar la tarea
+let editTaskId = null;
 
 const TASK_STATES = [
   "Asignado","En proceso","Por revisar","Reportar","Finalizado",
@@ -72,8 +72,8 @@ const userRoleSpan = document.getElementById("userRole");
 
 const taskCreationDiv = document.getElementById("taskCreation");
 const frmTareaTitle = document.getElementById("frmTareaTitle");
-const newTaskName = document.getElementById("newTaskName");
-const newUserName = document.getElementById("newUserName"); // "Responsable"
+const newTaskName = document.getElementById("newTaskName");   // "Actividad"
+const newUserName = document.getElementById("newUserName");   // "Responsable (Name)"
 const newEmpresa = document.getElementById("newEmpresa");
 const newGrupo = document.getElementById("newGrupo");
 const newFolio = document.getElementById("newFolio");
@@ -139,6 +139,7 @@ onAuthStateChanged(auth, async (user) => {
       currentRole = DEFAULT_ROLE;
     }
 
+    // Muestra Dashboard, oculta login
     authSection.style.display = "none";
     loginFooter.style.display = "none";
     sidebar.style.display = "flex";
@@ -147,38 +148,26 @@ onAuthStateChanged(auth, async (user) => {
     userEmailSpan.textContent = user.email;
     userRoleSpan.textContent = currentRole;
 
-    // Lógica para ocultar columnas
-    // (1) "Responsable" => .colResponsable => oculta si consultor
-    // (2) "Asignado a (email)" => .colAsignado => oculta para todos
-    // (3) "Acciones" => .colAcciones => oculta para consultor y senior
-
+    // Ocultamos la columna .colAsignado (email) para todos
     document.querySelectorAll(".colAsignado").forEach(col => {
-      col.style.display = "none";  // "nadie" ve esta columna
+      col.style.display = "none"; 
     });
-
+    // Para consultor => oculta colResponsable y colAcciones
     if (currentRole === "consultor") {
-      document.querySelectorAll(".colResponsable").forEach(col => {
-        col.style.display = "none"; // oculta responsable
-      });
-      document.querySelectorAll(".colAcciones").forEach(col => {
-        col.style.display = "none"; // oculta acciones
-      });
-      // oculta rowFilterAsignado
+      document.querySelectorAll(".colResponsable").forEach(col => col.style.display = "none");
+      document.querySelectorAll(".colAcciones").forEach(col => col.style.display = "none");
       document.getElementById("rowFilterAsignado").style.display = "none";
     } else if (currentRole === "senior") {
-      // senior ve responsable, oculta acciones
-      document.querySelectorAll(".colResponsable").forEach(col => {
-        col.style.display = "";
-      });
-      document.querySelectorAll(".colAcciones").forEach(col => {
-        col.style.display = "none";
-      });
+      // Senior => ve colResponsable, oculta colAcciones
+      document.querySelectorAll(".colResponsable").forEach(col => col.style.display = "");
+      document.querySelectorAll(".colAcciones").forEach(col => col.style.display = "none");
     } else if (currentRole === "supervisor") {
-      // igual admin, excepto adminUsers
+      // Supervisor => ve colResponsable y colAcciones, no AdminUsers
       document.querySelectorAll(".colResponsable").forEach(col => col.style.display = "");
       document.querySelectorAll(".colAcciones").forEach(col => col.style.display = "");
       btnUsuarios.style.display = "none";
     } else if (currentRole === "admin") {
+      // Admin => ve todo menos la colAsignado, la cual forzamos hidden
       document.querySelectorAll(".colResponsable").forEach(col => col.style.display = "");
       document.querySelectorAll(".colAcciones").forEach(col => col.style.display = "");
       btnUsuarios.style.display = "inline-block";
@@ -193,6 +182,7 @@ onAuthStateChanged(auth, async (user) => {
 
     listenTasks();
   } else {
+    // No user => regresa a login
     currentUser = null;
     currentRole = null;
     authSection.style.display = "block";
@@ -237,18 +227,18 @@ async function loginUser() {
  ****************************************************/
 async function handleTaskForm() {
   if (!newTaskName.value.trim() || !newUserName.value.trim()) {
-    alert("Completa al menos Actividad y Responsable (Name).");
+    alert("Completa al menos la Actividad y el Nombre de Usuario (Responsable).");
     return;
   }
   try {
-    // Buscar el email del "Responsable" (newUserName)
-    const emailRes = await findEmailByName(newUserName.value.trim());
-    if (!emailRes) {
-      alert("No existe un usuario con ese nombre (Responsable).");
+    // Buscar email por Nombre
+    const emailResponsible = await findEmailByName(newUserName.value.trim());
+    if (!emailResponsible) {
+      alert("No existe un usuario con ese nombre.");
       return;
     }
 
-    // Buscar un ID correlativo
+    // Calcular ID correlativo
     const colRef = collection(db, "tasks");
     const snap = await getDocs(colRef);
     let maxId = 0;
@@ -263,11 +253,11 @@ async function handleTaskForm() {
     if (editTaskId) {
       // Editar
       await updateDoc(doc(db, "tasks", editTaskId), {
-        idTarea: nextId, // si deseas no cambiarlo, elimínalo
-        userName: newUserName.value.trim(),   // col 3
-        assignedTo: emailRes,                 // col 11 (oculta)
-        name: newTaskName.value.trim(),       // col 4
-        empresa: newEmpresa.value.trim(),     
+        idTarea: nextId,
+        userName: newUserName.value.trim(),
+        assignedTo: emailResponsible,
+        name: newTaskName.value.trim(),
+        empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
         horasAsignadas: newHoras.value.trim()
@@ -279,9 +269,9 @@ async function handleTaskForm() {
       await addDoc(colRef, {
         idTarea: nextId,
         fechaAsignacion: new Date().toLocaleDateString("es-CL"),
-        userName: newUserName.value.trim(),   // col 3
-        assignedTo: emailRes,                 // col 11
-        name: newTaskName.value.trim(),       // col 4
+        userName: newUserName.value.trim(),   // colResponsable
+        assignedTo: emailResponsible,         // colAsignado (oculta)
+        name: newTaskName.value.trim(),       // Actividad
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
@@ -311,14 +301,15 @@ function clearTaskForm() {
 }
 
 /****************************************************
- * findEmailByName
+ * BUSCAR email POR userName
  ****************************************************/
-async function findEmailByName(userName) {
-  const snap = await getDocs(collection(db, "users"));
+async function findEmailByName(name) {
+  const colRef = collection(db, "users");
+  const snap = await getDocs(colRef);
   for (const docu of snap.docs) {
-    const dat = docu.data();
-    if ((dat.name||"").toLowerCase() === userName.toLowerCase()) {
-      return dat.email;
+    const data = docu.data();
+    if ((data.name || "").toLowerCase() === name.toLowerCase()) {
+      return data.email;
     }
   }
   return null;
@@ -344,40 +335,40 @@ function listenTasks() {
 function renderTasks(tasksArray) {
   tasksTableBody.innerHTML = "";
 
-  // Filtra si consultor => assignedTo == currentUser.email
+  // Filtra si consultor => assignedTo == su email
   let arr = tasksArray.slice();
   if (currentRole === "consultor" && currentUser) {
-    arr = arr.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase());
+    arr = arr.filter(t => (t.assignedTo || "").toLowerCase() === currentUser.email.toLowerCase());
   }
 
   arr.forEach(task => {
     const tr = document.createElement("tr");
 
-    // 1) ID Tarea
+    // 1. ID Tarea
     const tdId = document.createElement("td");
     tdId.textContent = task.idTarea ?? "N/A";
     tr.appendChild(tdId);
 
-    // 2) Fecha Asignación
+    // 2. Fecha
     const tdFecha = document.createElement("td");
     tdFecha.textContent = task.fechaAsignacion ?? "--";
     tr.appendChild(tdFecha);
 
-    // 3) Responsable (userName)
-    const tdResponsable = document.createElement("td");
-    tdResponsable.classList.add("colResponsable"); // se oculta a consultor
-    tdResponsable.textContent = task.userName || "";
-    tr.appendChild(tdResponsable);
+    // 3. Responsable => userName
+    const tdResp = document.createElement("td");
+    tdResp.classList.add("colResponsable");
+    tdResp.textContent = task.userName || "";
+    tr.appendChild(tdResp);
 
-    // 4) Actividad (name)
-    const tdActividad = document.createElement("td");
-    tdActividad.textContent = task.name || "";
-    tr.appendChild(tdActividad);
+    // 4. Actividad => name
+    const tdName = document.createElement("td");
+    tdName.textContent = task.name || "";
+    tr.appendChild(tdName);
 
-    // 5) Estado + indicador
+    // 5. Estado + indicador
     const tdEstado = document.createElement("td");
     const selectStatus = document.createElement("select");
-
+    // Lógica de estados
     let possibleStates = [...TASK_STATES];
     if (currentRole === "consultor") {
       if (["Finalizado","Reportar","Por revisar"].includes(task.status)) {
@@ -400,6 +391,7 @@ function renderTasks(tasksArray) {
     });
     selectStatus.addEventListener("change", () => {
       const newSt = selectStatus.value;
+      // confirm consultor -> "Por revisar"
       if (currentRole === "consultor" && newSt === "Por revisar" && task.status !== "Por revisar") {
         if (!confirm("¿Pasar a 'Por revisar'?")) {
           selectStatus.value = task.status;
@@ -412,8 +404,9 @@ function renderTasks(tasksArray) {
           return;
         }
       }
+
       if (!canChangeStatus(currentRole, task.status, newSt)) {
-        alert("No tienes permiso para ese cambio.");
+        alert("No tienes permiso para ese cambio de estado.");
         selectStatus.value = task.status;
       } else {
         updateTaskStatus(task.docId, newSt);
@@ -423,37 +416,36 @@ function renderTasks(tasksArray) {
 
     const indicator = document.createElement("span");
     indicator.classList.add("status-indicator");
-    const lowered = (task.status||"").toLowerCase().replace(" ", "-");
+    const lowered = (task.status || "").toLowerCase().replace(" ", "-");
     indicator.classList.add(`status-${lowered}`);
     tdEstado.appendChild(indicator);
 
     tr.appendChild(tdEstado);
 
-    // 6) Empresa
-    const tdEmp = document.createElement("td");
-    tdEmp.textContent = task.empresa || "";
-    tr.appendChild(tdEmp);
+    // 6. Empresa
+    const tdEmpresa = document.createElement("td");
+    tdEmpresa.textContent = task.empresa || "";
+    tr.appendChild(tdEmpresa);
 
-    // 7) Grupo
-    const tdGru = document.createElement("td");
-    tdGru.textContent = task.grupoCliente || "";
-    tr.appendChild(tdGru);
+    // 7. Grupo
+    const tdGrupo = document.createElement("td");
+    tdGrupo.textContent = task.grupoCliente || "";
+    tr.appendChild(tdGrupo);
 
-    // 8) Folio
-    const tdFol = document.createElement("td");
-    tdFol.textContent = task.folioProyecto || "";
-    tr.appendChild(tdFol);
+    // 8. Folio
+    const tdFolio = document.createElement("td");
+    tdFolio.textContent = task.folioProyecto || "";
+    tr.appendChild(tdFolio);
 
-    // 9) Horas
+    // 9. Horas
     const tdHoras = document.createElement("td");
     tdHoras.textContent = task.horasAsignadas || "";
     tr.appendChild(tdHoras);
 
-    // 10) Acciones
+    // 10. Acciones
     const tdAcc = document.createElement("td");
     tdAcc.classList.add("colAcciones");
     if (["admin","supervisor"].includes(currentRole)) {
-      // Editar
       const btnEdit = document.createElement("button");
       btnEdit.textContent = "Editar";
       btnEdit.addEventListener("click", () => {
@@ -470,7 +462,6 @@ function renderTasks(tasksArray) {
       });
       tdAcc.appendChild(btnEdit);
 
-      // Eliminar
       const btnDel = document.createElement("button");
       btnDel.textContent = "Eliminar";
       btnDel.style.marginLeft = "5px";
@@ -483,18 +474,16 @@ function renderTasks(tasksArray) {
     }
     tr.appendChild(tdAcc);
 
-    // 11) Asignado a (email)
-    const tdEmail = document.createElement("td");
-    tdEmail.classList.add("colAsignado");
-    tdEmail.textContent = task.assignedTo || "";
-    tr.appendChild(tdEmail);
+    // 11. Asignado a (email) -> oculta
+    // La definimos en la base, pero no la agregamos al DOM o la ocultamos
+    // Sin crear la celda, ya que se indicó "ni el título ni los datos" deben verse.
 
     tasksTableBody.appendChild(tr);
   });
 }
 
 /****************************************************
- * canChangeStatus
+ * LÓGICA DE CAMBIO DE ESTADO
  ****************************************************/
 function canChangeStatus(role, currentSt, newSt) {
   if (role === "consultor") {
@@ -506,8 +495,7 @@ function canChangeStatus(role, currentSt, newSt) {
     if (["Finalizado","Reportar"].includes(currentSt)) return false;
     return true;
   }
-  // supervisor/admin => sin restricciones
-  return true;
+  return true; // supervisor/admin => sin restricciones
 }
 
 async function updateTaskStatus(docId, newStatus) {
@@ -543,7 +531,7 @@ function aplicarFiltros() {
       const match = (t.fechaAsignacion||"").toLowerCase().includes(valFecha);
       if (exFecha) { if (match) return false; } else if (!match) return false;
     }
-    // Asignado (email)
+    // "Asignado a" => t.assignedTo
     if (valAsig) {
       const match = (t.assignedTo||"").toLowerCase().includes(valAsig);
       if (exAsig) { if (match) return false; } else if (!match) return false;
@@ -599,7 +587,7 @@ function limpiarFiltros() {
 }
 
 /****************************************************
- * ADMIN: Cargar/Modificar Usuarios
+ * ADMIN: CARGAR/MODIFICAR USUARIOS
  ****************************************************/
 async function loadAllUsers() {
   usersTableBody.innerHTML = "";
@@ -652,8 +640,8 @@ async function loadAllUsers() {
       }
     });
     tdChange.appendChild(selectRole);
-
     tr.appendChild(tdChange);
+
     usersTableBody.appendChild(tr);
   });
 }
