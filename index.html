@@ -7,7 +7,6 @@
 </head>
 <body>
   <div class="main-container">
-
     <!-- Sección de Login/Registro (visible inicialmente) -->
     <section id="authSection" class="auth-section" style="display:block;">
       <div class="auth-container">
@@ -33,7 +32,6 @@
     <!-- Barra lateral (oculta hasta login) -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
-      <!-- Administrar Usuarios solo para Admin -->
       <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
       <div class="sidebar-bottom">
         <button id="btnLogout">Cerrar Sesión</button>
@@ -59,7 +57,6 @@
               <label><input type="checkbox" id="chkExcludeAsignado" />Excluir</label>
             </div>
           </div>
-
           <div class="filter-row">
             <div class="form-inline">
               <input type="text" id="filterEstado" placeholder="Filtrar por Estado" />
@@ -70,7 +67,6 @@
               <label><input type="checkbox" id="chkExcludeEmpresa" />Excluir</label>
             </div>
           </div>
-
           <div class="filter-row">
             <div class="form-inline">
               <input type="text" id="filterGrupo" placeholder="Filtrar por Grupo" />
@@ -81,7 +77,6 @@
               <label><input type="checkbox" id="chkExcludeFolio" />Excluir</label>
             </div>
           </div>
-
           <div class="filter-row" style="justify-content:flex-end;">
             <button id="btnAplicarFiltros">Aplicar Filtros</button>
             <button id="btnLimpiarFiltros">Limpiar Filtros</button>
@@ -115,14 +110,14 @@
           <tr>
             <th>ID Tarea</th>                      <!-- col 1 -->
             <th>Fecha Asignación</th>              <!-- col 2 -->
-            <th class="colResponsable">Responsable</th>  <!-- col 3 (ocultar en consultor) -->
+            <th class="colResponsable">Responsable</th>  <!-- col 3 -->
             <th>Actividad</th>                     <!-- col 4 -->
             <th>Estado</th>                        <!-- col 5 -->
             <th>Empresa</th>                       <!-- col 6 -->
             <th>Grupo</th>                         <!-- col 7 -->
             <th>Folio</th>                         <!-- col 8 -->
             <th>Horas Asignadas</th>               <!-- col 9 -->
-            <th class="colAcciones">Acciones</th>  <!-- col 10 (ocultar en consultor y senior) -->
+            <th class="colAcciones">Acciones</th>  <!-- col 10 -->
             <th class="colAsignado" style="display:none;">Asignado a (email)</th> <!-- col 11 => oculta a todos -->
           </tr>
         </thead>
