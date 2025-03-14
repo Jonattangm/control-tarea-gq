@@ -16,7 +16,7 @@ body {
   min-height: 100vh;
 }
 
-/* Sección Login/Registro con gradiente */
+/* Sección Login con gradiente */
 .auth-section {
   flex: 1;
   display: flex;
@@ -85,7 +85,7 @@ body {
   border-radius: 5px;
 }
 
-/* Caja contenedora para los filtros */
+/* Caja para los filtros */
 .filters-box {
   background: #fdfdfd;
   border: 1px solid #ccc;
@@ -97,7 +97,6 @@ body {
   margin-top: 0;
 }
 
-/* Filtros */
 .filters-container {
   display: flex;
   flex-direction: column;
@@ -116,7 +115,7 @@ body {
   width: 160px;
 }
 
-/* Tablas */
+/* Tabla */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -138,7 +137,7 @@ th, td {
   vertical-align: middle;
 }
 
-/* Colores para cada estado */
+/* Estados */
 .status-asignado {
   background: #cccccc;
 }

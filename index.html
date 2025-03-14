@@ -33,6 +33,7 @@
     <!-- Barra lateral (oculta hasta login) -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
+      <!-- Sección Administrar solo para Admin -->
       <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
       <div class="sidebar-bottom">
         <button id="btnLogout">Cerrar Sesión</button>
@@ -44,7 +45,7 @@
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
 
-      <!-- Filtros con diseño -->
+      <!-- Contenedor con los Filtros -->
       <div class="filters-box">
         <h3>Filtrar y Excluir</h3>
         <div class="filters-container">
@@ -92,7 +93,9 @@
       <div id="taskCreation" style="display:none; margin-top:1rem;">
         <h3 id="frmTareaTitle">Crear Tarea</h3>
         <div class="form-inline">
+          <!-- Columna "Actividad" (Tarea) -->
           <input type="text" id="newTaskName" placeholder="Actividad" />
+          <!-- Columna "Responsable" (Name) -->
           <input type="text" id="newUserName" placeholder="Responsable (Name)" />
         </div>
         <div class="form-inline">
@@ -110,17 +113,17 @@
       <table id="tasksTable">
         <thead>
           <tr>
-            <th>ID Tarea</th>                      <!-- 1 -->
-            <th>Fecha Asignación</th>              <!-- 2 -->
-            <th class="colResponsable">Responsable</th>  <!-- 3 -->
-            <th>Actividad</th>                     <!-- 4 -->
-            <th>Estado</th>                        <!-- 5 -->
-            <th>Empresa</th>                       <!-- 6 -->
-            <th>Grupo</th>                         <!-- 7 -->
-            <th>Folio</th>                         <!-- 8 -->
-            <th>Horas Asignadas</th>               <!-- 9 -->
-            <th class="colAcciones">Acciones</th>  <!-- 10 -->
-            <th class="colAsignado" style="display:none;">Asignado a (email)</th> <!-- 11 totalmente oculto -->
+            <th>ID Tarea</th>                      <!-- (1) -->
+            <th>Fecha Asignación</th>              <!-- (2) -->
+            <th class="colResponsable">Responsable</th>  <!-- (3) -->
+            <th>Actividad</th>                     <!-- (4) -->
+            <th>Estado</th>                        <!-- (5) -->
+            <th>Empresa</th>                       <!-- (6) -->
+            <th>Grupo</th>                         <!-- (7) -->
+            <th>Folio</th>                         <!-- (8) -->
+            <th>Horas Asignadas</th>               <!-- (9) -->
+            <th class="colAcciones">Acciones</th>  <!-- (10) -->
+            <th class="colAsignado" style="display:none;">Asignado a (email)</th> <!-- (11) oculta a todos -->
           </tr>
         </thead>
         <tbody id="tasksBody"></tbody>
