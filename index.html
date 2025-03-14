@@ -38,7 +38,7 @@
       </div>
     </div>
 
-    <!-- Sección principal: Dashboard de Tareas -->
+    <!-- Dashboard de Tareas -->
     <section class="dashboard" id="dashboardSection" style="display:none;">
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
@@ -88,10 +88,13 @@
       <div id="taskCreation" style="display:none; margin-top:1rem;">
         <h3 id="frmTareaTitle">Crear Tarea</h3>
         <div class="form-inline">
-          <!-- Actividad (col 4) -->
-          <input type="text" id="newTaskName" placeholder="Actividad" />
-          <!-- Responsable (col 3) => userName -->
+          <!-- Col 1: RESPONSABLE (se llenará con newUserName, pero en consultor estará en blanco) -->
           <input type="text" id="newUserName" placeholder="Responsable (Name)" />
+
+          <!-- Col 2: ID Tarea no se ingresa, se autogenera. 
+               Col 3: Fecha Asignación se pone auto 
+               Col 4: Actividad -->
+          <input type="text" id="newTaskName" placeholder="Actividad" />
         </div>
         <div class="form-inline">
           <input type="text" id="newEmpresa" placeholder="Empresa" />
@@ -104,21 +107,21 @@
         <button id="createTaskBtn">Crear Tarea</button>
       </div>
 
-      <!-- Tabla: 10 columnas visibles, 1 oculta -->
+      <!-- Tabla (11 columnas totales) -->
       <table id="tasksTable">
         <thead>
           <tr>
-            <th>ID Tarea</th>                      <!-- col 1 -->
-            <th>Fecha Asignación</th>              <!-- col 2 -->
-            <th class="colResponsable">Responsable</th>  <!-- col 3 -->
-            <th>Actividad</th>                     <!-- col 4 -->
-            <th>Estado</th>                        <!-- col 5 -->
-            <th>Empresa</th>                       <!-- col 6 -->
-            <th>Grupo</th>                         <!-- col 7 -->
-            <th>Folio</th>                         <!-- col 8 -->
-            <th>Horas Asignadas</th>               <!-- col 9 -->
-            <th class="colAcciones">Acciones</th>  <!-- col 10 -->
-            <th class="colAsignado" style="display:none;">Asignado a (email)</th> <!-- col 11 => oculta a todos -->
+            <th id="thResp">Responsable</th>       <!-- Col 1, en consultor estará en blanco -->
+            <th>ID Tarea</th>                     <!-- Col 2 -->
+            <th>Fecha Asignación</th>             <!-- Col 3 -->
+            <th>Actividad</th>                    <!-- Col 4 -->
+            <th>Estado</th>                       <!-- Col 5 -->
+            <th>Empresa</th>                      <!-- Col 6 -->
+            <th>Grupo</th>                        <!-- Col 7 -->
+            <th>Folio</th>                        <!-- Col 8 -->
+            <th>Horas Asignadas</th>              <!-- Col 9 -->
+            <th id="thAcc">Acciones</th>          <!-- Col 10, vacía en consultor/senior -->
+            <th class="colAsignado" style="display:none;">Asignado a (email)</th> <!-- Col 11, oculta a todos -->
           </tr>
         </thead>
         <tbody id="tasksBody"></tbody>
