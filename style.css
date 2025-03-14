@@ -85,7 +85,7 @@ body {
   border-radius: 5px;
 }
 
-/* Caja contenedora de los filtros */
+/* Caja contenedora para los filtros */
 .filters-box {
   background: #fdfdfd;
   border: 1px solid #ccc;
@@ -93,8 +93,11 @@ body {
   padding: 1rem;
   margin-bottom: 1rem;
 }
+.filters-box h3 {
+  margin-top: 0;
+}
 
-/* Filtros y formularios */
+/* Filtros */
 .filters-container {
   display: flex;
   flex-direction: column;
@@ -125,7 +128,7 @@ th, td {
   text-align: left;
 }
 
-/* Indicador */
+/* Indicador de estado */
 .status-indicator {
   display: inline-block;
   width: 15px;
