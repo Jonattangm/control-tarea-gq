@@ -33,19 +33,19 @@
     <!-- Barra lateral (oculta hasta login) -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
-      <!-- Sección Administrar solo para Admin -->
+      <!-- Administrar Usuarios solo para Admin -->
       <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
       <div class="sidebar-bottom">
         <button id="btnLogout">Cerrar Sesión</button>
       </div>
     </div>
 
-    <!-- Dashboard de Tareas -->
+    <!-- Sección principal: Dashboard de Tareas -->
     <section class="dashboard" id="dashboardSection" style="display:none;">
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
 
-      <!-- Contenedor con los Filtros -->
+      <!-- Filtros -->
       <div class="filters-box">
         <h3>Filtrar y Excluir</h3>
         <div class="filters-container">
@@ -82,7 +82,7 @@
             </div>
           </div>
 
-          <div class="filter-row" style="justify-content: flex-end;">
+          <div class="filter-row" style="justify-content:flex-end;">
             <button id="btnAplicarFiltros">Aplicar Filtros</button>
             <button id="btnLimpiarFiltros">Limpiar Filtros</button>
           </div>
@@ -93,9 +93,9 @@
       <div id="taskCreation" style="display:none; margin-top:1rem;">
         <h3 id="frmTareaTitle">Crear Tarea</h3>
         <div class="form-inline">
-          <!-- Columna "Actividad" (Tarea) -->
+          <!-- Actividad (col 4) -->
           <input type="text" id="newTaskName" placeholder="Actividad" />
-          <!-- Columna "Responsable" (Name) -->
+          <!-- Responsable (col 3) => userName -->
           <input type="text" id="newUserName" placeholder="Responsable (Name)" />
         </div>
         <div class="form-inline">
@@ -109,21 +109,21 @@
         <button id="createTaskBtn">Crear Tarea</button>
       </div>
 
-      <!-- Tabla (10 visibles + 1 oculta) -->
+      <!-- Tabla: 10 columnas visibles, 1 oculta -->
       <table id="tasksTable">
         <thead>
           <tr>
-            <th>ID Tarea</th>                      <!-- (1) -->
-            <th>Fecha Asignación</th>              <!-- (2) -->
-            <th class="colResponsable">Responsable</th>  <!-- (3) -->
-            <th>Actividad</th>                     <!-- (4) -->
-            <th>Estado</th>                        <!-- (5) -->
-            <th>Empresa</th>                       <!-- (6) -->
-            <th>Grupo</th>                         <!-- (7) -->
-            <th>Folio</th>                         <!-- (8) -->
-            <th>Horas Asignadas</th>               <!-- (9) -->
-            <th class="colAcciones">Acciones</th>  <!-- (10) -->
-            <th class="colAsignado" style="display:none;">Asignado a (email)</th> <!-- (11) oculta a todos -->
+            <th>ID Tarea</th>                      <!-- col 1 -->
+            <th>Fecha Asignación</th>              <!-- col 2 -->
+            <th class="colResponsable">Responsable</th>  <!-- col 3 (ocultar en consultor) -->
+            <th>Actividad</th>                     <!-- col 4 -->
+            <th>Estado</th>                        <!-- col 5 -->
+            <th>Empresa</th>                       <!-- col 6 -->
+            <th>Grupo</th>                         <!-- col 7 -->
+            <th>Folio</th>                         <!-- col 8 -->
+            <th>Horas Asignadas</th>               <!-- col 9 -->
+            <th class="colAcciones">Acciones</th>  <!-- col 10 (ocultar en consultor y senior) -->
+            <th class="colAsignado" style="display:none;">Asignado a (email)</th> <!-- col 11 => oculta a todos -->
           </tr>
         </thead>
         <tbody id="tasksBody"></tbody>

@@ -10,13 +10,14 @@ body {
   background: #f9f9f9;
   color: #333;
 }
+
 .main-container {
   display: flex;
   width: 100%;
   min-height: 100vh;
 }
 
-/* Sección Login con gradiente */
+/* Sección Login/Registro con gradiente */
 .auth-section {
   flex: 1;
   display: flex;
@@ -75,7 +76,7 @@ body {
   border-top: 1px solid #ccc;
 }
 
-/* Dashboard */
+/* Dashboard principal */
 .dashboard {
   flex: 1;
   margin: 1rem;
@@ -115,7 +116,7 @@ body {
   width: 160px;
 }
 
-/* Tabla */
+/* Tabla de Tareas */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -137,7 +138,7 @@ th, td {
   vertical-align: middle;
 }
 
-/* Estados */
+/* Colores de estados */
 .status-asignado {
   background: #cccccc;
 }
