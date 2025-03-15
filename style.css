@@ -76,7 +76,7 @@ body {
   border-top: 1px solid #ccc;
 }
 
-/* Dashboard principal */
+/* Dashboard */
 .dashboard {
   flex: 1;
   margin: 1rem;
@@ -165,4 +165,21 @@ th, td {
 }
 .status-bpo {
   background: #795548;
+}
+
+/* Colores para Fecha de Entrega según días */
+.fecha-rojo {
+  background: #ff0000;
+}
+.fecha-naranjo {
+  background: #ff8c00;
+}
+.fecha-amarillo {
+  background: #ffe600;
+}
+.fecha-verde {
+  background: #077007;
+}
+.fecha-azul {
+  background: #0077ff;
 }
