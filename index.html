@@ -77,7 +77,6 @@
               <label><input type="checkbox" id="chkExcludeFolio" />Excluir</label>
             </div>
           </div>
-          <!-- Se cambian los botones a la izquierda -->
           <div class="filter-row" style="justify-content:flex-start;">
             <button id="btnAplicarFiltros">Aplicar Filtros</button>
             <button id="btnLimpiarFiltros">Limpiar Filtros</button>
@@ -100,7 +99,6 @@
         <div class="form-inline">
           <input type="text" id="newHoras" placeholder="Horas Asignadas (ej: 2:30)" />
         </div>
-        <!-- (3) Nuevo campo: Fecha de Entrega -->
         <div class="form-inline">
           <label>Fecha de Entrega:</label>
           <input type="date" id="newFechaEntrega" />
@@ -108,22 +106,23 @@
         <button id="createTaskBtn">Crear Tarea</button>
       </div>
 
-      <!-- Tabla con columna "Fecha de Entrega" después de "Fecha Asignación" -->
+      <!-- Tabla -->
       <table id="tasksTable">
         <thead>
           <tr>
-            <th>Responsable</th>         <!-- col 1 -->
-            <th>ID Tarea</th>           <!-- col 2 -->
-            <th>Fecha Asignación</th>   <!-- col 3 -->
-            <th>Fecha de Entrega</th>   <!-- col 4 (nuevo) -->
-            <th>Actividad</th>          <!-- col 5 -->
-            <th>Estado</th>             <!-- col 6 -->
-            <th>Empresa</th>            <!-- col 7 -->
-            <th>Grupo</th>              <!-- col 8 -->
-            <th>Folio</th>              <!-- col 9 -->
-            <th>Horas Asignadas</th>    <!-- col 10 -->
-            <th>Acciones</th>           <!-- col 11 -->
-            <th class="colAsignado" style="display:none;">Asignado (email)</th> <!-- col 12 (oculto a todos) -->
+            <!-- (2) Responsable / Acciones quedarán en blanco para consultor y Acciones en blanco también para senior -->
+            <th id="thResp">Responsable</th>        <!-- col 1 -->
+            <th>ID Tarea</th>                      <!-- col 2 -->
+            <th>Fecha Asignación</th>              <!-- col 3 -->
+            <th>Fecha de Entrega</th>              <!-- col 4 -->
+            <th>Actividad</th>                     <!-- col 5 -->
+            <th>Estado</th>                        <!-- col 6 -->
+            <th>Empresa</th>                       <!-- col 7 -->
+            <th>Grupo</th>                         <!-- col 8 -->
+            <th>Folio</th>                         <!-- col 9 -->
+            <th>Horas Asignadas</th>               <!-- col 10 -->
+            <th id="thAcc">Acciones</th>           <!-- col 11 -->
+            <th class="colAsignado" style="display:none;">Asignado (email)</th> <!-- col 12 (oculto) -->
           </tr>
         </thead>
         <tbody id="tasksBody"></tbody>
@@ -136,10 +135,11 @@
       <table id="usersTable">
         <thead>
           <tr>
-            <th>Email</th>
-            <th>Nombre Usuario</th>
-            <th>Rol</th>
-            <th>Cambiar Nombre / Rol</th>
+            <th>Email</th>            <!-- col 1 -->
+            <th>Nombre Usuario</th>   <!-- col 2 -->
+            <th>Rol</th>             <!-- col 3 -->
+            <!-- (3) Renombrar "Cambiar Nombre / Rol" => "Cambiar Rol" -->
+            <th id="thCambiarRol">Cambiar Rol</th>  <!-- col 4 -->
           </tr>
         </thead>
         <tbody id="usersBody"></tbody>

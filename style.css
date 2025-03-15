@@ -10,7 +10,6 @@ body {
   background: #f9f9f9;
   color: #333;
 }
-
 .main-container {
   display: flex;
   width: 100%;
@@ -167,19 +166,19 @@ th, td {
   background: #795548;
 }
 
-/* Colores para Fecha de Entrega según días */
+/* Colores para Fecha de Entrega según días (ya usados en calcBusinessDaysDiff) */
 .fecha-rojo {
-  background: #ff0000;
+  background: #ffcccc;
 }
 .fecha-naranjo {
-  background: #ff8c00;
+  background: #ffe1bc;
 }
 .fecha-amarillo {
-  background: #ffe600;
+  background: #fff8b5;
 }
 .fecha-verde {
-  background: #077007;
+  background: #d0ffd0;
 }
 .fecha-azul {
-  background: #0077ff;
+  background: #cce4ff;
 }
