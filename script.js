@@ -101,7 +101,7 @@ const chkExcludeFolio = document.getElementById("chkExcludeFolio");
 const btnAplicarFiltros = document.getElementById("btnAplicarFiltros");
 const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
 
-// Para manipular THs
+// Títulos
 const thResp = document.getElementById("thResp");
 const thAcc = document.getElementById("thAcc");
 
@@ -153,22 +153,22 @@ onAuthStateChanged(auth, async (user) => {
     userEmailSpan.textContent = user.email;
     userRoleSpan.textContent = currentRole;
 
-    // Asignado a (col 12) => oculta a todos
+    // Col Asignado => oculta
     document.querySelectorAll(".colAsignado").forEach(el => {
       el.style.display = "none";
     });
 
-    // Para consultor => titulos de Responsible y Acciones en blanco
-    // El Senior ve el título de Acciones pero también en blanco, según solicitud
+    // 3) Si es consultor => Titulo "Responsable" y "Acciones" en blanco
+    //    Si es Senior => Titulo Acciones en blanco
     if (currentRole === "consultor") {
       thResp.textContent = "";
       thAcc.textContent = "";
       document.getElementById("rowFilterAsignado").style.display = "none";
-
     } else if (currentRole === "senior") {
-      // Deja "Responsable", Acc => "en blanco"
+      // Deja Resp normal, Acc en blanco
       thAcc.textContent = "";
     }
+
     if (currentRole === "admin") {
       btnUsuarios.style.display = "inline-block";
       loadAllUsers();
@@ -226,7 +226,7 @@ async function loginUser() {
 }
 
 /****************************************************
- * CREAR / EDITAR TAREA
+ * CREAR/EDITAR TAREA
  ****************************************************/
 async function handleTaskForm() {
   if (!newUserName.value.trim() || !newTaskName.value.trim()) {
@@ -271,8 +271,7 @@ async function handleTaskForm() {
       await addDoc(colRef, {
         idTarea: nextId,
         fechaAsignacion: new Date().toLocaleDateString("es-CL"),
-        // Guardamos la fechaEntrega en AAAA-MM-DD, pero la mostraremos en dd-mm-aaaa
-        fechaEntrega: newFechaEntrega.value || null,
+        fechaEntrega: newFechaEntrega.value || null, // se almacena en AAAA-MM-DD, 
         userName: newUserName.value.trim(),
         assignedTo: emailResponsible,
         name: newTaskName.value.trim(),
@@ -345,13 +344,9 @@ function renderTasks(tasksArray) {
   arr.forEach(task => {
     const tr = document.createElement("tr");
 
-    // col 1) Responsable (en consultor => vacio)
+    // col 1) Responsable => consultor en blanco
     const tdResp = document.createElement("td");
-    if (currentRole === "consultor") {
-      tdResp.textContent = "";
-    } else {
-      tdResp.textContent = task.userName || "";
-    }
+    tdResp.textContent = (currentRole === "consultor") ? "" : (task.userName || "");
     tr.appendChild(tdResp);
 
     // col 2) ID
@@ -359,19 +354,18 @@ function renderTasks(tasksArray) {
     tdId.textContent = task.idTarea ?? "N/A";
     tr.appendChild(tdId);
 
-    // col 3) Fecha Asignación => dd-mm-aaaa
+    // col 3) Fecha Asignación => se guarda dd-mm-aaaa
     const tdFechaAsig = document.createElement("td");
     tdFechaAsig.textContent = task.fechaAsignacion || "--";
     tr.appendChild(tdFechaAsig);
 
-    // col 4) Fecha de Entrega => format dd-mm-aaaa
+    // col 4) Fecha Entrega => formatear dd-mm-aaaa
     const tdFechaEnt = document.createElement("td");
     if (task.fechaEntrega) {
       tdFechaEnt.textContent = formatDDMMYYYY(task.fechaEntrega);
     } else {
       tdFechaEnt.textContent = "";
     }
-    // (Opcional) aplicar color según días hábiles, etc., si se desea
     tr.appendChild(tdFechaEnt);
 
     // col 5) Actividad
@@ -379,14 +373,14 @@ function renderTasks(tasksArray) {
     tdAct.textContent = task.name || "";
     tr.appendChild(tdAct);
 
-    // col 6) Estado + indicador
+    // col 6) Estado
     const tdEstado = document.createElement("td");
     const selectStatus = document.createElement("select");
 
     let possibleStates = [...TASK_STATES];
-    // Senior no finalizado => lo quitamos
+    // Senior no finalizado
     if (currentRole === "senior") {
-      possibleStates = possibleStates.filter(s => s !== "Finalizado");
+      possibleStates = possibleStates.filter(st => st !== "Finalizado");
       if (["Finalizado","Reportar"].includes(task.status)) {
         possibleStates = [task.status];
       }
@@ -464,7 +458,7 @@ function renderTasks(tasksArray) {
       btnEdit.textContent = "Editar";
       btnEdit.addEventListener("click", () => {
         editTaskId = task.docId;
-        frmTareaTitle.textContent = "Editar Tarea (ID: "+ (task.idTarea || "N/A") + ")";
+        frmTareaTitle.textContent = "Editar Tarea (ID: " + (task.idTarea||"N/A") + ")";
         createTaskBtn.textContent = "Actualizar Tarea";
 
         newUserName.value = task.userName || "";
@@ -491,7 +485,7 @@ function renderTasks(tasksArray) {
     }
     tr.appendChild(tdAcc);
 
-    // col 12) Asignado => oculto
+    // col 12) Asignado => no se agrega (oculto)
     tasksTableBody.appendChild(tr);
   });
 }
@@ -515,6 +509,9 @@ function canChangeStatus(role, currentSt, newSt) {
   return true;
 }
 
+/****************************************************
+ * updateTaskStatus
+ ****************************************************/
 async function updateTaskStatus(docId, newStatus) {
   try {
     await updateDoc(doc(db, "tasks", docId), { status: newStatus });
@@ -611,12 +608,11 @@ async function loadAllUsers() {
     tdEmail.textContent = u.email || docu.id;
     tr.appendChild(tdEmail);
 
-    // 2) Nombre Usuario
+    // 2) Nombre Usuario => con confirm
     const tdName = document.createElement("td");
     const inpName = document.createElement("input");
     inpName.type = "text";
     inpName.value = u.name || "";
-    // (2) Al cambiar => confirmar
     inpName.addEventListener("change", async () => {
       if (!confirm("¿Confirmar cambio de Nombre de Usuario?")) {
         inpName.value = u.name || "";
@@ -624,7 +620,7 @@ async function loadAllUsers() {
       }
       try {
         await updateDoc(doc(db, "users", docu.id), { name: inpName.value });
-        u.name = inpName.value;
+        u.name = inpName.value; 
       } catch (er) {
         console.error("Error actualizando name:", er);
       }
@@ -632,9 +628,16 @@ async function loadAllUsers() {
     tdName.appendChild(inpName);
     tr.appendChild(tdName);
 
-    // 3) Cambiar Rol => combobox + confirm => 
+    // 3) Rol => texto
+    const tdRole = document.createElement("td");
+    tdRole.textContent = u.role || "consultor";
+    tr.appendChild(tdRole);
+
+    // 4) Cambiar Nombre / Rol => confirm al cambiar rol
     const tdChange = document.createElement("td");
-    // Creamos un select para el rol
+
+    // ya tenemos un inpName en la segunda col,
+    // aquí solo haremos el select para el rol
     const selectRole = document.createElement("select");
     ["consultor","senior","supervisor","admin"].forEach(r => {
       const opt = document.createElement("option");
@@ -643,8 +646,9 @@ async function loadAllUsers() {
       if (r === u.role) opt.selected = true;
       selectRole.appendChild(opt);
     });
+
     selectRole.addEventListener("change", async () => {
-      if (!confirm(`¿Confirmar cambio de rol a ${selectRole.value}?`)) {
+      if (!confirm(`¿Confirmar cambio de Rol a "${selectRole.value}"?`)) {
         selectRole.value = u.role; // revert
         return;
       }
@@ -652,19 +656,20 @@ async function loadAllUsers() {
       try {
         await updateDoc(doc(db, "users", docu.id), { role: newR });
         u.role = newR;
+        tdRole.textContent = newR; 
       } catch (error) {
         console.error("Error cambiando rol:", error);
       }
     });
     tdChange.appendChild(selectRole);
-    tr.appendChild(tdChange);
 
+    tr.appendChild(tdChange);
     usersTableBody.appendChild(tr);
   });
 }
 
 /****************************************************
- * canChangeStatus (Rol Senior no finalizado, consultor con limit)
+ * canChangeStatus => senior no finalizado
  ****************************************************/
 function canChangeStatus(role, currentSt, newSt) {
   if (role === "senior") {
@@ -682,9 +687,7 @@ function canChangeStatus(role, currentSt, newSt) {
   return true;
 }
 
-/****************************************************
- * updateTaskStatus
- ****************************************************/
+/** Actualizar estado tarea **/
 async function updateTaskStatus(docId, newStatus) {
   try {
     await updateDoc(doc(db, "tasks", docId), { status: newStatus });
@@ -693,9 +696,7 @@ async function updateTaskStatus(docId, newStatus) {
   }
 }
 
-/****************************************************
- * Convertir AAAA-MM-DD => DD-MM-AAAA
- ****************************************************/
+/** Convertir AAAA-MM-DD => DD-MM-AAAA **/
 function formatDDMMYYYY(yyyy_mm_dd) {
   if (!yyyy_mm_dd) return "";
   const [yy, mm, dd] = yyyy_mm_dd.split("-");

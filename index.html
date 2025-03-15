@@ -106,24 +106,25 @@
         <button id="createTaskBtn">Crear Tarea</button>
       </div>
 
-      <!-- Tabla con 12 columnas -->
+      <!-- Tabla -->
       <table id="tasksTable">
         <thead>
           <tr>
-            <!-- (3) Para consultor, estos dos títulos se pondrán en blanco si es consultor 
-                 y el de Acciones se pondrá en blanco también para senior-->
-            <th id="thResp">Responsable</th>       <!-- col 1 -->
-            <th>ID Tarea</th>                     <!-- col 2 -->
-            <th>Fecha Asignación</th>             <!-- col 3 -->
-            <th>Fecha de Entrega</th>             <!-- col 4 (nuevo) -->
-            <th>Actividad</th>                    <!-- col 5 -->
-            <th>Estado</th>                       <!-- col 6 -->
-            <th>Empresa</th>                      <!-- col 7 -->
-            <th>Grupo</th>                        <!-- col 8 -->
-            <th>Folio</th>                        <!-- col 9 -->
-            <th>Horas Asignadas</th>              <!-- col 10 -->
-            <th id="thAcc">Acciones</th>          <!-- col 11 -->
-            <th class="colAsignado" style="display:none;">Asignado (email)</th> <!-- col 12, oculta a todos -->
+            <!-- col 1 => Responsable -->
+            <th id="thResp">Responsable</th>
+            <th>ID Tarea</th>                <!-- col 2 -->
+            <th>Fecha Asignación</th>        <!-- col 3 -->
+            <th>Fecha de Entrega</th>        <!-- col 4 -->
+            <th>Actividad</th>               <!-- col 5 -->
+            <th>Estado</th>                  <!-- col 6 -->
+            <th>Empresa</th>                 <!-- col 7 -->
+            <th>Grupo</th>                   <!-- col 8 -->
+            <th>Folio</th>                   <!-- col 9 -->
+            <th>Horas Asignadas</th>         <!-- col 10 -->
+            <!-- col 11 => Acciones -->
+            <th id="thAcc">Acciones</th>
+            <!-- col 12 => Asignado (email) => Oculto a todos -->
+            <th class="colAsignado" style="display:none;">Asignado (email)</th>
           </tr>
         </thead>
         <tbody id="tasksBody"></tbody>
@@ -138,8 +139,8 @@
           <tr>
             <th>Email</th>           <!-- col 1 -->
             <th>Nombre Usuario</th>  <!-- col 2 -->
-            <!-- (2) Col 'Rol' se elimina -->
-            <th>Cambiar Rol</th>     <!-- col 3 => controlando Nombre y Rol, con confirm -->
+            <th>Rol</th>            <!-- col 3 (restaurado) -->
+            <th>Cambiar Nombre / Rol</th> <!-- col 4 => confirm changes -->
           </tr>
         </thead>
         <tbody id="usersBody"></tbody>
