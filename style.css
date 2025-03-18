@@ -10,6 +10,7 @@ body {
   background: #f9f9f9;
   color: #333;
 }
+
 .main-container {
   display: flex;
   width: 100%;
@@ -113,6 +114,19 @@ body {
 .form-inline input[type="text"],
 .form-inline input[type="date"] {
   width: 160px;
+}
+
+/* (Ajuste #1) Caja similar a filters-box para "Crear Tarea" */
+.task-creation-box {
+  background: #fdfdfd;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.task-creation-box .form-inline {
+  margin-bottom: 0.5rem;
 }
 
 /* Tabla */
