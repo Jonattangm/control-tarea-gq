@@ -43,23 +43,30 @@
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
 
-      <!-- Filtros -->
+      <!-- Filtros (solo 4: Responsable, Estado, Empresa, Grupo) -->
       <div class="filters-box">
         <h3>Filtrar y Excluir</h3>
-        <!-- ... (igual que antes) ... -->
         <div class="filters-container">
-          <!-- ...inputs y checkboxes... -->
           <div class="filter-row">
             <div class="form-inline">
-              <input type="text" id="filterFecha" placeholder="Filtrar por Fecha Asignación" />
-              <label><input type="checkbox" id="chkExcludeFecha" />Excluir</label>
-            </div>
-            <div class="form-inline" id="rowFilterAsignado">
               <input type="text" id="filterResponsable" placeholder="Filtrar por Responsable" />
               <label><input type="checkbox" id="chkExcludeAsignado" />Excluir</label>
             </div>
+            <div class="form-inline">
+              <input type="text" id="filterEstado" placeholder="Filtrar por Estado" />
+              <label><input type="checkbox" id="chkExcludeEstado" />Excluir</label>
+            </div>
           </div>
-          <!-- ... resto de filtros ... -->
+          <div class="filter-row">
+            <div class="form-inline">
+              <input type="text" id="filterEmpresa" placeholder="Filtrar por Empresa" />
+              <label><input type="checkbox" id="chkExcludeEmpresa" />Excluir</label>
+            </div>
+            <div class="form-inline">
+              <input type="text" id="filterGrupo" placeholder="Filtrar por Grupo" />
+              <label><input type="checkbox" id="chkExcludeGrupo" />Excluir</label>
+            </div>
+          </div>
           <div class="filter-row" style="justify-content:flex-start;">
             <button id="btnAplicarFiltros">Aplicar Filtros</button>
             <button id="btnLimpiarFiltros">Limpiar Filtros</button>
@@ -79,7 +86,7 @@
           <input type="text" id="newGrupo" placeholder="Grupo Cliente" />
         </div>
         <div class="form-inline">
-          <input type="text" id="newFolio" placeholder="Folio proyecto" />
+          <input type="text" id="newFolio" placeholder="Folio" />
           <input type="text" id="newHoras" placeholder="Horas (ej: 2:30)" />
         </div>
         <div class="form-inline">
@@ -89,7 +96,7 @@
         <button id="createTaskBtn">Crear Tarea</button>
       </div>
 
-      <!-- Tabla con nueva columna "Última actividad" -->
+      <!-- Tabla -->
       <table id="tasksTable">
         <thead>
           <tr>
@@ -103,7 +110,7 @@
             <th>Grupo</th>
             <th>Folio</th>
             <th>Horas</th>
-            <th>Última actividad</th>  <!-- NUEVA COLUMNA -->
+            <th>Última actividad</th>
             <th id="thAcc">Acciones</th>
             <th class="colAsignado" style="display:none;">Asignado (email)</th>
           </tr>
@@ -129,14 +136,14 @@
     </section>
   </div>
 
-  <!-- Panel de Comentarios (submenú) -->
+  <!-- Panel de Comentarios -->
   <div id="commentsPanel" class="comments-panel" style="display:none;">
     <div class="comments-header">
       <h3>Comentarios de la Tarea <span id="commentTaskId"></span></h3>
       <button id="closeCommentsBtn">Cerrar</button>
     </div>
     <div class="comments-list" id="commentsList">
-      <!-- Se llenan aquí -->
+      <!-- Comentarios -->
     </div>
     <div class="comments-form">
       <textarea id="commentText" rows="3" placeholder="Escribe tu comentario"></textarea>

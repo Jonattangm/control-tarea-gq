@@ -43,9 +43,7 @@ let currentUser = null;
 let currentRole = null;
 let allTasks = [];
 let editTaskId = null;
-
-// Para el panel de comentarios
-let currentCommentTaskId = null;
+let currentCommentTaskId = null; // Para el panel de comentarios
 
 const TASK_STATES = [
   "Asignado","En proceso","Por revisar","Reportar","Finalizado",
@@ -89,9 +87,7 @@ const createTaskBtn = document.getElementById("createTaskBtn");
 const tasksTableBody = document.getElementById("tasksBody");
 const usersTableBody = document.getElementById("usersBody");
 
-/* Filtros */
-const filterFecha = document.getElementById("filterFecha");
-const chkExcludeFecha = document.getElementById("chkExcludeFecha");
+/* Filtros: solo 4 => Responsable, Estado, Empresa, Grupo */
 const filterResponsable = document.getElementById("filterResponsable");
 const chkExcludeAsignado = document.getElementById("chkExcludeAsignado");
 const filterEstado = document.getElementById("filterEstado");
@@ -100,8 +96,6 @@ const filterEmpresa = document.getElementById("filterEmpresa");
 const chkExcludeEmpresa = document.getElementById("chkExcludeEmpresa");
 const filterGrupo = document.getElementById("filterGrupo");
 const chkExcludeGrupo = document.getElementById("chkExcludeGrupo");
-const filterFolio = document.getElementById("filterFolio");
-const chkExcludeFolio = document.getElementById("chkExcludeFolio");
 
 const btnAplicarFiltros = document.getElementById("btnAplicarFiltros");
 const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
@@ -109,10 +103,10 @@ const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
 /****************************************************
  * Panel de Comentarios
  ****************************************************/
-const commentsPanel = document.getElementById("commentsPanel"); // div id="commentsPanel"
-const commentTaskIdSpan = document.getElementById("commentTaskId"); // span id="commentTaskId"
-const commentsListDiv = document.getElementById("commentsList");    // div id="commentsList"
-const commentTextArea = document.getElementById("commentText");     // textarea id="commentText"
+const commentsPanel = document.getElementById("commentsPanel");
+const commentTaskIdSpan = document.getElementById("commentTaskId");
+const commentsListDiv = document.getElementById("commentsList");
+const commentTextArea = document.getElementById("commentText");
 const addCommentBtn = document.getElementById("addCommentBtn");
 const closeCommentsBtn = document.getElementById("closeCommentsBtn");
 
@@ -139,7 +133,6 @@ document.addEventListener("DOMContentLoaded", () => {
   btnAplicarFiltros.addEventListener("click", aplicarFiltros);
   btnLimpiarFiltros.addEventListener("click", limpiarFiltros);
 
-  // Eventos para el panel de comentarios
   if (addCommentBtn) {
     addCommentBtn.addEventListener("click", addNewComment);
   }
@@ -177,13 +170,12 @@ onAuthStateChanged(auth, async (user) => {
     userEmailSpan.textContent = user.email;
     userRoleSpan.textContent = currentRole;
 
-    // Ocultar col "Asignado" para todos
+    // Ocultar col "Asignado"
     document.querySelectorAll(".colAsignado").forEach(el => {
       el.style.display = "none";
     });
 
-    // Títulos en blanco consultor => "Responsable" y "Acciones"
-    // Senior => "Acciones" en blanco
+    // Títulos en blanco
     const thResp = document.getElementById("thResp");
     const thAcc = document.getElementById("thAcc");
     if (currentRole === "consultor") {
@@ -194,7 +186,7 @@ onAuthStateChanged(auth, async (user) => {
       thAcc.textContent = "";
     }
 
-    // Si admin => ver users
+    // admin => ver users
     if (currentRole === "admin") {
       btnUsuarios.style.display = "inline-block";
       loadAllUsers();
@@ -297,7 +289,7 @@ async function handleTaskForm() {
       // Create
       await addDoc(colRef, {
         idTarea: nextId,
-        fechaAsignacion: new Date().toLocaleDateString("es-CL"), // dd-mm-aaaa
+        fechaAsignacion: new Date().toLocaleDateString("es-CL"),
         fechaEntrega: newFechaEntrega.value || null,
         userName: newUserName.value.trim(),
         assignedTo: emailResponsible,
@@ -358,7 +350,7 @@ function listenTasks() {
 }
 
 /****************************************************
- * RENDER TAREAS (incluye columna "Última actividad" y botón "Comentarios")
+ * RENDER TAREAS
  ****************************************************/
 function renderTasks(tasksArray) {
   tasksTableBody.innerHTML = "";
@@ -371,34 +363,35 @@ function renderTasks(tasksArray) {
   arr.forEach(task => {
     const tr = document.createElement("tr");
 
-    // col 1) Responsable => consultor => blanco
+    // 1) Responsable => consultor => en blanco
     const tdResp = document.createElement("td");
     tdResp.textContent = (currentRole === "consultor") ? "" : (task.userName || "");
     tr.appendChild(tdResp);
 
-    // col 2) ID Tarea
+    // 2) ID
     const tdId = document.createElement("td");
     tdId.textContent = task.idTarea ?? "N/A";
     tr.appendChild(tdId);
 
-    // col 3) Fecha Asignación
+    // 3) Fecha Asignación
     const tdFechaAsig = document.createElement("td");
     tdFechaAsig.textContent = task.fechaAsignacion || "--";
     tr.appendChild(tdFechaAsig);
 
-    // col 4) Fecha de Entrega => dd-mm-aaaa + (días) => ya implementado
+    // 4) Fecha de Entrega => color
     const tdFechaEnt = document.createElement("td");
     if (task.fechaEntrega) {
       const formatted = formatDDMMYYYY(task.fechaEntrega);
       let daysBetween = 0;
       if (task.status === "Finalizado") {
-        daysBetween = 0;
+        // No aplica color
         tdFechaEnt.textContent = `${formatted} (0)`;
       } else {
+        // Contar desde HOY
         daysBetween = calcBusinessDaysDiff(new Date(), parseDateDMY(formatted));
         if (daysBetween < 0) daysBetween = 0;
         tdFechaEnt.textContent = `${formatted} (${daysBetween})`;
-
+        // Colores
         if (daysBetween <= 2) {
           tdFechaEnt.classList.add("fecha-rojo");
         } else if (daysBetween <= 5) {
@@ -416,24 +409,23 @@ function renderTasks(tasksArray) {
     }
     tr.appendChild(tdFechaEnt);
 
-    // col 5) Actividad
+    // 5) Actividad
     const tdAct = document.createElement("td");
     tdAct.textContent = task.name || "";
     tr.appendChild(tdAct);
 
-    // col 6) Estado + select
+    // 6) Estado
     const tdEstado = document.createElement("td");
     const selectStatus = document.createElement("select");
 
-    // Senior => no Finalizado
     let possibleStates = [...TASK_STATES];
+    // Senior => sin Finalizado
     if (currentRole === "senior") {
       possibleStates = possibleStates.filter(s => s !== "Finalizado");
       if (["Finalizado","Reportar"].includes(task.status)) {
         possibleStates = [task.status];
       }
     }
-    // consultor => no final/reportar
     if (currentRole === "consultor") {
       if (["Finalizado","Reportar","Por revisar"].includes(task.status)) {
         possibleStates = [task.status];
@@ -479,30 +471,29 @@ function renderTasks(tasksArray) {
     tdEstado.appendChild(indicator);
     tr.appendChild(tdEstado);
 
-    // col 7) Empresa
+    // 7) Empresa
     const tdEmp = document.createElement("td");
     tdEmp.textContent = task.empresa || "";
     tr.appendChild(tdEmp);
 
-    // col 8) Grupo
+    // 8) Grupo
     const tdGru = document.createElement("td");
     tdGru.textContent = task.grupoCliente || "";
     tr.appendChild(tdGru);
 
-    // col 9) Folio
+    // 9) Folio
     const tdFolio = document.createElement("td");
     tdFolio.textContent = task.folioProyecto || "";
     tr.appendChild(tdFolio);
 
-    // col 10) Horas
+    // 10) Horas
     const tdHrs = document.createElement("td");
     tdHrs.textContent = task.horasAsignadas || "";
     tr.appendChild(tdHrs);
 
-    // col 11) Última actividad (fecha/hora del último comentario)
+    // 11) Última actividad
     const tdLastAct = document.createElement("td");
     if (task.lastCommentAt) {
-      // lastCommentAt es un Timestamp => .toDate()
       const d = task.lastCommentAt.toDate();
       tdLastAct.textContent = new Date(d).toLocaleString("es-CL");
     } else {
@@ -510,10 +501,13 @@ function renderTasks(tasksArray) {
     }
     tr.appendChild(tdLastAct);
 
-    // col 12) Acciones
+    // 12) Acciones
     const tdAcc = document.createElement("td");
-    if (["consultor","senior","supervisor","admin"].includes(currentRole)) {
-      // Botón Editar/Eliminar solo si admin/supervisor
+    // Permitimos ver "Comentarios" a cualquier rol
+    // (consultor y senior no editan/eliminan tarea, pero sí ver comentarios)
+    // Si quieres restringir, ajusta la condición
+    if (["admin","supervisor","senior","consultor"].includes(currentRole)) {
+      // Solo admin/supervisor => editar/eliminar
       if (["admin","supervisor"].includes(currentRole)) {
         const btnEdit = document.createElement("button");
         btnEdit.textContent = "Editar";
@@ -543,7 +537,7 @@ function renderTasks(tasksArray) {
         tdAcc.appendChild(btnDel);
       }
 
-      // (Comentarios) => lo permitimos a todos
+      // Botón Comentarios
       const btnComments = document.createElement("button");
       btnComments.textContent = "Comentarios";
       btnComments.style.marginLeft = "5px";
@@ -553,7 +547,6 @@ function renderTasks(tasksArray) {
       tdAcc.appendChild(btnComments);
 
     } else {
-      // Ninguna acción
       tdAcc.textContent = "";
     }
     tr.appendChild(tdAcc);
@@ -563,31 +556,28 @@ function renderTasks(tasksArray) {
 }
 
 /****************************************************
- * openCommentsPanel => abre submenú de comentarios
+ * openCommentsPanel => muestra submenú
  ****************************************************/
 function openCommentsPanel(taskDocId, tareaId) {
   currentCommentTaskId = taskDocId;
-  document.getElementById("commentTaskId").textContent = tareaId || "N/A";
+  commentTaskIdSpan.textContent = tareaId || "N/A";
 
-  const panel = document.getElementById("commentsPanel");
-  if (panel) {
-    panel.style.display = "block";
+  if (commentsPanel) {
+    commentsPanel.style.display = "block";
   }
   loadComments(taskDocId);
 }
 
 /****************************************************
- * loadComments => lee subcoleccion tasks/{taskId}/comments
+ * loadComments => tasks/{taskId}/comments
  ****************************************************/
 async function loadComments(taskDocId) {
-  const cList = document.getElementById("commentsList");
-  if (cList) {
-    cList.innerHTML = "Cargando...";
-  }
+  if (!commentsListDiv) return;
+  commentsListDiv.innerHTML = "Cargando...";
   const cRef = collection(db, "tasks", taskDocId, "comments");
-  // Ordenar por fecha asc
-  const qComments = query(cRef, orderBy("createdAt","asc"));
-  const snap = await getDocs(qComments);
+  const qRef = query(cRef, orderBy("createdAt","asc"));
+  const snap = await getDocs(qRef);
+
   let html = "";
   snap.forEach(docu => {
     const c = docu.data();
@@ -600,11 +590,11 @@ async function loadComments(taskDocId) {
       </div>
     `;
   });
-  cList.innerHTML = html || "<p>Sin comentarios</p>";
+  commentsListDiv.innerHTML = html || "<p>Sin comentarios</p>";
 }
 
 /****************************************************
- * addNewComment => agrega un comentario
+ * addNewComment => subcoleccion
  ****************************************************/
 async function addNewComment() {
   if (!currentCommentTaskId) return;
@@ -620,7 +610,7 @@ async function addNewComment() {
       authorEmail: currentUser ? currentUser.email : "anónimo",
       createdAt: new Date()
     });
-    // Actualizamos lastCommentAt en la task
+    // Actualizar lastCommentAt en la tarea
     await updateDoc(doc(db, "tasks", currentCommentTaskId), {
       lastCommentAt: new Date()
     });
@@ -632,7 +622,7 @@ async function addNewComment() {
 }
 
 /****************************************************
- * canChangeStatus
+ * canChangeStatus, updateTaskStatus
  ****************************************************/
 function canChangeStatus(role, currentSt, newSt) {
   if (role === "senior") {
@@ -650,9 +640,6 @@ function canChangeStatus(role, currentSt, newSt) {
   return true;
 }
 
-/****************************************************
- * updateTaskStatus
- ****************************************************/
 async function updateTaskStatus(docId, newStatus) {
   try {
     await updateDoc(doc(db, "tasks", docId), { status: newStatus });
@@ -662,13 +649,11 @@ async function updateTaskStatus(docId, newStatus) {
 }
 
 /****************************************************
- * FILTROS
+ * FILTROS => solo [Responsable, Estado, Empresa, Grupo]
  ****************************************************/
 function aplicarFiltros() {
   let arr = allTasks.slice();
 
-  const valFecha = filterFecha.value.trim().toLowerCase();
-  const exFecha = chkExcludeFecha.checked;
   const valResp = filterResponsable.value.trim().toLowerCase();
   const exResp = chkExcludeAsignado.checked;
   const valEst = filterEstado.value.trim().toLowerCase();
@@ -677,16 +662,9 @@ function aplicarFiltros() {
   const exEmp = chkExcludeEmpresa.checked;
   const valGru = filterGrupo.value.trim().toLowerCase();
   const exGru = chkExcludeGrupo.checked;
-  const valFol = filterFolio.value.trim().toLowerCase();
-  const exFol = chkExcludeFolio.checked;
 
   arr = arr.filter(t => {
-    // Fecha
-    if (valFecha) {
-      const match = (t.fechaAsignacion||"").toLowerCase().includes(valFecha);
-      if (exFecha) { if (match) return false; } else if (!match) return false;
-    }
-    // ResponsAble => t.userName
+    // RESPONSABLE => t.userName
     if (valResp) {
       const match = (t.userName||"").toLowerCase().includes(valResp);
       if (exResp) { if (match) return false; } else if (!match) return false;
@@ -706,11 +684,6 @@ function aplicarFiltros() {
       const match = (t.grupoCliente||"").toLowerCase().includes(valGru);
       if (exGru) { if (match) return false; } else if (!match) return false;
     }
-    // Folio
-    if (valFol) {
-      const match = (t.folioProyecto||"").toLowerCase().includes(valFol);
-      if (exFol) { if (match) return false; } else if (!match) return false;
-    }
     return true;
   });
 
@@ -722,8 +695,6 @@ function aplicarFiltros() {
 }
 
 function limpiarFiltros() {
-  filterFecha.value = "";
-  chkExcludeFecha.checked = false;
   filterResponsable.value = "";
   chkExcludeAsignado.checked = false;
   filterEstado.value = "";
@@ -732,8 +703,6 @@ function limpiarFiltros() {
   chkExcludeEmpresa.checked = false;
   filterGrupo.value = "";
   chkExcludeGrupo.checked = false;
-  filterFolio.value = "";
-  chkExcludeFolio.checked = false;
 
   if (currentRole === "consultor" && currentUser) {
     renderTasks(allTasks.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase()));
