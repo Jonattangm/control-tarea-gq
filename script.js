@@ -16,7 +16,9 @@ import {
   addDoc,
   deleteDoc,
   onSnapshot,
-  getDocs
+  getDocs,
+  query,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 /****************************************************
@@ -41,6 +43,9 @@ let currentUser = null;
 let currentRole = null;
 let allTasks = [];
 let editTaskId = null;
+
+// Para el panel de comentarios
+let currentCommentTaskId = null;
 
 const TASK_STATES = [
   "Asignado","En proceso","Por revisar","Reportar","Finalizado",
@@ -102,6 +107,16 @@ const btnAplicarFiltros = document.getElementById("btnAplicarFiltros");
 const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
 
 /****************************************************
+ * Panel de Comentarios
+ ****************************************************/
+const commentsPanel = document.getElementById("commentsPanel"); // div id="commentsPanel"
+const commentTaskIdSpan = document.getElementById("commentTaskId"); // span id="commentTaskId"
+const commentsListDiv = document.getElementById("commentsList");    // div id="commentsList"
+const commentTextArea = document.getElementById("commentText");     // textarea id="commentText"
+const addCommentBtn = document.getElementById("addCommentBtn");
+const closeCommentsBtn = document.getElementById("closeCommentsBtn");
+
+/****************************************************
  * DOMContentLoaded
  ****************************************************/
 document.addEventListener("DOMContentLoaded", () => {
@@ -123,6 +138,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   btnAplicarFiltros.addEventListener("click", aplicarFiltros);
   btnLimpiarFiltros.addEventListener("click", limpiarFiltros);
+
+  // Eventos para el panel de comentarios
+  if (addCommentBtn) {
+    addCommentBtn.addEventListener("click", addNewComment);
+  }
+  if (closeCommentsBtn) {
+    closeCommentsBtn.addEventListener("click", () => {
+      commentsPanel.style.display = "none";
+      currentCommentTaskId = null;
+      commentsListDiv.innerHTML = "";
+      commentTextArea.value = "";
+    });
+  }
 });
 
 /****************************************************
@@ -330,7 +358,7 @@ function listenTasks() {
 }
 
 /****************************************************
- * RENDER TAREAS
+ * RENDER TAREAS (incluye columna "Última actividad" y botón "Comentarios")
  ****************************************************/
 function renderTasks(tasksArray) {
   tasksTableBody.innerHTML = "";
@@ -345,14 +373,10 @@ function renderTasks(tasksArray) {
 
     // col 1) Responsable => consultor => blanco
     const tdResp = document.createElement("td");
-    if (currentRole === "consultor") {
-      tdResp.textContent = "";
-    } else {
-      tdResp.textContent = task.userName || "";
-    }
+    tdResp.textContent = (currentRole === "consultor") ? "" : (task.userName || "");
     tr.appendChild(tdResp);
 
-    // col 2) ID
+    // col 2) ID Tarea
     const tdId = document.createElement("td");
     tdId.textContent = task.idTarea ?? "N/A";
     tr.appendChild(tdId);
@@ -362,22 +386,19 @@ function renderTasks(tasksArray) {
     tdFechaAsig.textContent = task.fechaAsignacion || "--";
     tr.appendChild(tdFechaAsig);
 
-    // col 4) Fecha de Entrega => (Ajuste #2) días entre HOY y la Entrega
+    // col 4) Fecha de Entrega => dd-mm-aaaa + (días) => ya implementado
     const tdFechaEnt = document.createElement("td");
     if (task.fechaEntrega) {
-      const formatted = formatDDMMYYYY(task.fechaEntrega); // AAAA-MM-DD => dd-mm-aaaa
+      const formatted = formatDDMMYYYY(task.fechaEntrega);
       let daysBetween = 0;
-      // Si finalizado => 0, sin color
       if (task.status === "Finalizado") {
         daysBetween = 0;
         tdFechaEnt.textContent = `${formatted} (0)`;
       } else {
-        // días hábiles entre HOY y la fecha de entrega
         daysBetween = calcBusinessDaysDiff(new Date(), parseDateDMY(formatted));
         if (daysBetween < 0) daysBetween = 0;
         tdFechaEnt.textContent = `${formatted} (${daysBetween})`;
 
-        // color
         if (daysBetween <= 2) {
           tdFechaEnt.classList.add("fecha-rojo");
         } else if (daysBetween <= 5) {
@@ -400,19 +421,19 @@ function renderTasks(tasksArray) {
     tdAct.textContent = task.name || "";
     tr.appendChild(tdAct);
 
-    // col 6) Estado
+    // col 6) Estado + select
     const tdEstado = document.createElement("td");
     const selectStatus = document.createElement("select");
 
-    let possibleStates = [...TASK_STATES];
     // Senior => no Finalizado
+    let possibleStates = [...TASK_STATES];
     if (currentRole === "senior") {
       possibleStates = possibleStates.filter(s => s !== "Finalizado");
       if (["Finalizado","Reportar"].includes(task.status)) {
         possibleStates = [task.status];
       }
     }
-    // Consultor => no Finalizado/Reportar
+    // consultor => no final/reportar
     if (currentRole === "consultor") {
       if (["Finalizado","Reportar","Por revisar"].includes(task.status)) {
         possibleStates = [task.status];
@@ -420,7 +441,6 @@ function renderTasks(tasksArray) {
         possibleStates = ["Asignado","En proceso","Por revisar","SII","Municipalidad","Tesoreria","BPO"];
       }
     }
-
     possibleStates.forEach(st => {
       const opt = document.createElement("option");
       opt.value = st;
@@ -428,7 +448,6 @@ function renderTasks(tasksArray) {
       if (st === task.status) opt.selected = true;
       selectStatus.appendChild(opt);
     });
-
     selectStatus.addEventListener("change", () => {
       const newSt = selectStatus.value;
       if (currentRole === "consultor" && newSt === "Por revisar" && task.status !== "Por revisar") {
@@ -480,42 +499,136 @@ function renderTasks(tasksArray) {
     tdHrs.textContent = task.horasAsignadas || "";
     tr.appendChild(tdHrs);
 
-    // col 11) Acciones => consultor/senior => en blanco
-    const tdAcc = document.createElement("td");
-    if (["admin","supervisor"].includes(currentRole)) {
-      const btnEdit = document.createElement("button");
-      btnEdit.textContent = "Editar";
-      btnEdit.addEventListener("click", () => {
-        editTaskId = task.docId;
-        frmTareaTitle.textContent = "Editar Tarea (ID: " + (task.idTarea||"N/A") + ")";
-        createTaskBtn.textContent = "Actualizar Tarea";
-
-        newUserName.value = task.userName || "";
-        newTaskName.value = task.name || "";
-        newEmpresa.value = task.empresa || "";
-        newGrupo.value = task.grupoCliente || "";
-        newFolio.value = task.folioProyecto || "";
-        newHoras.value = task.horasAsignadas || "";
-        newFechaEntrega.value = task.fechaEntrega || "";
-      });
-      tdAcc.appendChild(btnEdit);
-
-      const btnDel = document.createElement("button");
-      btnDel.textContent = "Eliminar";
-      btnDel.style.marginLeft = "5px";
-      btnDel.addEventListener("click", async () => {
-        if (confirm("¿Deseas eliminar la tarea?")) {
-          await deleteDoc(doc(db, "tasks", task.docId));
-        }
-      });
-      tdAcc.appendChild(btnDel);
+    // col 11) Última actividad (fecha/hora del último comentario)
+    const tdLastAct = document.createElement("td");
+    if (task.lastCommentAt) {
+      // lastCommentAt es un Timestamp => .toDate()
+      const d = task.lastCommentAt.toDate();
+      tdLastAct.textContent = new Date(d).toLocaleString("es-CL");
     } else {
+      tdLastAct.textContent = "--";
+    }
+    tr.appendChild(tdLastAct);
+
+    // col 12) Acciones
+    const tdAcc = document.createElement("td");
+    if (["consultor","senior","supervisor","admin"].includes(currentRole)) {
+      // Botón Editar/Eliminar solo si admin/supervisor
+      if (["admin","supervisor"].includes(currentRole)) {
+        const btnEdit = document.createElement("button");
+        btnEdit.textContent = "Editar";
+        btnEdit.addEventListener("click", () => {
+          editTaskId = task.docId;
+          frmTareaTitle.textContent = "Editar Tarea (ID: " + (task.idTarea||"N/A") + ")";
+          createTaskBtn.textContent = "Actualizar Tarea";
+
+          newUserName.value = task.userName || "";
+          newTaskName.value = task.name || "";
+          newEmpresa.value = task.empresa || "";
+          newGrupo.value = task.grupoCliente || "";
+          newFolio.value = task.folioProyecto || "";
+          newHoras.value = task.horasAsignadas || "";
+          newFechaEntrega.value = task.fechaEntrega || "";
+        });
+        tdAcc.appendChild(btnEdit);
+
+        const btnDel = document.createElement("button");
+        btnDel.textContent = "Eliminar";
+        btnDel.style.marginLeft = "5px";
+        btnDel.addEventListener("click", async () => {
+          if (confirm("¿Deseas eliminar la tarea?")) {
+            await deleteDoc(doc(db, "tasks", task.docId));
+          }
+        });
+        tdAcc.appendChild(btnDel);
+      }
+
+      // (Comentarios) => lo permitimos a todos
+      const btnComments = document.createElement("button");
+      btnComments.textContent = "Comentarios";
+      btnComments.style.marginLeft = "5px";
+      btnComments.addEventListener("click", () => {
+        openCommentsPanel(task.docId, task.idTarea);
+      });
+      tdAcc.appendChild(btnComments);
+
+    } else {
+      // Ninguna acción
       tdAcc.textContent = "";
     }
     tr.appendChild(tdAcc);
 
     tasksTableBody.appendChild(tr);
   });
+}
+
+/****************************************************
+ * openCommentsPanel => abre submenú de comentarios
+ ****************************************************/
+function openCommentsPanel(taskDocId, tareaId) {
+  currentCommentTaskId = taskDocId;
+  document.getElementById("commentTaskId").textContent = tareaId || "N/A";
+
+  const panel = document.getElementById("commentsPanel");
+  if (panel) {
+    panel.style.display = "block";
+  }
+  loadComments(taskDocId);
+}
+
+/****************************************************
+ * loadComments => lee subcoleccion tasks/{taskId}/comments
+ ****************************************************/
+async function loadComments(taskDocId) {
+  const cList = document.getElementById("commentsList");
+  if (cList) {
+    cList.innerHTML = "Cargando...";
+  }
+  const cRef = collection(db, "tasks", taskDocId, "comments");
+  // Ordenar por fecha asc
+  const qComments = query(cRef, orderBy("createdAt","asc"));
+  const snap = await getDocs(qComments);
+  let html = "";
+  snap.forEach(docu => {
+    const c = docu.data();
+    const dateStr = c.createdAt ? new Date(c.createdAt.toDate()).toLocaleString("es-CL") : "";
+    html += `
+      <div class="comment-item">
+        <div class="comment-author"><b>${c.authorEmail || "Desconocido"}</b></div>
+        <div class="comment-text">${c.text || ""}</div>
+        <div class="comment-date" style="font-size:0.8rem;color:#888;">${dateStr}</div>
+      </div>
+    `;
+  });
+  cList.innerHTML = html || "<p>Sin comentarios</p>";
+}
+
+/****************************************************
+ * addNewComment => agrega un comentario
+ ****************************************************/
+async function addNewComment() {
+  if (!currentCommentTaskId) return;
+  const text = commentTextArea.value.trim();
+  if (!text) {
+    alert("Escribe un comentario");
+    return;
+  }
+  try {
+    const cRef = collection(db, "tasks", currentCommentTaskId, "comments");
+    await addDoc(cRef, {
+      text,
+      authorEmail: currentUser ? currentUser.email : "anónimo",
+      createdAt: new Date()
+    });
+    // Actualizamos lastCommentAt en la task
+    await updateDoc(doc(db, "tasks", currentCommentTaskId), {
+      lastCommentAt: new Date()
+    });
+    commentTextArea.value = "";
+    loadComments(currentCommentTaskId);
+  } catch (err) {
+    console.error("Error agregando comentario:", err);
+  }
 }
 
 /****************************************************
@@ -537,6 +650,9 @@ function canChangeStatus(role, currentSt, newSt) {
   return true;
 }
 
+/****************************************************
+ * updateTaskStatus
+ ****************************************************/
 async function updateTaskStatus(docId, newStatus) {
   try {
     await updateDoc(doc(db, "tasks", docId), { status: newStatus });
@@ -570,7 +686,7 @@ function aplicarFiltros() {
       const match = (t.fechaAsignacion||"").toLowerCase().includes(valFecha);
       if (exFecha) { if (match) return false; } else if (!match) return false;
     }
-    // RESPONSABLE => t.userName
+    // ResponsAble => t.userName
     if (valResp) {
       const match = (t.userName||"").toLowerCase().includes(valResp);
       if (exResp) { if (match) return false; } else if (!match) return false;
@@ -727,7 +843,7 @@ function formatDDMMYYYY(yyyy_mm_dd) {
 }
 
 /****************************************************
- * parseDateDMY => parse "DD-MM-AAAA" => Date
+ * parseDateDMY => "DD-MM-AAAA" => Date
  ****************************************************/
 function parseDateDMY(dd_mm_yyyy) {
   if (!dd_mm_yyyy) return null;
