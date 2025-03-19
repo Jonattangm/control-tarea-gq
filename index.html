@@ -30,7 +30,7 @@
       </div>
     </section>
 
-    <!-- Barra lateral -->
+    <!-- Barra lateral (sidebar) -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
       <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
@@ -42,6 +42,7 @@
     <!-- Dashboard de Tareas -->
     <section class="dashboard" id="dashboardSection" style="display:none;">
       <h2>Dashboard de Actividades</h2>
+      <!-- Span para el email y rol -->
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
 
       <!-- Filtros (menú plegable) -->
@@ -105,7 +106,7 @@
         </div>
       </div>
 
-      <!-- Tabla con data-sortkey para ordenar -->
+      <!-- Tabla con data-sortkey -->
       <table id="tasksTable">
         <thead>
           <tr>
@@ -121,6 +122,7 @@
             <th data-sortkey="horasAsignadas">Horas</th>
             <th data-sortkey="lastCommentAt">Última actividad</th>
             <th>Acciones</th>
+            <!-- colAsignado oculta a todos -->
             <th class="colAsignado" style="display:none;">Asignado (email)</th>
           </tr>
         </thead>
@@ -158,12 +160,12 @@
     </div>
   </div>
 
-  <!-- Footer en login -->
+  <!-- Footer solo en login -->
   <footer id="loginFooter">
     <p>© 2025 Control Tarea GQ</p>
   </footer>
 
-  <!-- Se carga script.js (una sola vez) -->
+  <!-- Se carga script.js -->
   <script type="module" src="script.js"></script>
 </body>
 </html>
