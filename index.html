@@ -7,7 +7,8 @@
 </head>
 <body>
   <div class="main-container">
-    <!-- Sección Login/Registro (visible inicialmente) -->
+
+    <!-- Sección Login/Registro -->
     <section id="authSection" class="auth-section" style="display:block;">
       <div class="auth-container">
         <h2>Registro / Login</h2>
@@ -29,7 +30,7 @@
       </div>
     </section>
 
-    <!-- Barra lateral -->
+    <!-- Sidebar -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
       <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
@@ -38,12 +39,12 @@
       </div>
     </div>
 
-    <!-- Dashboard de Tareas -->
+    <!-- Dashboard -->
     <section class="dashboard" id="dashboardSection" style="display:none;">
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
 
-      <!-- Filtros (Responsable, Estado, Empresa, Grupo) en menú plegable -->
+      <!-- Filtros (menú plegable) -->
       <div class="filters-box">
         <div class="filters-header">
           <h3>Filtrar y Excluir</h3>
@@ -104,12 +105,11 @@
         </div>
       </div>
 
-      <!-- Tabla de Tareas -->
+      <!-- Tabla con data-sortkey -->
       <table id="tasksTable">
         <thead>
           <tr>
-            <!-- data-sortkey => para ordenar asc/desc -->
-            <th id="thResp" data-sortkey="userName">Responsable</th>
+            <th data-sortkey="userName">Responsable</th>
             <th data-sortkey="idTarea">ID Tarea</th>
             <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
             <th data-sortkey="fechaEntrega">Fecha de Entrega</th>
@@ -120,7 +120,8 @@
             <th data-sortkey="folioProyecto">Folio</th>
             <th data-sortkey="horasAsignadas">Horas</th>
             <th data-sortkey="lastCommentAt">Última actividad</th>
-            <th id="thAcc">Acciones</th>
+            <th>Acciones</th>
+            <!-- colAsignado oculta a todos -->
             <th class="colAsignado" style="display:none;">Asignado (email)</th>
           </tr>
         </thead>
@@ -128,7 +129,7 @@
       </table>
     </section>
 
-    <!-- Sección Administrar Usuarios -->
+    <!-- Admin de Usuarios -->
     <section class="dashboard" id="adminUsersSection" style="display:none;">
       <h2>Administrar Usuarios</h2>
       <table id="usersTable">
@@ -137,7 +138,7 @@
             <th>Email</th>
             <th>Nombre Usuario</th>
             <th>Rol</th>
-            <th id="thCambiarRol">Cambiar Rol</th>
+            <th>Cambiar Rol</th>
           </tr>
         </thead>
         <tbody id="usersBody"></tbody>
@@ -145,7 +146,7 @@
     </section>
   </div>
 
-  <!-- Panel de Comentarios -->
+  <!-- Panel de Comentarios (para todos los roles) -->
   <div id="commentsPanel" class="comments-panel" style="display:none;">
     <div class="comments-header">
       <h3>Comentarios de la Tarea <span id="commentTaskId"></span></h3>
@@ -158,6 +159,7 @@
     </div>
   </div>
 
+  <!-- Footer en login -->
   <footer id="loginFooter">
     <p>© 2025 Control Tarea GQ</p>
   </footer>

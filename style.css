@@ -75,7 +75,7 @@ body {
   border-top: 1px solid #ccc;
 }
 
-/* Dashboard principal */
+/* Dashboard */
 .dashboard {
   flex: 1;
   margin: 1rem;
@@ -85,7 +85,7 @@ body {
   border-radius: 5px;
 }
 
-/* Filtros plegables */
+/* Filtros y menús plegables */
 .filters-box {
   background: #fdfdfd;
   border: 1px solid #ccc;
@@ -118,7 +118,6 @@ body {
   width: 160px;
 }
 
-/* Caja "Crear Tarea" plegable */
 .task-creation-box {
   background: #fdfdfd;
   border: 1px solid #ccc;
@@ -189,7 +188,7 @@ th[data-sortkey] {
   background: #795548;
 }
 
-/* Colores para Fecha de Entrega (días hábiles) */
+/* Colores para Fecha de Entrega */
 .fecha-rojo {
   background: #ffcccc;
 }
