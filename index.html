@@ -8,7 +8,7 @@
 <body>
   <div class="main-container">
 
-    <!-- Sección Login/Registro -->
+    <!-- Sección de Login/Registro -->
     <section id="authSection" class="auth-section" style="display:block;">
       <div class="auth-container">
         <h2>Registro / Login</h2>
@@ -30,7 +30,7 @@
       </div>
     </section>
 
-    <!-- Sidebar -->
+    <!-- Barra lateral -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
       <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <!-- Dashboard -->
+    <!-- Dashboard de Tareas -->
     <section class="dashboard" id="dashboardSection" style="display:none;">
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
@@ -105,7 +105,7 @@
         </div>
       </div>
 
-      <!-- Tabla con data-sortkey -->
+      <!-- Tabla con data-sortkey para ordenar -->
       <table id="tasksTable">
         <thead>
           <tr>
@@ -121,7 +121,6 @@
             <th data-sortkey="horasAsignadas">Horas</th>
             <th data-sortkey="lastCommentAt">Última actividad</th>
             <th>Acciones</th>
-            <!-- colAsignado oculta a todos -->
             <th class="colAsignado" style="display:none;">Asignado (email)</th>
           </tr>
         </thead>
@@ -129,7 +128,7 @@
       </table>
     </section>
 
-    <!-- Admin de Usuarios -->
+    <!-- Panel de Administración de Usuarios -->
     <section class="dashboard" id="adminUsersSection" style="display:none;">
       <h2>Administrar Usuarios</h2>
       <table id="usersTable">
@@ -146,7 +145,7 @@
     </section>
   </div>
 
-  <!-- Panel de Comentarios (para todos los roles) -->
+  <!-- Panel de Comentarios -->
   <div id="commentsPanel" class="comments-panel" style="display:none;">
     <div class="comments-header">
       <h3>Comentarios de la Tarea <span id="commentTaskId"></span></h3>
@@ -164,6 +163,7 @@
     <p>© 2025 Control Tarea GQ</p>
   </footer>
 
+  <!-- Se carga script.js (una sola vez) -->
   <script type="module" src="script.js"></script>
 </body>
 </html>
