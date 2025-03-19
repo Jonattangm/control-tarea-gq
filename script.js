@@ -44,9 +44,11 @@ let currentUser = null;
 let currentRole = null;
 let allTasks = [];
 let editTaskId = null;
-let currentCommentTaskId = null; // para comments
-let currentSortKey = null;
-let currentSortDir = 1; // 1 => asc, -1 => desc
+let currentCommentTaskId = null; // para comentarios
+
+// Para sorting
+let currentSortKey = null; // ejemplo "idTarea"
+let currentSortDir = 1;    // 1 => asc, -1 => desc
 
 const TASK_STATES = [
   "Asignado","En proceso","Por revisar","Reportar","Finalizado",
@@ -72,9 +74,6 @@ const btnRegister = document.getElementById("btnRegister");
 const btnLogin = document.getElementById("btnLogin");
 const authMessage = document.getElementById("authMessage");
 const btnLogout = document.getElementById("btnLogout");
-
-const userEmailSpan = document.getElementById("userEmail");
-const userRoleSpan = document.getElementById("userRole");
 
 const toggleFiltersBtn = document.getElementById("toggleFiltersBtn");
 const filtersContainer = document.getElementById("filtersContainer");
@@ -106,7 +105,7 @@ const chkExcludeGrupo = document.getElementById("chkExcludeGrupo");
 const btnAplicarFiltros = document.getElementById("btnAplicarFiltros");
 const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
 
-// Comments panel
+// Comentarios
 const commentsPanel = document.getElementById("commentsPanel");
 const commentTaskIdSpan = document.getElementById("commentTaskId");
 const commentsListDiv = document.getElementById("commentsList");
@@ -118,13 +117,15 @@ const closeCommentsBtn = document.getElementById("closeCommentsBtn");
  * DOMContentLoaded
  ****************************************************/
 document.addEventListener("DOMContentLoaded", () => {
-  authForm?.addEventListener("submit", (e) => e.preventDefault());
+  // Evitar submit
+  authForm?.addEventListener("submit", e => e.preventDefault());
   btnRegister?.addEventListener("click", registerUser);
   btnLogin?.addEventListener("click", loginUser);
   btnLogout?.addEventListener("click", () => signOut(auth));
 
   createTaskBtn?.addEventListener("click", handleTaskForm);
 
+  // Navegación Tareas/Usuarios
   btnTareas?.addEventListener("click", () => {
     dashboardSection.style.display = "block";
     adminUsersSection.style.display = "none";
@@ -171,18 +172,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Ordenar tabla al hacer clic en th
+  // Ordenar la tabla
   document.querySelectorAll("#tasksTable thead th[data-sortkey]")
     .forEach(th => {
       th.addEventListener("click", () => {
         const sortKey = th.getAttribute("data-sortkey");
-        if (sortKey === currentSortKey) {
-          currentSortDir *= -1; // invierte asc/desc
+        if (currentSortKey === sortKey) {
+          currentSortDir *= -1; // asc <-> desc
         } else {
           currentSortKey = sortKey;
           currentSortDir = 1; // asc
         }
-        renderTasks(allTasks);
+        renderTasks(allTasks); // re-render con sort
       });
     });
 });
@@ -190,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /****************************************************
  * onAuthStateChanged
  ****************************************************/
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     const userRef = doc(db, "users", user.uid);
@@ -198,6 +199,7 @@ onAuthStateChanged(auth, async (user) => {
     if (snap.exists()) {
       currentRole = snap.data().role;
     } else {
+      // set role consultor
       await setDoc(userRef, { role: DEFAULT_ROLE, email: user.email.toLowerCase() });
       currentRole = DEFAULT_ROLE;
     }
@@ -210,7 +212,6 @@ onAuthStateChanged(auth, async (user) => {
     userEmailSpan.textContent = user.email;
     userRoleSpan.textContent = currentRole;
 
-    // admin => ver users
     if (currentRole === "admin") {
       btnUsuarios.style.display = "inline-block";
       loadAllUsers();
@@ -237,7 +238,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /****************************************************
- * REGISTRO / LOGIN
+ * REGISTER / LOGIN
  ****************************************************/
 async function registerUser() {
   authMessage.textContent = "";
@@ -247,8 +248,8 @@ async function registerUser() {
   }
   try {
     await createUserWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value.trim());
-  } catch (error) {
-    authMessage.textContent = `Error al crear usuario: ${error.message}`;
+  } catch (err) {
+    authMessage.textContent = `Error al crear usuario: ${err.message}`;
   }
 }
 
@@ -260,13 +261,13 @@ async function loginUser() {
   }
   try {
     await signInWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value.trim());
-  } catch (error) {
-    authMessage.textContent = `Error al iniciar sesión: ${error.message}`;
+  } catch (err) {
+    authMessage.textContent = `Error al iniciar sesión: ${err.message}`;
   }
 }
 
 /****************************************************
- * CREAR / EDITAR TAREA
+ * CREAR/EDITAR TAREA
  ****************************************************/
 async function handleTaskForm() {
   if (!newUserName.value.trim() || !newTaskName.value.trim()) {
@@ -283,15 +284,15 @@ async function handleTaskForm() {
     const snap = await getDocs(colRef);
     let maxId = 0;
     snap.forEach(d => {
-      const data = d.data();
-      if (data.idTarea && data.idTarea > maxId) {
-        maxId = data.idTarea;
+      const dt = d.data();
+      if (dt.idTarea && dt.idTarea > maxId) {
+        maxId = dt.idTarea;
       }
     });
     const nextId = maxId + 1;
 
     if (editTaskId) {
-      // Update
+      // update
       await updateDoc(doc(db, "tasks", editTaskId), {
         idTarea: nextId,
         userName: newUserName.value.trim(),
@@ -306,7 +307,7 @@ async function handleTaskForm() {
       alert("Tarea actualizada.");
       clearTaskForm();
     } else {
-      // Create
+      // create
       await addDoc(colRef, {
         idTarea: nextId,
         fechaAsignacion: new Date().toLocaleDateString("es-CL"),
@@ -325,7 +326,7 @@ async function handleTaskForm() {
       alert("Tarea creada.");
       clearTaskForm();
     }
-  } catch (err) {
+  } catch(err) {
     console.error("Error al crear/editar tarea:", err);
   }
 }
@@ -344,21 +345,21 @@ function clearTaskForm() {
 }
 
 /****************************************************
- * findEmailByName => userName => email
+ * findEmailByName => buscar user en /users
  ****************************************************/
 async function findEmailByName(name) {
   const snap = await getDocs(collection(db, "users"));
   for (const docu of snap.docs) {
-    const u = docu.data();
-    if ((u.name || "").toLowerCase() === name.toLowerCase()) {
-      return u.email;
+    const dat = docu.data();
+    if ((dat.name||"").toLowerCase() === name.toLowerCase()) {
+      return dat.email;
     }
   }
   return null;
 }
 
 /****************************************************
- * ESCUCHAR TAREAS
+ * listenTasks => onSnapshot
  ****************************************************/
 function listenTasks() {
   const colRef = collection(db, "tasks");
@@ -372,36 +373,35 @@ function listenTasks() {
 }
 
 /****************************************************
- * RENDER TAREAS => con sortKey / sortDir
+ * RENDER TAREAS => con sort
  ****************************************************/
 function renderTasks(tasksArray) {
   tasksTableBody.innerHTML = "";
 
-  // Sort
+  // Sort si currentSortKey
   if (currentSortKey) {
     tasksArray = tasksArray.slice().sort((a,b) => {
       let va = a[currentSortKey];
       let vb = b[currentSortKey];
-      // si es un Timestamp, convertir
+      // si es timestamp => toDate
       if (va && va.toDate) va = va.toDate();
       if (vb && vb.toDate) vb = vb.toDate();
-      // Convert a string/number
+      // lowerCase if string
       if (typeof va === "string") va = va.toLowerCase();
       if (typeof vb === "string") vb = vb.toLowerCase();
 
-      if (va < vb) return -1 * currentSortDir;
-      if (va > vb) return 1 * currentSortDir;
+      if (va < vb) return -1*currentSortDir;
+      if (va > vb) return 1*currentSortDir;
       return 0;
     });
   }
-  let arr = tasksArray;
 
-  // Filtro consultor => assignedTo == su email
+  // consultor => filtra
   if (currentRole === "consultor" && currentUser) {
-    arr = arr.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase());
+    tasksArray = tasksArray.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase());
   }
 
-  arr.forEach(task => {
+  tasksArray.forEach(task => {
     const tr = document.createElement("tr");
 
     // 1) Responsable
@@ -429,6 +429,7 @@ function renderTasks(tasksArray) {
         let diff = calcBusinessDaysDiff(new Date(), parseDateDMY(formatted));
         if (diff < 0) diff = 0;
         tdFechaEnt.textContent = `${formatted} (${diff})`;
+        // colores
         if (diff <= 2) {
           tdFechaEnt.classList.add("fecha-rojo");
         } else if (diff <= 5) {
@@ -451,10 +452,11 @@ function renderTasks(tasksArray) {
     tdAct.textContent = task.name || "";
     tr.appendChild(tdAct);
 
-    // 6) Estado
+    // 6) Estado => select
     const tdEstado = document.createElement("td");
     const selectStatus = document.createElement("select");
     let possibleStates = [...TASK_STATES];
+
     if (currentRole === "senior") {
       possibleStates = possibleStates.filter(s => s !== "Finalizado");
       if (["Finalizado","Reportar"].includes(task.status)) {
@@ -475,6 +477,7 @@ function renderTasks(tasksArray) {
       if (st === task.status) opt.selected = true;
       selectStatus.appendChild(opt);
     });
+
     selectStatus.addEventListener("change", () => {
       const newSt = selectStatus.value;
       if (currentRole === "consultor" && newSt === "Por revisar" && task.status !== "Por revisar") {
@@ -498,7 +501,7 @@ function renderTasks(tasksArray) {
     });
     tdEstado.appendChild(selectStatus);
 
-    // color status
+    // indicador color
     const indicator = document.createElement("span");
     indicator.classList.add("status-indicator");
     const lowered = (task.status||"").toLowerCase().replace(" ", "-");
@@ -536,11 +539,10 @@ function renderTasks(tasksArray) {
     }
     tr.appendChild(tdLastAct);
 
-    // 12) Acciones => todos ven "Comentarios"
+    // 12) Acciones => todos roles => "Comentarios"
     const tdAcc = document.createElement("td");
-
-    // admin/supervisor => Editar/Eliminar
     if (["admin","supervisor"].includes(currentRole)) {
+      // Editar/Eliminar
       const btnEdit = document.createElement("button");
       btnEdit.textContent = "Editar";
       btnEdit.addEventListener("click", () => {
@@ -568,7 +570,6 @@ function renderTasks(tasksArray) {
       });
       tdAcc.appendChild(btnDel);
     }
-
     // Comentarios => para todos
     const btnComments = document.createElement("button");
     btnComments.textContent = "Comentarios";
@@ -588,13 +589,17 @@ function renderTasks(tasksArray) {
  ****************************************************/
 function openCommentsPanel(taskDocId, tareaId) {
   currentCommentTaskId = taskDocId;
-  commentTaskIdSpan.textContent = tareaId || "N/A";
-  commentsPanel.style.display = "block";
+  if (commentTaskIdSpan) {
+    commentTaskIdSpan.textContent = tareaId || "N/A";
+  }
+  if (commentsPanel) {
+    commentsPanel.style.display = "block";
+  }
   loadComments(taskDocId);
 }
 
 /****************************************************
- * loadComments => lee subcoleccion, agrupa consecutivos
+ * loadComments => lee y agrupa
  ****************************************************/
 async function loadComments(taskDocId) {
   if (!commentsListDiv) return;
@@ -609,7 +614,6 @@ async function loadComments(taskDocId) {
     commentsData.push({ id: docu.id, ...docu.data() });
   }
 
-  // Agrupación => consecutivos mismo user + no replyTo
   let html = "";
   let prevEmail = null;
   let sameGroupOpen = false;
@@ -618,14 +622,13 @@ async function loadComments(taskDocId) {
     const c = commentsData[i];
     const dateStr = c.createdAt ? new Date(c.createdAt.toDate()).toLocaleString("es-CL") : "";
 
-    // Si c.replyTo => es una respuesta, la indentamos
+    // Revisa si es reply
     if (c.replyTo) {
-      // Como es "respuesta", lo forzamos a new item con .comment-reply
       html += `
         <div class="comment-item comment-reply">
-          <div class="comment-author"><b>${c.authorEmail||""}</b></div>
+          <div class="comment-author"><b>${c.authorEmail||"Desconocido"}</b></div>
           <div class="comment-text">${c.text||""}</div>
-          <div style="font-size:0.8rem;color:#888;">${dateStr}</div>
+          <div class="comment-date" style="font-size:0.8rem;color:#888;">${dateStr}</div>
           <div class="comment-actions">
             <button onclick="editComment('${c.id}')">Editar</button>
             <button onclick="deleteComment('${c.id}')">Eliminar</button>
@@ -635,33 +638,28 @@ async function loadComments(taskDocId) {
       continue;
     }
 
-    // c sin replyTo => agrupar consecutivos
+    // Agrupamos consecutivos (mismo author, sin replyTo)
     const sameUser = (c.authorEmail === prevEmail);
     if (!sameUser) {
-      // cerramos grupo anterior si existe
       if (sameGroupOpen) {
-        html += `</div>`;
+        html += `</div>`; // cierra grupo anterior
         sameGroupOpen = false;
       }
-      // abrimos un nuevo .comment-item
       html += `<div class="comment-item">`;
-      html += `<div class="comment-author"><b>${c.authorEmail||""}</b></div>`;
+      html += `<div class="comment-author"><b>${c.authorEmail||"Desconocido"}</b></div>`;
       sameGroupOpen = true;
     }
-    // Texto
     html += `
       <div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>
-      <div style="font-size:0.8rem;color:#888;margin-left:1rem;">${dateStr}</div>
+      <div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>
       <div class="comment-actions" style="margin-left:1rem;">
         <button onclick="editComment('${c.id}')">Editar</button>
         <button onclick="deleteComment('${c.id}')">Eliminar</button>
         <button onclick="replyComment('${c.id}')">Responder</button>
       </div>
     `;
-
     prevEmail = c.authorEmail;
   }
-  // cerrar el último group
   if (sameGroupOpen) {
     html += `</div>`;
   }
@@ -670,18 +668,17 @@ async function loadComments(taskDocId) {
 }
 
 /****************************************************
- * REPLY => set replyTo
+ * replyComment => set replyTo
  ****************************************************/
 window.replyComment = async function(commentId) {
   const text = prompt("Escribe tu respuesta:");
   if (!text) return;
   try {
     if (!currentCommentTaskId) return;
-    // Sacamos name del currentUser
     let userName = currentUser.email;
-    const userSnap = await getDoc(doc(db, "users", currentUser.uid));
-    if (userSnap.exists() && userSnap.data().name) {
-      userName = userSnap.data().name;
+    const uSnap = await getDoc(doc(db, "users", currentUser.uid));
+    if (uSnap.exists() && uSnap.data().name) {
+      userName = uSnap.data().name;
     }
     const cRef = collection(db, "tasks", currentCommentTaskId, "comments");
     await addDoc(cRef, {
@@ -700,18 +697,16 @@ window.replyComment = async function(commentId) {
 };
 
 /****************************************************
- * EDIT COMMENT
+ * editComment => prompt => updateDoc
  ****************************************************/
 window.editComment = async function(commentId) {
   const newText = prompt("Editar comentario:");
   if (!newText) return;
   try {
     if (!currentCommentTaskId) return;
-    // Actualiza el doc
     await updateDoc(doc(db, "tasks", currentCommentTaskId, "comments", commentId), {
       text: newText
     });
-    // Last activity
     await updateDoc(doc(db, "tasks", currentCommentTaskId), {
       lastCommentAt: new Date()
     });
@@ -722,7 +717,7 @@ window.editComment = async function(commentId) {
 };
 
 /****************************************************
- * DELETE COMMENT
+ * deleteComment => remove doc
  ****************************************************/
 window.deleteComment = async function(commentId) {
   if (!confirm("¿Eliminar este comentario?")) return;
@@ -737,7 +732,7 @@ window.deleteComment = async function(commentId) {
 };
 
 /****************************************************
- * ADD NEW COMMENT => sin reply
+ * addNewComment => normal comment
  ****************************************************/
 async function addNewComment() {
   if (!currentCommentTaskId) return;
@@ -747,32 +742,29 @@ async function addNewComment() {
     return;
   }
   try {
-    // obtener el name del usuario
     let userName = currentUser.email;
-    const userSnap = await getDoc(doc(db, "users", currentUser.uid));
-    if (userSnap.exists() && userSnap.data().name) {
-      userName = userSnap.data().name;
+    const uSnap = await getDoc(doc(db, "users", currentUser.uid));
+    if (uSnap.exists() && uSnap.data().name) {
+      userName = uSnap.data().name;
     }
-
     const cRef = collection(db, "tasks", currentCommentTaskId, "comments");
     await addDoc(cRef, {
       text,
       authorEmail: userName,
       createdAt: new Date()
     });
-    // update lastCommentAt
     await updateDoc(doc(db, "tasks", currentCommentTaskId), {
       lastCommentAt: new Date()
     });
     commentTextArea.value = "";
     loadComments(currentCommentTaskId);
-  } catch (err) {
+  } catch(err) {
     console.error("Error agregando comentario:", err);
   }
 }
 
 /****************************************************
- * canChangeStatus
+ * canChangeStatus => consultor/senior
  ****************************************************/
 function canChangeStatus(role, currentSt, newSt) {
   if (role === "senior") {
@@ -791,7 +783,7 @@ function canChangeStatus(role, currentSt, newSt) {
 }
 
 /****************************************************
- * UPDATE TASK STATUS
+ * updateTaskStatus => doc update
  ****************************************************/
 async function updateTaskStatus(docId, newStatus) {
   try {
@@ -817,7 +809,7 @@ function aplicarFiltros() {
   const exGru = chkExcludeGrupo.checked;
 
   arr = arr.filter(t => {
-    // RESPONSABLE => t.userName
+    // Responsable => t.userName
     if (valResp) {
       const match = (t.userName||"").toLowerCase().includes(valResp);
       if (exResp && match) return false;
@@ -844,7 +836,6 @@ function aplicarFiltros() {
     return true;
   });
 
-  // consultor => assignedTo == su email
   if (currentRole === "consultor" && currentUser) {
     arr = arr.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase());
   }
@@ -960,7 +951,7 @@ function calcBusinessDaysDiff(fromDate, toDate) {
 }
 
 /****************************************************
- * Convertir AAAA-MM-DD => DD-MM-AAAA
+ * formatDDMMYYYY => AAAA-MM-DD => DD-MM-AAAA
  ****************************************************/
 function formatDDMMYYYY(yyyy_mm_dd) {
   if (!yyyy_mm_dd) return "";
@@ -997,7 +988,7 @@ function canChangeStatus(role, currentSt, newSt) {
 }
 
 /****************************************************
- * updateTaskStatus
+ * updateTaskStatus => doc update
  ****************************************************/
 async function updateTaskStatus(docId, newStatus) {
   try {

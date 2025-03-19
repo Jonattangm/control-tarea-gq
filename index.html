@@ -7,7 +7,7 @@
 </head>
 <body>
   <div class="main-container">
-    <!-- Login/Registro -->
+    <!-- Sección Login/Registro (visible inicialmente) -->
     <section id="authSection" class="auth-section" style="display:block;">
       <div class="auth-container">
         <h2>Registro / Login</h2>
@@ -29,7 +29,7 @@
       </div>
     </section>
 
-    <!-- Sidebar -->
+    <!-- Barra lateral -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
       <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
@@ -38,12 +38,12 @@
       </div>
     </div>
 
-    <!-- Dashboard -->
+    <!-- Dashboard de Tareas -->
     <section class="dashboard" id="dashboardSection" style="display:none;">
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
 
-      <!-- Filtros (menú plegable) -->
+      <!-- Filtros (Responsable, Estado, Empresa, Grupo) en menú plegable -->
       <div class="filters-box">
         <div class="filters-header">
           <h3>Filtrar y Excluir</h3>
@@ -104,10 +104,11 @@
         </div>
       </div>
 
-      <!-- Tabla con sort en headers -->
+      <!-- Tabla de Tareas -->
       <table id="tasksTable">
         <thead>
           <tr>
+            <!-- data-sortkey => para ordenar asc/desc -->
             <th id="thResp" data-sortkey="userName">Responsable</th>
             <th data-sortkey="idTarea">ID Tarea</th>
             <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
@@ -127,7 +128,7 @@
       </table>
     </section>
 
-    <!-- Admin Users -->
+    <!-- Sección Administrar Usuarios -->
     <section class="dashboard" id="adminUsersSection" style="display:none;">
       <h2>Administrar Usuarios</h2>
       <table id="usersTable">
