@@ -22,7 +22,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 // ====================
-// CONFIGURACIÓN
+// CONFIG
 // ====================
 const firebaseConfig = {
   apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
@@ -37,9 +37,6 @@ initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-// ====================
-// VARIABLES GLOBALES
-// ====================
 let currentUser = null;
 let currentRole = null;
 let allTasks = [];
@@ -51,12 +48,12 @@ let currentSortDir = 1;
 
 const TASK_STATES = [
   "Asignado","En proceso","Por revisar","Reportar","Finalizado",
-  "SII","Municipalidad","Tesoreria","BPO"
+  "SII","Municipalidad","Tesoreria","BPO","Cliente"
 ];
 const DEFAULT_ROLE = "consultor";
 
 // ====================
-// REFERENCIAS DOM
+// DOM elements
 // ====================
 const authSection = document.getElementById("authSection");
 const loginFooter = document.getElementById("loginFooter");
@@ -66,11 +63,11 @@ const btnUsuarios = document.getElementById("btnUsuarios");
 const dashboardSection = document.getElementById("dashboardSection");
 const adminUsersSection = document.getElementById("adminUsersSection");
 
-// userEmailSpan y userRoleSpan
+// Email y Rol
 const userEmailSpan = document.getElementById("userEmail");
 const userRoleSpan = document.getElementById("userRole");
 
-// Login form
+// Form login
 const authForm = document.getElementById("authForm");
 const emailInput = document.getElementById("email");
 const passInput = document.getElementById("password");
@@ -109,10 +106,10 @@ const createTaskBtn = document.getElementById("createTaskBtn");
 // Tabla
 const tasksTableBody = document.getElementById("tasksBody");
 
-// Admin users
+// Admin Users
 const usersTableBody = document.getElementById("usersBody");
 
-// Panel comentarios
+// Panel Comentarios
 const commentsPanel = document.getElementById("commentsPanel");
 const commentTaskIdSpan = document.getElementById("commentTaskId");
 const commentsListDiv = document.getElementById("commentsList");
@@ -129,7 +126,6 @@ document.addEventListener("DOMContentLoaded", () => {
   btnLogin.addEventListener("click", loginUser);
   btnLogout.addEventListener("click", () => signOut(auth));
 
-  // Botón para crear tarea
   createTaskBtn.addEventListener("click", handleTaskForm);
 
   // Navegación Tareas/Usuarios
@@ -185,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
     th.addEventListener("click", () => {
       const sortKey = th.getAttribute("data-sortkey");
       if (sortKey === currentSortKey) {
-        currentSortDir *= -1; 
+        currentSortDir *= -1;
       } else {
         currentSortKey = sortKey;
         currentSortDir = 1;
@@ -215,11 +211,10 @@ onAuthStateChanged(auth, async user => {
     sidebar.style.display = "flex";
     dashboardSection.style.display = "block";
 
-    // Muestra email + rol
     userEmailSpan.textContent = user.email || "";
     userRoleSpan.textContent = currentRole || "";
 
-    // admin => puede ver usuarios
+    // Mostrar/ocultar "Administrar Usuarios"
     if (currentRole === "admin") {
       btnUsuarios.style.display = "inline-block";
       loadAllUsers();
@@ -227,16 +222,16 @@ onAuthStateChanged(auth, async user => {
       btnUsuarios.style.display = "none";
     }
 
-    // supervisor / admin => pueden crear tareas
+    // Consultor y Senior NO ven la creación de tarea
     if (["admin","supervisor"].includes(currentRole)) {
       taskCreationDiv.style.display = "block";
     } else {
       taskCreationDiv.style.display = "none";
     }
 
-    listenTasks(); // Escucha las tareas
+    listenTasks();
   } else {
-    // No user => back to login
+    // No user => login
     currentUser = null;
     currentRole = null;
     authSection.style.display = "block";
@@ -248,7 +243,7 @@ onAuthStateChanged(auth, async user => {
 });
 
 // ====================
-// Funciones REGISTRO / LOGIN
+// REGISTRO / LOGIN
 // ====================
 async function registerUser() {
   authMessage.textContent = "";
@@ -284,8 +279,16 @@ async function handleTaskForm() {
     alert("Completa al menos 'Responsable' y 'Actividad'.");
     return;
   }
+
+  // Verificar formato HH:MM en "newHoras"
+  const horasVal = newHoras.value.trim();
+  if (!/^(\d{1,2}):(\d{2})$/.test(horasVal)) {
+    alert("Las horas deben tener formato HH:MM.");
+    return;
+  }
+
   try {
-    // Buscar email del userName
+    // Buscar email
     const emailResponsible = await findEmailByName(newUserName.value.trim());
     if (!emailResponsible) {
       alert("No existe un usuario con ese 'Responsable (Name)'.");
@@ -313,7 +316,7 @@ async function handleTaskForm() {
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
-        horasAsignadas: newHoras.value.trim(),
+        horasAsignadas: horasVal, // en HH:MM
         fechaEntrega: newFechaEntrega.value || null
       });
       alert("Tarea actualizada.");
@@ -330,7 +333,7 @@ async function handleTaskForm() {
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
-        horasAsignadas: newHoras.value.trim(),
+        horasAsignadas: horasVal,
         status: "Asignado",
         createdAt: new Date(),
         createdBy: currentUser.uid
@@ -369,7 +372,7 @@ async function findEmailByName(name) {
 }
 
 // ====================
-// ESCUCHA TAREAS => onSnapshot
+// ESCUCHAR TAREAS => onSnapshot
 // ====================
 function listenTasks() {
   const colRef = collection(db, "tasks");
@@ -427,17 +430,19 @@ function renderTasks(tasksArray) {
     tdFAsig.textContent = task.fechaAsignacion || "--";
     tr.appendChild(tdFAsig);
 
-    // col4: Fecha Entrega => color
+    // col4: Fecha Entrega => color, con negativo si está en atraso
     const tdFEnt = document.createElement("td");
     if (task.fechaEntrega) {
       const formatted = formatDDMMYYYY(task.fechaEntrega);
+      let diff = 0;
       if (task.status === "Finalizado") {
+        diff = 0;
         tdFEnt.textContent = `${formatted} (0)`;
       } else {
-        let diff = calcBusinessDaysDiff(new Date(), parseDateDMY(formatted));
-        if (diff < 0) diff = 0;
+        diff = calcBusinessDaysDiff(new Date(), parseDateDMY(formatted)); 
+        // ahora PERMITIMOS negativo => no forzamos a 0
         tdFEnt.textContent = `${formatted} (${diff})`;
-        // colorear
+        // colorear según diff
         if (diff <= 2) {
           tdFEnt.classList.add("fecha-rojo");
         } else if (diff <= 5) {
@@ -446,7 +451,7 @@ function renderTasks(tasksArray) {
           tdFEnt.classList.add("fecha-amarillo");
         } else if (diff <= 11) {
           tdFEnt.classList.add("fecha-verde");
-        } else {
+        } else if (diff > 11) {
           tdFEnt.classList.add("fecha-azul");
         }
       }
@@ -477,7 +482,8 @@ function renderTasks(tasksArray) {
       if (["Finalizado","Reportar","Por revisar"].includes(task.status)) {
         possibleStates = [task.status];
       } else {
-        possibleStates = ["Asignado","En proceso","Por revisar","SII","Municipalidad","Tesoreria","BPO"];
+        // Excluye finalizado,reportar => pero incluye SII, BPO, etc
+        possibleStates = ["Asignado","En proceso","Por revisar","SII","Municipalidad","Tesoreria","BPO","Cliente"];
       }
     }
 
@@ -489,23 +495,47 @@ function renderTasks(tasksArray) {
       selectStatus.appendChild(opt);
     });
 
-    selectStatus.addEventListener("change", () => {
+    selectStatus.addEventListener("change", async () => {
       const newSt = selectStatus.value;
-      // confirm consultor -> "Por revisar"
+
+      // Mensajes y confirm
       if (currentRole === "consultor" && newSt === "Por revisar" && task.status !== "Por revisar") {
         if (!confirm("¿Pasar a 'Por revisar'?")) {
           selectStatus.value = task.status;
           return;
         }
       }
-      // confirm senior -> "Reportar"
       if (currentRole === "senior" && newSt === "Reportar" && task.status !== "Reportar") {
         if (!confirm("¿Pasar a 'Reportar'?")) {
           selectStatus.value = task.status;
           return;
         }
       }
-      // Revisa permisos
+
+      // Si se pasa a SII => alert y cambio de fechaEntrega
+      if (newSt === "SII") {
+        alert("Recuerda anotar Folio y Fiscalizador en comentarios");
+
+        // Tomamos la ultimaActivity => lastCommentAt o si no, new Date()
+        let baseDate = new Date();
+        if (task.lastCommentAt) {
+          baseDate = task.lastCommentAt.toDate();
+        }
+        // Ajustar a siguiente Lunes
+        const nextMondayDate = getNextMonday(baseDate);
+        // Convertir a YYYY-MM-DD => para almacenarlo
+        const y = nextMondayDate.getFullYear();
+        const m = String(nextMondayDate.getMonth()+1).padStart(2,'0');
+        const d = String(nextMondayDate.getDate()).padStart(2,'0');
+        const isoDate = `${y}-${m}-${d}`;
+
+        // Guardar la fechaEntrega = isoDate
+        await updateDoc(doc(db, "tasks", task.docId), {
+          fechaEntrega: isoDate
+        });
+      }
+
+      // Permisos
       if (!canChangeStatus(currentRole, task.status, newSt)) {
         alert("No tienes permiso para ese cambio.");
         selectStatus.value = task.status;
@@ -515,7 +545,7 @@ function renderTasks(tasksArray) {
     });
     tdEstado.appendChild(selectStatus);
 
-    // Indicador
+    // Indicador color
     const indicator = document.createElement("span");
     indicator.classList.add("status-indicator");
     const lowered = (task.status||"").toLowerCase().replace(" ","-");
@@ -538,7 +568,7 @@ function renderTasks(tasksArray) {
     tdFolio.textContent = task.folioProyecto || "";
     tr.appendChild(tdFolio);
 
-    // col10: Horas
+    // col10: Horas (HH:MM)
     const tdHrs = document.createElement("td");
     tdHrs.textContent = task.horasAsignadas || "";
     tr.appendChild(tdHrs);
@@ -594,8 +624,21 @@ function renderTasks(tasksArray) {
     tdAcc.appendChild(btnComments);
 
     tr.appendChild(tdAcc);
+
     tasksTableBody.appendChild(tr);
   });
+}
+
+// ====================
+// getNextMonday => desde una date base
+// ====================
+function getNextMonday(baseDate) {
+  const d = new Date(baseDate);
+  // Avanzar día a día hasta llegar a Monday (day=1)
+  while (d.getDay() !== 1) {
+    d.setDate(d.getDate()+1);
+  }
+  return d;
 }
 
 // ====================
@@ -626,6 +669,7 @@ async function loadComments(taskDocId) {
   for (let i=0; i<commentsData.length; i++) {
     const c = commentsData[i];
     const dateStr = c.createdAt ? new Date(c.createdAt.toDate()).toLocaleString("es-CL") : "";
+    const isOwner = (c.authorUid === currentUser?.uid);
 
     if (c.replyTo) {
       // Respuesta => indent
@@ -635,8 +679,10 @@ async function loadComments(taskDocId) {
           <div class="comment-text">${c.text||""}</div>
           <div class="comment-date" style="font-size:0.8rem;color:#888;">${dateStr}</div>
           <div class="comment-actions">
-            <button onclick="editComment('${c.id}')">Editar</button>
-            <button onclick="deleteComment('${c.id}')">Eliminar</button>
+            ${isOwner ? `
+              <button onclick="editComment('${c.id}')">Editar</button>
+              <button onclick="deleteComment('${c.id}')">Eliminar</button>
+            ` : ``}
           </div>
         </div>
       `;
@@ -658,8 +704,10 @@ async function loadComments(taskDocId) {
       <div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>
       <div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>
       <div class="comment-actions" style="margin-left:1rem;">
-        <button onclick="editComment('${c.id}')">Editar</button>
-        <button onclick="deleteComment('${c.id}')">Eliminar</button>
+        ${isOwner ? `
+          <button onclick="editComment('${c.id}')">Editar</button>
+          <button onclick="deleteComment('${c.id}')">Eliminar</button>
+        ` : ``}
         <button onclick="replyComment('${c.id}')">Responder</button>
       </div>
     `;
@@ -679,14 +727,17 @@ window.replyComment = async function(commentId) {
   try {
     if (!currentCommentTaskId) return;
     let userName = currentUser.email;
+    let userUid = currentUser.uid;
     const userSnap = await getDoc(doc(db, "users", currentUser.uid));
-    if (userSnap.exists() && userSnap.data().name) {
-      userName = userSnap.data().name;
+    if (userSnap.exists()) {
+      const dat = userSnap.data();
+      if (dat.name) userName = dat.name;
     }
     const cRef = collection(db, "tasks", currentCommentTaskId, "comments");
     await addDoc(cRef, {
       text,
       authorEmail: userName,
+      authorUid: userUid,
       createdAt: new Date(),
       replyTo: commentId
     });
@@ -739,14 +790,17 @@ async function addNewComment() {
   }
   try {
     let userName = currentUser.email;
+    let userUid = currentUser.uid;
     const userSnap = await getDoc(doc(db, "users", currentUser.uid));
-    if (userSnap.exists() && userSnap.data().name) {
-      userName = userSnap.data().name;
+    if (userSnap.exists()) {
+      const dat = userSnap.data();
+      if (dat.name) userName = dat.name;
     }
     const cRef = collection(db, "tasks", currentCommentTaskId, "comments");
     await addDoc(cRef, {
       text,
       authorEmail: userName,
+      authorUid: userUid,
       createdAt: new Date()
     });
     await updateDoc(doc(db, "tasks", currentCommentTaskId), {
@@ -779,7 +833,7 @@ function canChangeStatus(role, currentSt, newSt) {
 }
 
 // ====================
-// updateTaskStatus
+// updateTaskStatus => doc update
 // ====================
 async function updateTaskStatus(docId, newStatus) {
   try {
@@ -856,7 +910,7 @@ function limpiarFiltros() {
 }
 
 // ====================
-// ADMIN: Cargar Usuarios
+// ADMIN: loadAllUsers
 // ====================
 async function loadAllUsers() {
   usersTableBody.innerHTML = "";
@@ -870,7 +924,7 @@ async function loadAllUsers() {
     tdEmail.textContent = u.email || docu.id;
     tr.appendChild(tdEmail);
 
-    // Name => con confirm
+    // Name => confirm
     const tdName = document.createElement("td");
     const inpName = document.createElement("input");
     inpName.type = "text";
@@ -926,24 +980,46 @@ async function loadAllUsers() {
 }
 
 /****************************************************
- * calcBusinessDaysDiff => días hábiles
+ * calcBusinessDaysDiff => días hábiles (incluye negativo)
  ****************************************************/
 function calcBusinessDaysDiff(fromDate, toDate) {
   if (!fromDate || !toDate) return 9999;
   const start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
   const end = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
-  if (end < start) return -1;
+
+  // Si end < start => generamos un valor negativo
+  let invert = 1; 
+  if (end < start) {
+    invert = -1;
+    // Intercambiamos para contar
+    const tmp = new Date(start);
+    start.setTime(end.getTime());
+    end.setTime(tmp.getTime());
+  }
 
   let days = 0;
   let current = new Date(start);
   while (current <= end) {
-    const dow = current.getDay();
+    const dow = current.getDay(); // 0=Dom,6=Sab
     if (dow !== 0 && dow !== 6) {
       days++;
     }
     current.setDate(current.getDate() + 1);
   }
-  return days - 1;
+  // si invert=-1 => * -1
+  return (days - 1) * invert;
+}
+
+/****************************************************
+ * getNextMonday => base date => date lunes
+ ****************************************************/
+function getNextMonday(baseDate) {
+  const d = new Date(baseDate);
+  // Avanzar día a día hasta llegar a Monday (getDay=1)
+  while (d.getDay() !== 1) {
+    d.setDate(d.getDate()+1);
+  }
+  return d;
 }
 
 /****************************************************

@@ -187,6 +187,9 @@ th[data-sortkey] {
 .status-bpo {
   background: #795548;
 }
+.status-cliente {
+  background: #8b8b8b;
+}
 
 /* Colores para Fecha de Entrega */
 .fecha-rojo {
