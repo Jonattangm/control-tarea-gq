@@ -37,6 +37,9 @@ initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
+// ====================
+// VARIABLES
+// ====================
 let currentUser = null;
 let currentRole = null;
 let allTasks = [];
@@ -53,7 +56,7 @@ const TASK_STATES = [
 const DEFAULT_ROLE = "consultor";
 
 // ====================
-// DOM references
+// DOM elements
 // ====================
 const authSection = document.getElementById("authSection");
 const loginFooter = document.getElementById("loginFooter");
@@ -971,24 +974,27 @@ async function loadAllUsers() {
 
 /****************************************************
  * calcBusinessDaysDiff => días hábiles
+ * Se declara con 'let' para start y end => no error
  ****************************************************/
 function calcBusinessDaysDiff(fromDate, toDate) {
   if (!fromDate || !toDate) return 9999;
-  const start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
-  const end = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+  let start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  let end = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
 
   let invert = 1;
   if (end < start) {
-    // permitir negativo
+    // permitir negativo => invert=-1
     invert = -1;
-    // swap
-    [start, end] = [end, start];
+    // swap manual
+    let tmp = start;
+    start = end;
+    end = tmp;
   }
 
   let days = 0;
   let current = new Date(start);
   while (current <= end) {
-    const dow = current.getDay();
+    const dow = current.getDay(); // 0=Domingo,6=Sábado
     if (dow !== 0 && dow !== 6) {
       days++;
     }
