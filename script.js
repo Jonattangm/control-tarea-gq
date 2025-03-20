@@ -53,7 +53,7 @@ const TASK_STATES = [
 const DEFAULT_ROLE = "consultor";
 
 // ====================
-// DOM elements
+// DOM references
 // ====================
 const authSection = document.getElementById("authSection");
 const loginFooter = document.getElementById("loginFooter");
@@ -63,11 +63,9 @@ const btnUsuarios = document.getElementById("btnUsuarios");
 const dashboardSection = document.getElementById("dashboardSection");
 const adminUsersSection = document.getElementById("adminUsersSection");
 
-// Email y Rol
 const userEmailSpan = document.getElementById("userEmail");
 const userRoleSpan = document.getElementById("userRole");
 
-// Form login
 const authForm = document.getElementById("authForm");
 const emailInput = document.getElementById("email");
 const passInput = document.getElementById("password");
@@ -109,7 +107,7 @@ const tasksTableBody = document.getElementById("tasksBody");
 // Admin Users
 const usersTableBody = document.getElementById("usersBody");
 
-// Panel Comentarios
+// Panel comentarios
 const commentsPanel = document.getElementById("commentsPanel");
 const commentTaskIdSpan = document.getElementById("commentTaskId");
 const commentsListDiv = document.getElementById("commentsList");
@@ -214,7 +212,7 @@ onAuthStateChanged(auth, async user => {
     userEmailSpan.textContent = user.email || "";
     userRoleSpan.textContent = currentRole || "";
 
-    // Mostrar/ocultar "Administrar Usuarios"
+    // admin => ver users
     if (currentRole === "admin") {
       btnUsuarios.style.display = "inline-block";
       loadAllUsers();
@@ -222,7 +220,7 @@ onAuthStateChanged(auth, async user => {
       btnUsuarios.style.display = "none";
     }
 
-    // Consultor y Senior NO ven la creación de tarea
+    // supervisor/admin => ver crear tarea
     if (["admin","supervisor"].includes(currentRole)) {
       taskCreationDiv.style.display = "block";
     } else {
@@ -231,7 +229,6 @@ onAuthStateChanged(auth, async user => {
 
     listenTasks();
   } else {
-    // No user => login
     currentUser = null;
     currentRole = null;
     authSection.style.display = "block";
@@ -280,7 +277,7 @@ async function handleTaskForm() {
     return;
   }
 
-  // Verificar formato HH:MM en "newHoras"
+  // Validar horas en formato HH:MM
   const horasVal = newHoras.value.trim();
   if (!/^(\d{1,2}):(\d{2})$/.test(horasVal)) {
     alert("Las horas deben tener formato HH:MM.");
@@ -288,7 +285,6 @@ async function handleTaskForm() {
   }
 
   try {
-    // Buscar email
     const emailResponsible = await findEmailByName(newUserName.value.trim());
     if (!emailResponsible) {
       alert("No existe un usuario con ese 'Responsable (Name)'.");
@@ -307,7 +303,7 @@ async function handleTaskForm() {
     const nextId = maxId + 1;
 
     if (editTaskId) {
-      // update
+      // Update
       await updateDoc(doc(db, "tasks", editTaskId), {
         idTarea: nextId,
         userName: newUserName.value.trim(),
@@ -316,13 +312,13 @@ async function handleTaskForm() {
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
-        horasAsignadas: horasVal, // en HH:MM
+        horasAsignadas: horasVal,
         fechaEntrega: newFechaEntrega.value || null
       });
       alert("Tarea actualizada.");
       clearTaskForm();
     } else {
-      // create
+      // Create
       await addDoc(colRef, {
         idTarea: nextId,
         fechaAsignacion: new Date().toLocaleDateString("es-CL"),
@@ -359,7 +355,7 @@ function clearTaskForm() {
   createTaskBtn.textContent = "Crear Tarea";
 }
 
-/** Buscar email a partir del name */
+// Buscar email a partir del name
 async function findEmailByName(name) {
   const snap = await getDocs(collection(db, "users"));
   for (const docu of snap.docs) {
@@ -396,6 +392,7 @@ function renderTasks(tasksArray) {
     tasksArray = tasksArray.slice().sort((a,b) => {
       let va = a[currentSortKey];
       let vb = b[currentSortKey];
+      // si es Timestamp
       if (va && va.toDate) va = va.toDate();
       if (vb && vb.toDate) vb = vb.toDate();
       if (typeof va === "string") va = va.toLowerCase();
@@ -430,19 +427,18 @@ function renderTasks(tasksArray) {
     tdFAsig.textContent = task.fechaAsignacion || "--";
     tr.appendChild(tdFAsig);
 
-    // col4: Fecha Entrega => color, con negativo si está en atraso
+    // col4: Fecha Entrega => color, permitir negativo
     const tdFEnt = document.createElement("td");
     if (task.fechaEntrega) {
       const formatted = formatDDMMYYYY(task.fechaEntrega);
-      let diff = 0;
+      let diff;
       if (task.status === "Finalizado") {
         diff = 0;
         tdFEnt.textContent = `${formatted} (0)`;
       } else {
-        diff = calcBusinessDaysDiff(new Date(), parseDateDMY(formatted)); 
-        // ahora PERMITIMOS negativo => no forzamos a 0
+        diff = calcBusinessDaysDiff(new Date(), parseDateDMY(formatted));
         tdFEnt.textContent = `${formatted} (${diff})`;
-        // colorear según diff
+        // colorear
         if (diff <= 2) {
           tdFEnt.classList.add("fecha-rojo");
         } else if (diff <= 5) {
@@ -482,7 +478,6 @@ function renderTasks(tasksArray) {
       if (["Finalizado","Reportar","Por revisar"].includes(task.status)) {
         possibleStates = [task.status];
       } else {
-        // Excluye finalizado,reportar => pero incluye SII, BPO, etc
         possibleStates = ["Asignado","En proceso","Por revisar","SII","Municipalidad","Tesoreria","BPO","Cliente"];
       }
     }
@@ -498,13 +493,14 @@ function renderTasks(tasksArray) {
     selectStatus.addEventListener("change", async () => {
       const newSt = selectStatus.value;
 
-      // Mensajes y confirm
+      // confirm consultor -> "Por revisar"
       if (currentRole === "consultor" && newSt === "Por revisar" && task.status !== "Por revisar") {
         if (!confirm("¿Pasar a 'Por revisar'?")) {
           selectStatus.value = task.status;
           return;
         }
       }
+      // confirm senior -> "Reportar"
       if (currentRole === "senior" && newSt === "Reportar" && task.status !== "Reportar") {
         if (!confirm("¿Pasar a 'Reportar'?")) {
           selectStatus.value = task.status;
@@ -512,24 +508,18 @@ function renderTasks(tasksArray) {
         }
       }
 
-      // Si se pasa a SII => alert y cambio de fechaEntrega
+      // Si se pasa a SII => alert + cambio de fechaEntrega => next Monday
       if (newSt === "SII") {
         alert("Recuerda anotar Folio y Fiscalizador en comentarios");
-
-        // Tomamos la ultimaActivity => lastCommentAt o si no, new Date()
         let baseDate = new Date();
         if (task.lastCommentAt) {
           baseDate = task.lastCommentAt.toDate();
         }
-        // Ajustar a siguiente Lunes
-        const nextMondayDate = getNextMonday(baseDate);
-        // Convertir a YYYY-MM-DD => para almacenarlo
-        const y = nextMondayDate.getFullYear();
-        const m = String(nextMondayDate.getMonth()+1).padStart(2,'0');
-        const d = String(nextMondayDate.getDate()).padStart(2,'0');
+        const nextMonday = getNextMonday(baseDate);
+        const y = nextMonday.getFullYear();
+        const m = String(nextMonday.getMonth()+1).padStart(2,'0');
+        const d = String(nextMonday.getDate()).padStart(2,'0');
         const isoDate = `${y}-${m}-${d}`;
-
-        // Guardar la fechaEntrega = isoDate
         await updateDoc(doc(db, "tasks", task.docId), {
           fechaEntrega: isoDate
         });
@@ -540,12 +530,12 @@ function renderTasks(tasksArray) {
         alert("No tienes permiso para ese cambio.");
         selectStatus.value = task.status;
       } else {
-        updateTaskStatus(task.docId, newSt);
+        await updateTaskStatus(task.docId, newSt);
       }
     });
     tdEstado.appendChild(selectStatus);
 
-    // Indicador color
+    // status indicator
     const indicator = document.createElement("span");
     indicator.classList.add("status-indicator");
     const lowered = (task.status||"").toLowerCase().replace(" ","-");
@@ -568,7 +558,7 @@ function renderTasks(tasksArray) {
     tdFolio.textContent = task.folioProyecto || "";
     tr.appendChild(tdFolio);
 
-    // col10: Horas (HH:MM)
+    // col10: Horas
     const tdHrs = document.createElement("td");
     tdHrs.textContent = task.horasAsignadas || "";
     tr.appendChild(tdHrs);
@@ -576,8 +566,8 @@ function renderTasks(tasksArray) {
     // col11: Última actividad => lastCommentAt
     const tdLastCom = document.createElement("td");
     if (task.lastCommentAt) {
-      const d = task.lastCommentAt.toDate();
-      tdLastCom.textContent = d.toLocaleString("es-CL");
+      const dd = task.lastCommentAt.toDate();
+      tdLastCom.textContent = dd.toLocaleString("es-CL");
     } else {
       tdLastCom.textContent = "--";
     }
@@ -624,19 +614,18 @@ function renderTasks(tasksArray) {
     tdAcc.appendChild(btnComments);
 
     tr.appendChild(tdAcc);
-
     tasksTableBody.appendChild(tr);
   });
 }
 
 // ====================
-// getNextMonday => desde una date base
+// getNextMonday => base date => next Monday
 // ====================
 function getNextMonday(baseDate) {
   const d = new Date(baseDate);
-  // Avanzar día a día hasta llegar a Monday (day=1)
+  // Avanzar día a día hasta Monday (getDay=1)
   while (d.getDay() !== 1) {
-    d.setDate(d.getDate()+1);
+    d.setDate(d.getDate() + 1);
   }
   return d;
 }
@@ -833,7 +822,7 @@ function canChangeStatus(role, currentSt, newSt) {
 }
 
 // ====================
-// updateTaskStatus => doc update
+// updateTaskStatus
 // ====================
 async function updateTaskStatus(docId, newStatus) {
   try {
@@ -886,6 +875,7 @@ function aplicarFiltros() {
     return true;
   });
 
+  // consultor => assignedTo su email
   if (currentRole === "consultor" && currentUser) {
     arr = arr.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase());
   }
@@ -980,46 +970,31 @@ async function loadAllUsers() {
 }
 
 /****************************************************
- * calcBusinessDaysDiff => días hábiles (incluye negativo)
+ * calcBusinessDaysDiff => días hábiles
  ****************************************************/
 function calcBusinessDaysDiff(fromDate, toDate) {
   if (!fromDate || !toDate) return 9999;
   const start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
   const end = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
 
-  // Si end < start => generamos un valor negativo
-  let invert = 1; 
+  let invert = 1;
   if (end < start) {
+    // permitir negativo
     invert = -1;
-    // Intercambiamos para contar
-    const tmp = new Date(start);
-    start.setTime(end.getTime());
-    end.setTime(tmp.getTime());
+    // swap
+    [start, end] = [end, start];
   }
 
   let days = 0;
   let current = new Date(start);
   while (current <= end) {
-    const dow = current.getDay(); // 0=Dom,6=Sab
+    const dow = current.getDay();
     if (dow !== 0 && dow !== 6) {
       days++;
     }
     current.setDate(current.getDate() + 1);
   }
-  // si invert=-1 => * -1
   return (days - 1) * invert;
-}
-
-/****************************************************
- * getNextMonday => base date => date lunes
- ****************************************************/
-function getNextMonday(baseDate) {
-  const d = new Date(baseDate);
-  // Avanzar día a día hasta llegar a Monday (getDay=1)
-  while (d.getDay() !== 1) {
-    d.setDate(d.getDate()+1);
-  }
-  return d;
 }
 
 /****************************************************
