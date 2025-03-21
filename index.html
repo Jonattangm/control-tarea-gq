@@ -33,6 +33,7 @@
     <!-- Barra lateral (oculta hasta login) -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
+      <button id="btnFinalizadas" style="display:none;">Tareas Finalizadas</button>
       <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
       <button id="btnHistorial" style="display:none;">Historial</button>
 
@@ -87,7 +88,7 @@
           <button id="toggleTaskBoxBtn">-</button>
         </div>
         <div id="taskCreation" style="display:none; margin-top:0.5rem;">
-          <div class="form-inline">
+          <div class="form-inline" id="rowRespInput">
             <label id="lblResp" style="width:90px;">Responsable:</label>
             <input type="text" id="newUserName" style="width:120px;" />
             <label style="margin-left:1rem; width:70px;">Actividad:</label>
@@ -117,8 +118,8 @@
       <table id="tasksTable">
         <thead>
           <tr>
-            <!-- El consultor vera el th en blanco: -->
-            <th data-sortkey="userName" id="thRespHeader"> </th>
+            <!-- Para el consultor => en blanco, para roles senior/sup/admin => dice "Responsable" -->
+            <th data-sortkey="userName" id="thRespHeader">Responsable</th>
             <th data-sortkey="idTarea">ID Tarea</th>
             <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
             <th data-sortkey="fechaEntrega">Fecha de Entrega</th>
@@ -135,6 +136,30 @@
           </tr>
         </thead>
         <tbody id="tasksBody"></tbody>
+      </table>
+    </section>
+
+    <!-- Tareas Finalizadas -->
+    <section class="dashboard" id="finalTasksSection" style="display:none;">
+      <h2>Tareas Finalizadas</h2>
+      <table id="finalTasksTable">
+        <thead>
+          <tr>
+            <th data-sortkey="userName">Responsable</th>
+            <th data-sortkey="idTarea">ID Tarea</th>
+            <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
+            <th data-sortkey="fechaEntrega">Fecha de Entrega</th>
+            <th data-sortkey="name">Actividad</th>
+            <th data-sortkey="status">Estado</th>
+            <th data-sortkey="empresa">Empresa</th>
+            <th data-sortkey="grupoCliente">Grupo</th>
+            <th data-sortkey="folioProyecto">Folio</th>
+            <th data-sortkey="horasAsignadas">Horas</th>
+            <th data-sortkey="lastCommentAt">Última actividad</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="finalTasksBody"></tbody>
       </table>
     </section>
 

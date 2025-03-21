@@ -22,9 +22,6 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-// ====================
-// CONFIG
-// ====================
 const firebaseConfig = {
   apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
   authDomain: "control-tarea-gq.firebaseapp.com",
@@ -38,17 +35,14 @@ initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-// ====================
-// VARIABLES
-// ====================
+// Vars
 let currentUser = null;
 let currentRole = null;
 let allTasks = [];
-let editTaskId = null;
-let currentCommentTaskId = null;
-
 let currentSortKey = null;
 let currentSortDir = 1;
+let editTaskId = null;
+let currentCommentTaskId = null;
 
 const TASK_STATES = [
   "Asignado","En proceso","Por revisar","Reportar","Finalizado",
@@ -56,32 +50,22 @@ const TASK_STATES = [
 ];
 const DEFAULT_ROLE = "consultor";
 
-const COMMENT_STATES = ["Pendiente","Completado","En revisión"];
-
-// ====================
-// DOM elements
-// ====================
+// DOM
 const authSection = document.getElementById("authSection");
 const loginFooter = document.getElementById("loginFooter");
 const sidebar = document.getElementById("sidebar");
 const btnTareas = document.getElementById("btnTareas");
+const btnFinalizadas = document.getElementById("btnFinalizadas");
 const btnUsuarios = document.getElementById("btnUsuarios");
 const btnHistorial = document.getElementById("btnHistorial");
 
 const dashboardSection = document.getElementById("dashboardSection");
+const finalTasksSection = document.getElementById("finalTasksSection");
 const adminUsersSection = document.getElementById("adminUsersSection");
 const historySection = document.getElementById("historySection");
 
 const userEmailSpan = document.getElementById("userEmail");
 const userRoleSpan = document.getElementById("userRole");
-
-const authForm = document.getElementById("authForm");
-const emailInput = document.getElementById("email");
-const passInput = document.getElementById("password");
-const btnRegister = document.getElementById("btnRegister");
-const btnLogin = document.getElementById("btnLogin");
-const authMessage = document.getElementById("authMessage");
-const btnLogout = document.getElementById("btnLogout");
 
 // Filtros
 const toggleFiltersBtn = document.getElementById("toggleFiltersBtn");
@@ -109,13 +93,17 @@ const newFolio = document.getElementById("newFolio");
 const newHoras = document.getElementById("newHoras");
 const newFechaEntrega = document.getElementById("newFechaEntrega");
 const createTaskBtn = document.getElementById("createTaskBtn");
+const rowRespInput = document.getElementById("rowRespInput");
+const lblResp = document.getElementById("lblResp");
+const thRespHeader = document.getElementById("thRespHeader");
 
+// Tablas
 const tasksTableBody = document.getElementById("tasksBody");
+const finalTasksBody = document.getElementById("finalTasksBody");
 const usersTableBody = document.getElementById("usersBody");
-
 const historyTableBody = document.getElementById("historyBody");
 
-// Panel comentarios
+// Comentarios
 const commentsPanel = document.getElementById("commentsPanel");
 const commentTaskIdSpan = document.getElementById("commentTaskId");
 const commentsListDiv = document.getElementById("commentsList");
@@ -123,9 +111,16 @@ const commentTextArea = document.getElementById("commentText");
 const addCommentBtn = document.getElementById("addCommentBtn");
 const closeCommentsBtn = document.getElementById("closeCommentsBtn");
 
-// ====================
-// DOMContentLoaded
-// ====================
+// Auth form
+const authForm = document.getElementById("authForm");
+const emailInput = document.getElementById("email");
+const passInput = document.getElementById("password");
+const btnRegister = document.getElementById("btnRegister");
+const btnLogin = document.getElementById("btnLogin");
+const authMessage = document.getElementById("authMessage");
+const btnLogout = document.getElementById("btnLogout");
+
+// Listen DOM
 document.addEventListener("DOMContentLoaded", () => {
   authForm.addEventListener("submit", e => e.preventDefault());
   btnRegister.addEventListener("click", registerUser);
@@ -134,20 +129,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
   createTaskBtn.addEventListener("click", handleTaskForm);
 
-  // Navegación Tareas/Usuarios/Historial
   btnTareas.addEventListener("click", () => {
     dashboardSection.style.display = "block";
+    finalTasksSection.style.display = "none";
     adminUsersSection.style.display = "none";
     historySection.style.display = "none";
   });
+  btnFinalizadas.addEventListener("click", () => {
+    dashboardSection.style.display = "none";
+    finalTasksSection.style.display = "block";
+    adminUsersSection.style.display = "none";
+    historySection.style.display = "none";
+    renderFinalTasks(allTasks);
+  });
   btnUsuarios.addEventListener("click", () => {
     dashboardSection.style.display = "none";
+    finalTasksSection.style.display = "none";
     adminUsersSection.style.display = "block";
     historySection.style.display = "none";
     loadAllUsers();
   });
   btnHistorial.addEventListener("click", () => {
     dashboardSection.style.display = "none";
+    finalTasksSection.style.display = "none";
     adminUsersSection.style.display = "none";
     historySection.style.display = "block";
     loadHistory();
@@ -156,7 +160,6 @@ document.addEventListener("DOMContentLoaded", () => {
   btnAplicarFiltros.addEventListener("click", aplicarFiltros);
   btnLimpiarFiltros.addEventListener("click", limpiarFiltros);
 
-  // Comentarios
   addCommentBtn.addEventListener("click", addNewComment);
   closeCommentsBtn.addEventListener("click", () => {
     commentsPanel.style.display = "none";
@@ -165,7 +168,6 @@ document.addEventListener("DOMContentLoaded", () => {
     commentTextArea.value = "";
   });
 
-  // Plegar/Desplegar Filtros
   toggleFiltersBtn.addEventListener("click", () => {
     if (!filtersContainer) return;
     if (filtersContainer.style.display === "none") {
@@ -176,8 +178,6 @@ document.addEventListener("DOMContentLoaded", () => {
       toggleFiltersBtn.textContent = "+";
     }
   });
-
-  // Plegar/Desplegar Crear Tarea
   toggleTaskBoxBtn.addEventListener("click", () => {
     if (!taskCreationDiv) return;
     if (taskCreationDiv.style.display === "none") {
@@ -189,7 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Ordenar tabla de Tareas
+  // Ordenar tabla principal
   const ths = document.querySelectorAll("#tasksTable thead th[data-sortkey]");
   ths.forEach(th => {
     th.addEventListener("click", () => {
@@ -205,9 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// ====================
-// onAuthStateChanged
-// ====================
+// AuthState
 onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
@@ -224,9 +222,13 @@ onAuthStateChanged(auth, async user => {
     loginFooter.style.display = "none";
     sidebar.style.display = "flex";
     dashboardSection.style.display = "block";
+    finalTasksSection.style.display = "none";
 
     userEmailSpan.textContent = user.email || "";
     userRoleSpan.textContent = currentRole || "";
+
+    // Ver Tareas Finalizadas en todos los roles? Ajustamos:
+    btnFinalizadas.style.display = "inline-block";
 
     // Admin => ver "Administrar Usuarios"
     if (currentRole === "admin") {
@@ -234,7 +236,6 @@ onAuthStateChanged(auth, async user => {
     } else {
       btnUsuarios.style.display = "none";
     }
-
     // Senior, Supervisor, Admin => ver Historial
     if (["senior","supervisor","admin"].includes(currentRole)) {
       btnHistorial.style.display = "inline-block";
@@ -242,12 +243,10 @@ onAuthStateChanged(auth, async user => {
       btnHistorial.style.display = "none";
     }
 
-    // Si es consultor => ocultar label "Responsable" + col header
+    // Consultor => oculta input de "Responsable" 
     if (currentRole === "consultor") {
-      const lblResp = document.getElementById("lblResp");
-      if (lblResp) lblResp.style.display = "none";
-      const thRespHeader = document.getElementById("thRespHeader");
-      if (thRespHeader) thRespHeader.textContent = ""; // solo lo dejamos en blanco
+      rowRespInput.style.display = "none";
+      thRespHeader.textContent = ""; // quita label
     }
 
     listenTasks();
@@ -258,14 +257,13 @@ onAuthStateChanged(auth, async user => {
     loginFooter.style.display = "block";
     sidebar.style.display = "none";
     dashboardSection.style.display = "none";
+    finalTasksSection.style.display = "none";
     adminUsersSection.style.display = "none";
     historySection.style.display = "none";
   }
 });
 
-// ====================
-// REGISTRO / LOGIN
-// ====================
+// REGISTRO/LOGIN
 async function registerUser() {
   authMessage.textContent = "";
   if (!emailInput.value.trim() || !passInput.value.trim()) {
@@ -278,7 +276,6 @@ async function registerUser() {
     authMessage.textContent = `Error al crear usuario: ${err.message}`;
   }
 }
-
 async function loginUser() {
   authMessage.textContent = "";
   if (!emailInput.value.trim() || !passInput.value.trim()) {
@@ -292,11 +289,9 @@ async function loginUser() {
   }
 }
 
-// ====================
-// CREAR / EDITAR TAREA
-// ====================
+// CREAR/EDITAR TAREA
 async function handleTaskForm() {
-  // roles consultor => autoasignar
+  // autoasignar si consultor
   let respName = newUserName.value.trim();
   if (currentRole === "consultor") {
     const userSnap = await getDoc(doc(db, "users", currentUser.uid));
@@ -313,7 +308,7 @@ async function handleTaskForm() {
     return;
   }
 
-  // Validar horas en formato HH:MM
+  // Validar horas
   const horasVal = newHoras.value.trim();
   if (!/^(\d{1,2}):(\d{2})$/.test(horasVal)) {
     alert("Las horas deben tener formato HH:MM.");
@@ -325,7 +320,6 @@ async function handleTaskForm() {
     if (currentRole === "consultor") {
       assignedEmail = currentUser.email;
     } else {
-      // senior/sup/admin => usa respName => buscar
       if (!respName) {
         alert("Completa 'Responsable'.");
         return;
@@ -349,11 +343,10 @@ async function handleTaskForm() {
     const nextId = maxId + 1;
 
     if (editTaskId) {
-      // EDIT => Comparamos campos para Historial
+      // EDIT
       const oldSnap = await getDoc(doc(db, "tasks", editTaskId));
       const oldData = oldSnap.exists() ? oldSnap.data() : {};
 
-      // Nuevos
       const newData = {
         idTarea: nextId,
         userName: respName,
@@ -369,7 +362,7 @@ async function handleTaskForm() {
       await updateDoc(doc(db, "tasks", editTaskId), newData);
       alert("Tarea actualizada.");
 
-      // Determinar qué cambió
+      // Determinar cambios
       let changes = [];
       for (let k of ["userName","name","empresa","grupoCliente","folioProyecto","horasAsignadas","fechaEntrega"]) {
         const oldVal = oldData[k] || "";
@@ -378,11 +371,8 @@ async function handleTaskForm() {
           changes.push(`${k}: "${oldVal}" => "${newVal}"`);
         }
       }
-      if (changes.length === 0) {
-        changes.push("Sin cambios detectados");
-      }
+      if (changes.length===0) changes.push("Sin cambios detectados");
 
-      // Historial => "Editó la tarea" con detalles
       await addDoc(collection(db, "history"), {
         taskId: nextId,
         responsible: respName,
@@ -413,7 +403,6 @@ async function handleTaskForm() {
       };
       await addDoc(colRef, newTask);
       alert("Tarea creada.");
-
       await addDoc(collection(db, "history"), {
         taskId: nextId,
         responsible: respName,
@@ -456,239 +445,426 @@ async function findEmailByName(name) {
   return null;
 }
 
-// ====================
-// ESCUCHAR TAREAS => onSnapshot
-// ====================
+// ESCUCHAR TAREAS
 function listenTasks() {
   const colRef = collection(db, "tasks");
   onSnapshot(colRef, snapshot => {
-    allTasks = [];
+    let tempTasks = [];
     snapshot.forEach(docu => {
-      allTasks.push({ ...docu.data(), docId: docu.id });
+      tempTasks.push({ ...docu.data(), docId: docu.id });
     });
+    allTasks = tempTasks;
+    // Render principal + final
     renderTasks(allTasks);
+    renderFinalTasks(allTasks);
   });
 }
 
-// ====================
-// RENDER TAREAS => con sort
-// ====================
+// RENDER TAREAS (No finalizadas)
 function renderTasks(tasksArray) {
   tasksTableBody.innerHTML = "";
 
-  // Ordenar si currentSortKey
+  // Filtrar las NO finalizadas
+  const arr = tasksArray.filter(t => t.status !== "Finalizado");
+
+  // Orden
+  let sorted = arr.slice();
   if (currentSortKey) {
-    tasksArray = tasksArray.slice().sort((a,b) => {
+    sorted = sorted.sort((a,b) => {
       let va = a[currentSortKey];
       let vb = b[currentSortKey];
       if (va && va.toDate) va = va.toDate();
       if (vb && vb.toDate) vb = vb.toDate();
       if (typeof va === "string") va = va.toLowerCase();
       if (typeof vb === "string") vb = vb.toLowerCase();
-
       if (va < vb) return -1 * currentSortDir;
       if (va > vb) return 1 * currentSortDir;
       return 0;
     });
   }
 
-  tasksArray.forEach(task => {
+  sorted.forEach(task => {
     const tr = document.createElement("tr");
 
-    // col1: Responsable (blanco para consultor)
-    const tdResp = document.createElement("td");
-    if (currentRole === "consultor") {
+    // col 1 => Responsable
+    let tdResp = document.createElement("td");
+    // Si consultor => en la vista: no está en blanco, se definió que consultor la ve en blanco? 
+    // Indicación: "El consultor no ve el label, pero sí la col está en blanco"
+    if (currentRole==="consultor") {
       tdResp.textContent = "";
     } else {
       tdResp.textContent = task.userName || "";
     }
     tr.appendChild(tdResp);
 
-    // col2: ID Tarea
+    // col2 => ID Tarea
     const tdId = document.createElement("td");
     tdId.textContent = task.idTarea ?? "N/A";
     tr.appendChild(tdId);
 
-    // col3: Fecha Asignación
-    const tdFAsig = document.createElement("td");
-    tdFAsig.textContent = task.fechaAsignacion || "--";
-    tr.appendChild(tdFAsig);
+    // col3 => Fecha Asignación
+    const tdFA = document.createElement("td");
+    tdFA.textContent = task.fechaAsignacion || "--";
+    tr.appendChild(tdFA);
 
-    // col4: Fecha Entrega => color, permitir negativo
-    const tdFEnt = document.createElement("td");
+    // col4 => Fecha de Entrega, sin hora
+    const tdFE = document.createElement("td");
     if (task.fechaEntrega) {
+      // calculamos diff 
       const formatted = formatDDMMYYYY(task.fechaEntrega);
-      let diff;
+      let diff = 0;
       if (task.status === "Finalizado") {
-        diff = 0;
-        tdFEnt.textContent = `${formatted} (0)`;
+        diff=0;
+        tdFE.textContent = `${formatted} (0)`;
       } else {
-        diff = calcBusinessDaysDiff(new Date(), parseDateDMY(formatted));
-        tdFEnt.textContent = `${formatted} (${diff})`;
-        // colorear
-        if (diff <= 2) {
-          tdFEnt.classList.add("fecha-rojo");
-        } else if (diff <= 5) {
-          tdFEnt.classList.add("fecha-naranjo");
-        } else if (diff <= 8) {
-          tdFEnt.classList.add("fecha-amarillo");
-        } else if (diff <= 11) {
-          tdFEnt.classList.add("fecha-verde");
-        } else if (diff > 11) {
-          tdFEnt.classList.add("fecha-azul");
-        }
+        diff= calcBusinessDaysDiff(new Date(), parseDateDMY(formatted));
+        tdFE.textContent = `${formatted} (${diff})`;
+        // color
+        if (diff <= 2) tdFE.classList.add("fecha-rojo");
+        else if (diff <=5) tdFE.classList.add("fecha-naranjo");
+        else if (diff <=8) tdFE.classList.add("fecha-amarillo");
+        else if (diff <=11) tdFE.classList.add("fecha-verde");
+        else tdFE.classList.add("fecha-azul");
       }
     } else {
-      tdFEnt.textContent = "";
+      tdFE.textContent="";
     }
-    tr.appendChild(tdFEnt);
+    tr.appendChild(tdFE);
 
-    // col5: Actividad
+    // col5 => Actividad
     const tdAct = document.createElement("td");
     tdAct.textContent = task.name || "";
     tr.appendChild(tdAct);
 
-    // col6: Estado => select
-    const tdEstado = document.createElement("td");
-    const selectStatus = document.createElement("select");
-    let possibleStates = [...TASK_STATES];
+    // col6 => Estado => select
+    const tdEst = document.createElement("td");
+    const sel = document.createElement("select");
 
-    // Senior => no Finalizado
-    if (currentRole === "senior") {
-      possibleStates = possibleStates.filter(s => s !== "Finalizado");
-      if (["Finalizado","Reportar"].includes(task.status)) {
-        possibleStates = [task.status];
-      }
-    }
-    // Consultor => no Finalizado/Reportar
-    // (pero se pidió que consultor también pueda ver Editar/Eliminar, 
-    //  no cambiamos la restricción de estado)
-    if (currentRole === "consultor") {
+    let possible = TASK_STATES.slice();
+    // consultor => no Finalizado/Reportar
+    if (currentRole==="consultor") {
       if (["Finalizado","Reportar","Por revisar"].includes(task.status)) {
-        possibleStates = [task.status];
+        possible = [task.status];
       } else {
-        possibleStates = ["Asignado","En proceso","Por revisar","SII","Municipalidad","Tesoreria","BPO","Cliente"];
+        possible = ["Asignado","En proceso","Por revisar","SII","Municipalidad","Tesoreria","BPO","Cliente"];
+      }
+    }
+    if (currentRole==="senior") {
+      possible = possible.filter(s => s!=="Finalizado");
+      if (["Finalizado","Reportar"].includes(task.status)) {
+        possible=[task.status];
       }
     }
 
-    possibleStates.forEach(st => {
-      const opt = document.createElement("option");
-      opt.value = st;
-      opt.textContent = st;
-      if (st === task.status) opt.selected = true;
-      selectStatus.appendChild(opt);
+    possible.forEach(st => {
+      let o = document.createElement("option");
+      o.value = st;
+      o.textContent = st;
+      if (st===task.status) o.selected=true;
+      sel.appendChild(o);
     });
-
-    selectStatus.addEventListener("change", async () => {
-      const newSt = selectStatus.value;
-      // confirm consultor -> "Por revisar"
-      if (currentRole === "consultor" && newSt === "Por revisar" && task.status !== "Por revisar") {
+    sel.addEventListener("change", async ()=>{
+      const newSt= sel.value;
+      // Confirm final
+      if (newSt==="Finalizado" && task.status!=="Finalizado"){
+        if (!confirm("¿Estás seguro de poner estado Finalizado?")) {
+          sel.value=task.status;
+          return;
+        }
+      }
+      // Confirm consultor->por revisar
+      if (currentRole==="consultor" && newSt==="Por revisar" && task.status!=="Por revisar"){
         if (!confirm("¿Pasar a 'Por revisar'?")) {
-          selectStatus.value = task.status;
+          sel.value= task.status;
           return;
         }
       }
-      // confirm senior -> "Reportar"
-      if (currentRole === "senior" && newSt === "Reportar" && task.status !== "Reportar") {
-        if (!confirm("¿Pasar a 'Reportar'?")) {
-          selectStatus.value = task.status;
+      // confirm senior->reportar
+      if (currentRole==="senior" && newSt==="Reportar" && task.status!=="Reportar"){
+        if(!confirm("¿Pasar a 'Reportar'?")){
+          sel.value=task.status;
           return;
         }
       }
-
-      // Si se pasa a SII => alert + cambio de fechaEntrega => next Monday
-      if (newSt === "SII") {
+      // SII => set next Monday
+      if (newSt==="SII"){
         alert("Recuerda anotar Folio y Fiscalizador en comentarios");
-        let baseDate = new Date();
-        if (task.lastCommentAt) {
-          baseDate = task.lastCommentAt.toDate();
-        }
-        const nextMonday = getNextMonday(baseDate);
-        const y = nextMonday.getFullYear();
-        const m = String(nextMonday.getMonth()+1).padStart(2,'0');
-        const d = String(nextMonday.getDate()).padStart(2,'0');
-        const isoDate = `${y}-${m}-${d}`;
-        await updateDoc(doc(db, "tasks", task.docId), {
-          fechaEntrega: isoDate
-        });
+        let baseDate=new Date();
+        if (task.lastCommentAt) baseDate=task.lastCommentAt.toDate();
+        const nm= getNextMonday(baseDate);
+        const y= nm.getFullYear();
+        const m= String(nm.getMonth()+1).padStart(2,'0');
+        const d= String(nm.getDate()).padStart(2,'0');
+        const iso=`${y}-${m}-${d}`;
+        await updateDoc(doc(db,"tasks",task.docId), { fechaEntrega: iso });
       }
 
-      if (!canChangeStatus(currentRole, task.status, newSt)) {
+      if(!canChangeStatus(currentRole, task.status, newSt)){
         alert("No tienes permiso para ese cambio.");
-        selectStatus.value = task.status;
+        sel.value=task.status;
       } else {
-        await updateTaskStatus(task.docId, newSt);
+        await updateTaskStatus(task.docId,newSt);
       }
     });
-    tdEstado.appendChild(selectStatus);
+    tdEst.appendChild(sel);
 
-    // status indicator
-    const indicator = document.createElement("span");
-    indicator.classList.add("status-indicator");
-    const lowered = (task.status||"").toLowerCase().replace(" ","-");
-    indicator.classList.add(`status-${lowered}`);
-    tdEstado.appendChild(indicator);
-    tr.appendChild(tdEstado);
+    // Indicador
+    const ind= document.createElement("span");
+    ind.classList.add("status-indicator");
+    const lowered= (task.status||"").toLowerCase().replace(" ","-");
+    ind.classList.add(`status-${lowered}`);
+    tdEst.appendChild(ind);
 
-    // col7: Empresa
-    const tdEmp = document.createElement("td");
-    tdEmp.textContent = task.empresa || "";
+    tr.appendChild(tdEst);
+
+    // col7 => Empresa
+    let tdEmp= document.createElement("td");
+    tdEmp.textContent=task.empresa||"";
     tr.appendChild(tdEmp);
 
-    // col8: Grupo
-    const tdGru = document.createElement("td");
-    tdGru.textContent = task.grupoCliente || "";
+    // col8 => Grupo
+    let tdGru= document.createElement("td");
+    tdGru.textContent= task.grupoCliente||"";
     tr.appendChild(tdGru);
 
-    // col9: Folio
-    const tdFolio = document.createElement("td");
-    tdFolio.textContent = task.folioProyecto || "";
+    // col9 => Folio
+    let tdFolio= document.createElement("td");
+    tdFolio.textContent= task.folioProyecto||"";
     tr.appendChild(tdFolio);
 
-    // col10: Horas
-    const tdHrs = document.createElement("td");
-    tdHrs.textContent = task.horasAsignadas || "";
+    // col10 => Horas
+    let tdHrs= document.createElement("td");
+    tdHrs.textContent= task.horasAsignadas||"";
     tr.appendChild(tdHrs);
 
-    // col11: Última actividad => lastCommentAt
-    const tdLastCom = document.createElement("td");
-    if (task.lastCommentAt) {
-      const dd = task.lastCommentAt.toDate();
-      tdLastCom.textContent = dd.toLocaleString("es-CL");
-    } else {
-      tdLastCom.textContent = "--";
-    }
-    tr.appendChild(tdLastCom);
+    // col11 => Ultima actividad => solo fecha
+    let tdUlt= document.createElement("td");
+    if (task.lastCommentAt){
+      let dd= task.lastCommentAt.toDate();
+      // Solo fecha => toLocaleDateString
+      tdUlt.textContent= dd.toLocaleDateString("es-CL");
+    } else tdUlt.textContent= "--";
+    tr.appendChild(tdUlt);
 
-    // col12: Acciones => consultor tb lo ve
-    const tdAcc = document.createElement("td");
-    // Botón Editar
-    const btnEdit = document.createElement("button");
-    btnEdit.textContent = "Editar";
-    btnEdit.addEventListener("click", async () => {
-      editTaskId = task.docId;
-      frmTareaTitle.textContent = "Editar Tarea (ID: " + (task.idTarea||"N/A") + ")";
-      createTaskBtn.textContent = "Actualizar Tarea";
+    // col12 => Acciones => con iconos + tooltip
+    let tdAcc= document.createElement("td");
 
-      newUserName.value = task.userName || "";
-      newTaskName.value = task.name || "";
-      newEmpresa.value = task.empresa || "";
-      newGrupo.value = task.grupoCliente || "";
-      newFolio.value = task.folioProyecto || "";
-      newHoras.value = task.horasAsignadas || "";
-      newFechaEntrega.value = task.fechaEntrega || "";
+    // Edit
+    const btnEdit= document.createElement("button");
+    btnEdit.classList.add("action-btn");
+    btnEdit.innerHTML= "✎"; // o un icono
+    btnEdit.title="Editar Tarea";
+    btnEdit.addEventListener("click", ()=>{
+      editTaskId= task.docId;
+      frmTareaTitle.textContent = "Editar Tarea (ID: "+(task.idTarea||"N/A")+")";
+      createTaskBtn.textContent= "Actualizar Tarea";
+
+      newUserName.value= task.userName||"";
+      newTaskName.value= task.name||"";
+      newEmpresa.value= task.empresa||"";
+      newGrupo.value= task.grupoCliente||"";
+      newFolio.value= task.folioProyecto||"";
+      newHoras.value= task.horasAsignadas||"";
+      newFechaEntrega.value= task.fechaEntrega||"";
     });
     tdAcc.appendChild(btnEdit);
 
-    // Botón Eliminar
-    const btnDel = document.createElement("button");
-    btnDel.textContent = "Eliminar";
-    btnDel.style.marginLeft = "5px";
-    btnDel.addEventListener("click", async () => {
-      if (!confirm("¿Deseas eliminar la tarea?")) return;
-      // registrar en history => "Eliminó la tarea"
-      await addDoc(collection(db, "history"), {
-        taskId: task.idTarea || -1,
+    // Delete
+    const btnDel= document.createElement("button");
+    btnDel.classList.add("action-btn");
+    btnDel.innerHTML= "🗑";
+    btnDel.title="Eliminar Tarea";
+    btnDel.addEventListener("click", async()=>{
+      if(!confirm("¿Deseas eliminar la tarea?")) return;
+      // Historial => "Eliminó la tarea"
+      await addDoc(collection(db,"history"),{
+        taskId: task.idTarea||-1,
+        responsible: task.userName,
+        activity: task.name,
+        company: task.empresa,
+        group: task.grupoCliente,
+        action:"Eliminó la tarea",
+        date: new Date(),
+        userEmail: currentUser.email
+      });
+      await deleteDoc(doc(db,"tasks",task.docId));
+    });
+    tdAcc.appendChild(btnDel);
+
+    // Comments
+    const btnCom= document.createElement("button");
+    btnCom.classList.add("action-btn");
+    btnCom.innerHTML="💬";
+    btnCom.title="Comentarios";
+    btnCom.addEventListener("click", ()=>{
+      openCommentsPanel(task.docId, task.idTarea);
+    });
+    tdAcc.appendChild(btnCom);
+
+    tr.appendChild(tdAcc);
+
+    tasksTableBody.appendChild(tr);
+  });
+}
+
+// RENDER TAREAS FINALIZADAS
+function renderFinalTasks(tasksArray) {
+  finalTasksBody.innerHTML="";
+  // Filtramos status=Finalizado
+  let arr= tasksArray.filter(t=> t.status==="Finalizado");
+  // No orden particular, salvo si deseas reusar currentSortKey
+  if (currentSortKey) {
+    arr= arr.slice().sort((a,b)=>{
+      let va= a[currentSortKey];
+      let vb= b[currentSortKey];
+      if(va && va.toDate) va=va.toDate();
+      if(vb && vb.toDate) vb= vb.toDate();
+      if (typeof va==="string") va= va.toLowerCase();
+      if (typeof vb==="string") vb= vb.toLowerCase();
+      if(va<vb) return -1*currentSortDir;
+      if(va>vb) return 1*currentSortDir;
+      return 0;
+    });
+  }
+
+  arr.forEach(task=>{
+    let tr= document.createElement("tr");
+
+    // col1 => Responsable (consultor??)
+    let tdResp= document.createElement("td");
+    if (currentRole==="consultor"){
+      tdResp.textContent="";
+    } else {
+      tdResp.textContent= task.userName||"";
+    }
+    tr.appendChild(tdResp);
+
+    // ID
+    let tdId= document.createElement("td");
+    tdId.textContent= task.idTarea||"N/A";
+    tr.appendChild(tdId);
+
+    // Fecha Asig
+    let tdFA= document.createElement("td");
+    tdFA.textContent= task.fechaAsignacion||"--";
+    tr.appendChild(tdFA);
+
+    // Fecha Ent (solo fecha)
+    let tdFE= document.createElement("td");
+    if (task.fechaEntrega){
+      const formatted= formatDDMMYYYY(task.fechaEntrega);
+      tdFE.textContent= formatted+" (0)"; // ya final => 0
+    } else {
+      tdFE.textContent="";
+    }
+    tr.appendChild(tdFE);
+
+    // Actividad
+    let tdAct= document.createElement("td");
+    tdAct.textContent= task.name||"";
+    tr.appendChild(tdAct);
+
+    // Estado => si se cambia => regresa a Tareas
+    let tdEst= document.createElement("td");
+    let sel= document.createElement("select");
+    // Muestra todos los states? 
+    TASK_STATES.forEach(st=>{
+      let o= document.createElement("option");
+      o.value= st;
+      o.textContent= st;
+      if (st=== task.status) o.selected=true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener("change", async()=>{
+      const newSt= sel.value;
+      if(newSt!=="Finalizado"){
+        // sale de final
+        if(!canChangeStatus(currentRole, "Finalizado", newSt)){
+          alert("No tienes permiso para ese cambio.");
+          sel.value="Finalizado";
+          return;
+        }
+        await updateTaskStatus(task.docId, newSt);
+        // Regresa a "Tareas"
+        dashboardSection.style.display="block";
+        finalTasksSection.style.display="none";
+      }
+    });
+    tdEst.appendChild(sel);
+    // Indicador
+    let ind= document.createElement("span");
+    ind.classList.add("status-indicator");
+    let lowered= (task.status||"").toLowerCase().replace(" ","-");
+    ind.classList.add(`status-${lowered}`);
+    tdEst.appendChild(ind);
+    tr.appendChild(tdEst);
+
+    // Empresa
+    let tdEmp= document.createElement("td");
+    tdEmp.textContent= task.empresa||"";
+    tr.appendChild(tdEmp);
+
+    // Grupo
+    let tdGru= document.createElement("td");
+    tdGru.textContent= task.grupoCliente||"";
+    tr.appendChild(tdGru);
+
+    // Folio
+    let tdFol= document.createElement("td");
+    tdFol.textContent= task.folioProyecto||"";
+    tr.appendChild(tdFol);
+
+    // Horas
+    let tdHr= document.createElement("td");
+    tdHr.textContent= task.horasAsignadas||"";
+    tr.appendChild(tdHr);
+
+    // Ultima => solo fecha
+    let tdUl= document.createElement("td");
+    if(task.lastCommentAt){
+      let dd= task.lastCommentAt.toDate();
+      tdUl.textContent= dd.toLocaleDateString("es-CL");
+    } else tdUl.textContent="--";
+    tr.appendChild(tdUl);
+
+    // Acciones => iconos
+    let tdAc= document.createElement("td");
+
+    // Edit
+    let bEd= document.createElement("button");
+    bEd.classList.add("action-btn");
+    bEd.innerHTML= "✎";
+    bEd.title= "Editar Tarea";
+    bEd.addEventListener("click",()=>{
+      editTaskId= task.docId;
+      frmTareaTitle.textContent= "Editar Tarea (ID: "+(task.idTarea||"N/A")+")";
+      createTaskBtn.textContent= "Actualizar Tarea";
+
+      newUserName.value= task.userName||"";
+      newTaskName.value= task.name||"";
+      newEmpresa.value= task.empresa||"";
+      newGrupo.value= task.grupoCliente||"";
+      newFolio.value= task.folioProyecto||"";
+      newHoras.value= task.horasAsignadas||"";
+      newFechaEntrega.value= task.fechaEntrega||"";
+
+      // al editar => ir a Tareas
+      dashboardSection.style.display="block";
+      finalTasksSection.style.display="none";
+    });
+    tdAc.appendChild(bEd);
+
+    // Del
+    let bDel= document.createElement("button");
+    bDel.classList.add("action-btn");
+    bDel.innerHTML="🗑";
+    bDel.title="Eliminar Tarea";
+    bDel.style.marginLeft="5px";
+    bDel.addEventListener("click",async()=>{
+      if(!confirm("¿Deseas eliminar la tarea?"))return;
+      // Historial
+      await addDoc(collection(db,"history"),{
+        taskId: task.idTarea||-1,
         responsible: task.userName,
         activity: task.name,
         company: task.empresa,
@@ -697,201 +873,52 @@ function renderTasks(tasksArray) {
         date: new Date(),
         userEmail: currentUser.email
       });
-      await deleteDoc(doc(db, "tasks", task.docId));
+      await deleteDoc(doc(db,"tasks",task.docId));
     });
-    tdAcc.appendChild(btnDel);
+    tdAc.appendChild(bDel);
 
-    // Botón Comentarios
-    const btnComments = document.createElement("button");
-    btnComments.textContent = "Comentarios";
-    btnComments.style.marginLeft = "5px";
-    btnComments.addEventListener("click", () => {
+    // Comments
+    let bCom= document.createElement("button");
+    bCom.classList.add("action-btn");
+    bCom.innerHTML="💬";
+    bCom.title="Comentarios";
+    bCom.style.marginLeft="5px";
+    bCom.addEventListener("click",()=>{
       openCommentsPanel(task.docId, task.idTarea);
     });
-    tdAcc.appendChild(btnComments);
+    tdAc.appendChild(bCom);
 
-    tr.appendChild(tdAcc);
-    tasksTableBody.appendChild(tr);
+    tr.appendChild(tdAc);
+
+    finalTasksBody.appendChild(tr);
   });
 }
 
-// ====================
-// getNextMonday => base date => next Monday
-// ====================
-function getNextMonday(baseDate) {
-  const d = new Date(baseDate);
-  while (d.getDay() !== 1) {
-    d.setDate(d.getDate() + 1);
-  }
-  return d;
-}
-
-// ====================
-// Comentarios => checklist
-// ====================
-function openCommentsPanel(taskDocId, tareaId) {
-  currentCommentTaskId = taskDocId;
-  commentTaskIdSpan.textContent = tareaId || "N/A";
-  commentsPanel.style.display = "block";
-  loadComments(taskDocId);
-}
-
-// Cargar comments
-async function loadComments(taskDocId) {
-  commentsListDiv.innerHTML = "Cargando...";
-  const cRef = collection(db, "tasks", taskDocId, "comments");
-  const qRef = query(cRef, orderBy("createdAt","asc"));
-  const snap = await getDocs(qRef);
-
-  let commentsData = [];
-  snap.forEach(docu => {
-    commentsData.push({ id: docu.id, ...docu.data() });
-  });
-
-  let html = "";
-  for (let c of commentsData) {
-    const dateStr = c.createdAt ? new Date(c.createdAt.toDate()).toLocaleString("es-CL") : "";
-    const isOwner = (c.authorUid === currentUser?.uid);
-    // Indicador de color en lugar de texto
-    // st => Pendiente/Completado/En revisión => classes comment-state-X
-    const stLower = (c.state||"Pendiente").toLowerCase().replace(" ","-");
-    let stateIndicator = `<span class="comment-state-indicator comment-state-${stLower}"></span>`;
-
-    // Desplegable => cualquier usuario cambia
-    let stateSelect = `<select class="comment-state-select" onchange="changeCommentState('${c.id}', this.value)" style="margin-left:5px;">`;
-    COMMENT_STATES.forEach(st => {
-      stateSelect += `<option value="${st}" ${st===c.state?"selected":""}>${st}</option>`;
-    });
-    stateSelect += `</select>`;
-
-    html += `<div class="comment-item">`;
-    html += `<div class="comment-author">`;
-    html += `<b>${c.authorEmail||"Desconocido"}</b> ${stateIndicator} ${stateSelect}`;
-    html += `</div>`;
-    html += `<div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>`;
-    html += `<div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>`;
-    html += `<div class="comment-actions" style="margin-left:1rem;">`;
-    if (isOwner) {
-      html += `<button onclick="editComment('${c.id}')">Editar</button>`;
-      html += `<button style="margin-left:5px;" onclick="deleteComment('${c.id}')">Eliminar</button>`;
-    }
-    html += `</div>`;
-    html += `</div>`;
-  }
-
-  if (!html) html = "<p>Sin comentarios</p>";
-  commentsListDiv.innerHTML = html;
-}
-
-// Cambiar estado del comentario => cualquiera
-window.changeCommentState = async function(commentId, newSt) {
-  if (!currentCommentTaskId) return;
-  try {
-    await updateDoc(doc(db, "tasks", currentCommentTaskId, "comments", commentId), {
-      state: newSt
-    });
-    loadComments(currentCommentTaskId);
-  } catch(e) {
-    console.error("Error al cambiar estado del comentario:", e);
-  }
-};
-
-// Agregar comentario
-async function addNewComment() {
-  if (!currentCommentTaskId) return;
-  const text = commentTextArea.value.trim();
-  if (!text) {
-    alert("Escribe un comentario");
-    return;
-  }
-  try {
-    let userName = currentUser.email;
-    let userUid = currentUser.uid;
-    const userSnap = await getDoc(doc(db, "users", currentUser.uid));
-    if (userSnap.exists()) {
-      const dat = userSnap.data();
-      if (dat.name) userName = dat.name;
-    }
-    const cRef = collection(db, "tasks", currentCommentTaskId, "comments");
-    await addDoc(cRef, {
-      text,
-      authorEmail: userName,
-      authorUid: userUid,
-      createdAt: new Date(),
-      state: "Pendiente"
-    });
-    await updateDoc(doc(db, "tasks", currentCommentTaskId), {
-      lastCommentAt: new Date()
-    });
-    commentTextArea.value = "";
-    loadComments(currentCommentTaskId);
-  } catch(err) {
-    console.error("Error agregando comentario:", err);
-  }
-}
-
-// Edit
-window.editComment = async function(commentId) {
-  if (!currentCommentTaskId) return;
-  const newText = prompt("Editar comentario:");
-  if (!newText) return;
-  try {
-    await updateDoc(doc(db, "tasks", currentCommentTaskId, "comments", commentId), {
-      text: newText
-    });
-    await updateDoc(doc(db, "tasks", currentCommentTaskId), {
-      lastCommentAt: new Date()
-    });
-    loadComments(currentCommentTaskId);
-  } catch(err) {
-    console.error("Error editando comentario:", err);
-  }
-};
-
-// Delete
-window.deleteComment = async function(commentId) {
-  if (!currentCommentTaskId) return;
-  if (!confirm("¿Eliminar este comentario?")) return;
-  try {
-    await deleteDoc(doc(db, "tasks", currentCommentTaskId, "comments", commentId));
-    loadComments(currentCommentTaskId);
-  } catch(err) {
-    console.error("Error al eliminar comentario:", err);
-  }
-}
-
-// ====================
-// canChangeStatus => consultor/senior
-// ====================
+// canChangeStatus
 function canChangeStatus(role, currentSt, newSt) {
-  if (role === "senior") {
-    if (newSt === "Finalizado" && currentSt !== "Finalizado") {
-      return false;
-    }
-    if (["Finalizado","Reportar"].includes(currentSt)) return false;
+  if (role==="senior"){
+    if(newSt==="Finalizado" && currentSt!=="Finalizado") return false;
+    if(["Finalizado","Reportar"].includes(currentSt)) return false;
     return true;
   }
-  if (role === "consultor") {
-    if (["Finalizado","Reportar","Por revisar"].includes(currentSt)) return false;
-    if (["Finalizado","Reportar"].includes(newSt)) return false;
+  if(role==="consultor"){
+    if(["Finalizado","Reportar","Por revisar"].includes(currentSt))return false;
+    if(["Finalizado","Reportar"].includes(newSt))return false;
     return true;
   }
   return true;
 }
 
-// ====================
 // updateTaskStatus
-// ====================
-async function updateTaskStatus(docId, newStatus) {
-  try {
-    const taskSnap = await getDoc(doc(db, "tasks", docId));
-    if (!taskSnap.exists()) return;
-    const tdata = taskSnap.data();
-
-    await updateDoc(doc(db, "tasks", docId), { status: newStatus });
-    // Historial => "Cambió estado"
-    await addDoc(collection(db, "history"), {
-      taskId: tdata.idTarea || -1,
+async function updateTaskStatus(docId,newStatus){
+  try{
+    const snap= await getDoc(doc(db,"tasks",docId));
+    if(!snap.exists())return;
+    const tdata= snap.data();
+    await updateDoc(doc(db,"tasks",docId), {status:newStatus});
+    // Historial
+    await addDoc(collection(db,"history"),{
+      taskId: tdata.idTarea||-1,
       responsible: tdata.userName,
       activity: tdata.name,
       company: tdata.empresa,
@@ -900,223 +927,172 @@ async function updateTaskStatus(docId, newStatus) {
       date: new Date(),
       userEmail: currentUser.email
     });
-  } catch (err) {
-    console.error("Error al cambiar estado:", err);
+  }catch(e){
+    console.error("Error al cambiar estado:", e);
   }
 }
 
-// ====================
-// FILTROS
-// ====================
-function aplicarFiltros() {
-  let arr = allTasks.slice();
-
-  const valResp = filterResponsable.value.trim().toLowerCase();
-  const exResp = chkExcludeAsignado.checked;
-  const valEst = filterEstado.value.trim().toLowerCase();
-  const exEst = chkExcludeEstado.checked;
-  const valEmp = filterEmpresa.value.trim().toLowerCase();
-  const exEmp = chkExcludeEmpresa.checked;
-  const valGru = filterGrupo.value.trim().toLowerCase();
-  const exGru = chkExcludeGrupo.checked;
-
-  arr = arr.filter(t => {
-    // Responsable => t.userName
-    if (valResp) {
-      const match = (t.userName||"").toLowerCase().includes(valResp);
-      if (exResp && match) return false;
-      if (!exResp && !match) return false;
-    }
-    // Estado
-    if (valEst) {
-      const match = (t.status||"").toLowerCase().includes(valEst);
-      if (exEst && match) return false;
-      if (!exEst && !match) return false;
-    }
-    // Empresa
-    if (valEmp) {
-      const match = (t.empresa||"").toLowerCase().includes(valEmp);
-      if (exEmp && match) return false;
-      if (!exEmp && !match) return false;
-    }
-    // Grupo
-    if (valGru) {
-      const match = (t.grupoCliente||"").toLowerCase().includes(valGru);
-      if (exGru && match) return false;
-      if (!exGru && !match) return false;
-    }
-    return true;
-  });
-
-  renderTasks(arr);
+// Filtros
+function aplicarFiltros(){
+  // no se hace distincion final vs no final aqui, se filtra en la vista principal
+  renderTasks(allTasks);
 }
-
-function limpiarFiltros() {
-  filterResponsable.value = "";
-  chkExcludeAsignado.checked = false;
-  filterEstado.value = "";
-  chkExcludeEstado.checked = false;
-  filterEmpresa.value = "";
-  chkExcludeEmpresa.checked = false;
-  filterGrupo.value = "";
-  chkExcludeGrupo.checked = false;
-
+function limpiarFiltros(){
+  filterResponsable.value="";
+  chkExcludeAsignado.checked=false;
+  filterEstado.value="";
+  chkExcludeEstado.checked=false;
+  filterEmpresa.value="";
+  chkExcludeEmpresa.checked=false;
+  filterGrupo.value="";
+  chkExcludeGrupo.checked=false;
   renderTasks(allTasks);
 }
 
-// ====================
-// ADMIN / loadAllUsers
-// ====================
-async function loadAllUsers() {
-  usersTableBody.innerHTML = "";
-  const snap = await getDocs(collection(db, "users"));
-  snap.forEach(docu => {
-    const u = docu.data();
-    const tr = document.createElement("tr");
-
+// loadAllUsers
+async function loadAllUsers(){
+  usersTableBody.innerHTML="";
+  const snap=await getDocs(collection(db,"users"));
+  snap.forEach(docu=>{
+    const u= docu.data();
+    let tr= document.createElement("tr");
     // Email
-    const tdEmail = document.createElement("td");
-    tdEmail.textContent = u.email || docu.id;
-    tr.appendChild(tdEmail);
-
-    // Name => confirm
-    const tdName = document.createElement("td");
-    const inpName = document.createElement("input");
-    inpName.type = "text";
-    inpName.value = u.name || "";
-    inpName.addEventListener("change", async () => {
-      if (!confirm("¿Confirmar cambio de Nombre de Usuario?")) {
-        inpName.value = u.name || "";
+    let tdE= document.createElement("td");
+    tdE.textContent= u.email||docu.id;
+    tr.appendChild(tdE);
+    // name
+    let tdN= document.createElement("td");
+    let inp= document.createElement("input");
+    inp.type="text";
+    inp.value= u.name||"";
+    inp.addEventListener("change", async()=>{
+      if(!confirm("¿Confirmar cambio de Nombre?")){
+        inp.value= u.name||"";
         return;
       }
-      try {
-        await updateDoc(doc(db, "users", docu.id), { name: inpName.value });
-        u.name = inpName.value;
-      } catch (er) {
-        console.error("Error actualizando name:", er);
-      }
+      try{
+        await updateDoc(doc(db,"users",docu.id), { name:inp.value });
+        u.name=inp.value;
+      }catch(er){console.error("Error actualizando name:",er);}
     });
-    tdName.appendChild(inpName);
-    tr.appendChild(tdName);
+    tdN.appendChild(inp);
+    tr.appendChild(tdN);
 
-    // Rol
-    const tdRole = document.createElement("td");
-    tdRole.textContent = u.role || "consultor";
-    tr.appendChild(tdRole);
+    // rol
+    let tdR= document.createElement("td");
+    tdR.textContent= u.role||"consultor";
+    tr.appendChild(tdR);
 
-    // Cambiar Rol => confirm
-    const tdChange = document.createElement("td");
-    const selectRole = document.createElement("select");
-    ["consultor","senior","supervisor","admin"].forEach(r => {
-      const opt = document.createElement("option");
-      opt.value = r;
-      opt.textContent = r;
-      if (r === u.role) opt.selected = true;
-      selectRole.appendChild(opt);
+    // change rol
+    let tdC= document.createElement("td");
+    let sel= document.createElement("select");
+    ["consultor","senior","supervisor","admin"].forEach(rr=>{
+      let o= document.createElement("option");
+      o.value= rr;
+      o.textContent= rr;
+      if(rr=== u.role) o.selected=true;
+      sel.appendChild(o);
     });
-    selectRole.addEventListener("change", async () => {
-      if (!confirm(`¿Confirmar cambio de Rol a "${selectRole.value}"?`)) {
-        selectRole.value = u.role;
+    sel.addEventListener("change", async()=>{
+      if(!confirm(`¿Confirmar cambio de Rol a "${sel.value}"?`)){
+        sel.value= u.role; 
         return;
       }
-      try {
-        await updateDoc(doc(db, "users", docu.id), { role: selectRole.value });
-        u.role = selectRole.value;
-        tdRole.textContent = selectRole.value;
-      } catch (error) {
-        console.error("Error cambiando rol:", error);
-      }
+      try{
+        await updateDoc(doc(db,"users",docu.id), { role: sel.value });
+        u.role= sel.value;
+        tdR.textContent= sel.value;
+      }catch(er){ console.error("Error cambiando rol:",er);}
     });
-    tdChange.appendChild(selectRole);
-    tr.appendChild(tdChange);
+    tdC.appendChild(sel);
+    tr.appendChild(tdC);
 
     usersTableBody.appendChild(tr);
   });
 }
 
-// ====================
-// HISTORIAL => 2 semanas
-// ====================
-async function loadHistory() {
-  historyTableBody.innerHTML = "Cargando...";
-  try {
-    // Filtrar solo últimos 14 días
-    const twoWeeksAgo = new Date(Date.now() - 14*24*60*60*1000);
-    const qRef = query(
-      collection(db, "history"),
-      where("date", ">=", twoWeeksAgo),
+// Historial => 2 semanas
+async function loadHistory(){
+  historyTableBody.innerHTML="Cargando...";
+  try{
+    const twoWeeksAgo= new Date(Date.now() -14*24*60*60*1000);
+    const qRef= query(
+      collection(db,"history"),
+      where("date",">=", twoWeeksAgo),
       orderBy("date","desc")
     );
-    const snap = await getDocs(qRef);
-
-    let html = "";
-    snap.forEach(docu => {
-      const h = docu.data();
-      const dStr = h.date ? new Date(h.date.toDate()).toLocaleString("es-CL") : "";
-      html += `
-        <tr>
-          <td>${h.taskId || ""}</td>
-          <td>${h.responsible || ""}</td>
-          <td>${h.activity || ""}</td>
-          <td>${h.company || ""}</td>
-          <td>${h.group || ""}</td>
-          <td>${h.action || ""} (por ${h.userEmail||"Desconocido"})</td>
-          <td>${dStr}</td>
-        </tr>
+    const snap= await getDocs(qRef);
+    let html="";
+    snap.forEach(docu=>{
+      const h= docu.data();
+      const dStr= h.date ? new Date(h.date.toDate()).toLocaleDateString("es-CL") : "";
+      html+=`
+      <tr>
+        <td>${h.taskId||""}</td>
+        <td>${h.responsible||""}</td>
+        <td>${h.activity||""}</td>
+        <td>${h.company||""}</td>
+        <td>${h.group||""}</td>
+        <td>${h.action||""} (por ${h.userEmail||"Desconocido"})</td>
+        <td>${dStr}</td>
+      </tr>
       `;
     });
-    if (!html) html = "<tr><td colspan='7'>Sin historial (últimos 14 días)</td></tr>";
-    historyTableBody.innerHTML = html;
-  } catch(e) {
+    if(!html) html="<tr><td colspan='7'>Sin historial (últimos 14 días)</td></tr>";
+    historyTableBody.innerHTML= html;
+  }catch(e){
     console.error("Error cargando historial:", e);
-    historyTableBody.innerHTML = `<tr><td colspan='7'>Error: ${e.message}</td></tr>`;
+    historyTableBody.innerHTML=`<tr><td colspan='7'>Error: ${e.message}</td></tr>`;
   }
 }
 
 /****************************************************
  * calcBusinessDaysDiff => días hábiles (permite negativo)
  ****************************************************/
-function calcBusinessDaysDiff(fromDate, toDate) {
-  if (!fromDate || !toDate) return 9999;
-  let start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
-  let end = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
-
-  let invert = 1;
-  if (end < start) {
-    // permitir negativo => invert=-1
-    invert = -1;
-    // swap
-    let tmp = start;
-    start = end;
-    end = tmp;
+function calcBusinessDaysDiff(fromDate, toDate){
+  if(!fromDate||!toDate) return 9999;
+  let start= new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  let end= new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+  let invert=1;
+  if(end<start){
+    invert=-1;
+    let tmp=start; start=end; end=tmp;
   }
-
-  let days = 0;
-  let current = new Date(start);
-  while (current <= end) {
-    const dow = current.getDay();
-    if (dow !== 0 && dow !== 6) {
-      days++;
-    }
-    current.setDate(current.getDate() + 1);
+  let days=0;
+  let current=new Date(start);
+  while(current<=end){
+    const dow= current.getDay();
+    if(dow!==0 && dow!==6) days++;
+    current.setDate(current.getDate()+1);
   }
-  return (days - 1) * invert;
+  return (days-1)*invert;
 }
 
 /****************************************************
  * formatDDMMYYYY => AAAA-MM-DD => DD-MM-AAAA
  ****************************************************/
-function formatDDMMYYYY(yyyy_mm_dd) {
-  if (!yyyy_mm_dd) return "";
-  const [y, m, d] = yyyy_mm_dd.split("-");
+function formatDDMMYYYY(yyyy_mm_dd){
+  if(!yyyy_mm_dd) return "";
+  const [y,m,d]= yyyy_mm_dd.split("-");
   return `${d}-${m}-${y}`;
 }
 
 /****************************************************
  * parseDateDMY => "DD-MM-AAAA" => Date
  ****************************************************/
-function parseDateDMY(dd_mm_yyyy) {
-  if (!dd_mm_yyyy) return null;
-  const [d, m, y] = dd_mm_yyyy.split("-");
-  return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+function parseDateDMY(dd_mm_yyyy){
+  if(!dd_mm_yyyy) return null;
+  const [d,m,y]= dd_mm_yyyy.split("-");
+  return new Date(parseInt(y), parseInt(m)-1, parseInt(d));
+}
+
+/****************************************************
+ * getNextMonday => base date => next Monday
+ ****************************************************/
+function getNextMonday(baseDate){
+  const d= new Date(baseDate);
+  while(d.getDay()!==1){
+    d.setDate(d.getDate()+1);
+  }
+  return d;
 }

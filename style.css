@@ -257,21 +257,14 @@ th[data-sortkey] {
   gap: 0.5rem;
 }
 
-/* Para el comentario => pequeño indicador en vez de color de texto */
-.comment-state-indicator {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  margin-right: 6px;
-  vertical-align: middle;
+/* Botones de acciones => iconos */
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-right: 5px;
 }
-.comment-state-pendiente {
-  background: #f39c12; /* naranja */
-}
-.comment-state-completado {
-  background: #27ae60; /* verde */
-}
-.comment-state-en-revisión {
-  background: #2980b9; /* azul */
+.action-btn:hover {
+  color: #007bff;
 }
