@@ -34,6 +34,8 @@
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
       <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
+      <button id="btnHistorial" style="display:none;">Historial</button>
+
       <div class="sidebar-bottom">
         <button id="btnLogout">Cerrar Sesión</button>
       </div>
@@ -44,7 +46,7 @@
       <h2>Dashboard de Actividades</h2>
       <p>Usuario: <span id="userEmail"></span> (Rol: <span id="userRole"></span>)</p>
 
-      <!-- Filtros (menú plegable) -->
+      <!-- Filtros -->
       <div class="filters-box">
         <div class="filters-header">
           <h3>Filtrar y Excluir</h3>
@@ -78,15 +80,15 @@
         </div>
       </div>
 
-      <!-- Crear Tarea (menú plegable) -->
+      <!-- Crear Tarea -->
       <div class="task-creation-box">
         <div class="filters-header">
           <h3 id="frmTareaTitle">Crear Tarea</h3>
           <button id="toggleTaskBoxBtn">-</button>
         </div>
-        <!-- Por defecto display:none, se mostrará para supervisor/admin -->
         <div id="taskCreation" style="display:none; margin-top:0.5rem;">
-          <div class="form-inline">
+          <!-- Si es consultor, ocultar "Responsable" input y auto-asignar su name -->
+          <div id="rowResp" class="form-inline">
             <input type="text" id="newUserName" placeholder="Responsable" />
             <input type="text" id="newTaskName" placeholder="Actividad" />
           </div>
@@ -106,7 +108,7 @@
         </div>
       </div>
 
-      <!-- Tabla con data-sortkey -->
+      <!-- Tabla Tareas -->
       <table id="tasksTable">
         <thead>
           <tr>
@@ -130,7 +132,7 @@
       </table>
     </section>
 
-    <!-- Admin de Usuarios -->
+    <!-- Sección Administrar Usuarios (solo Admin) -->
     <section class="dashboard" id="adminUsersSection" style="display:none;">
       <h2>Administrar Usuarios</h2>
       <table id="usersTable">
@@ -145,9 +147,28 @@
         <tbody id="usersBody"></tbody>
       </table>
     </section>
+
+    <!-- Historial (Senior, Supervisor, Admin) -->
+    <section class="dashboard" id="historySection" style="display:none;">
+      <h2>Historial de Tareas</h2>
+      <table id="historyTable">
+        <thead>
+          <tr>
+            <th>ID Tarea</th>
+            <th>Responsable</th>
+            <th>Actividad</th>
+            <th>Empresa</th>
+            <th>Grupo</th>
+            <th>Acción</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </section>
   </div>
 
-  <!-- Panel de Comentarios -->
+  <!-- Panel de Comentarios => estilo checklist -->
   <div id="commentsPanel" class="comments-panel" style="display:none;">
     <div class="comments-header">
       <h3>Comentarios de la Tarea <span id="commentTaskId"></span></h3>

@@ -85,7 +85,7 @@ body {
   border-radius: 5px;
 }
 
-/* Filtros y menús plegables */
+/* Filtros */
 .filters-box {
   background: #fdfdfd;
   border: 1px solid #ccc;
@@ -159,7 +159,7 @@ th[data-sortkey] {
   vertical-align: middle;
 }
 
-/* Colores de estados */
+/* Estados */
 .status-asignado {
   background: #cccccc;
 }
@@ -208,7 +208,7 @@ th[data-sortkey] {
   background: #cce4ff;
 }
 
-/* Panel de Comentarios */
+/* Panel de Comentarios => checklist-like */
 .comments-panel {
   position: fixed;
   right: 20px;
@@ -255,4 +255,9 @@ th[data-sortkey] {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+/* CheckList-like "estado" dentro del comentario */
+.comment-state-select {
+  margin-left: 0.5rem;
 }
