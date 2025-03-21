@@ -87,10 +87,12 @@
           <button id="toggleTaskBoxBtn">-</button>
         </div>
         <div id="taskCreation" style="display:none; margin-top:0.5rem;">
-          <!-- Si es consultor, ocultar "Responsable" input y auto-asignar su name -->
+          <!-- "Responsable" se oculta si es consultor -->
           <div id="rowResp" class="form-inline">
-            <input type="text" id="newUserName" placeholder="Responsable" />
-            <input type="text" id="newTaskName" placeholder="Actividad" />
+            <label for="newUserName" id="lblResp">Responsable:</label>
+            <input type="text" id="newUserName" />
+            <label for="newTaskName" style="margin-left:1rem;">Actividad:</label>
+            <input type="text" id="newTaskName" />
           </div>
           <div class="form-inline">
             <input type="text" id="newEmpresa" placeholder="Empresa" />
@@ -112,7 +114,8 @@
       <table id="tasksTable">
         <thead>
           <tr>
-            <th data-sortkey="userName">Responsable</th>
+            <!-- Este th no aparece al consultor -->
+            <th data-sortkey="userName" id="thRespHeader">Responsable</th>
             <th data-sortkey="idTarea">ID Tarea</th>
             <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
             <th data-sortkey="fechaEntrega">Fecha de Entrega</th>

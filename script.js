@@ -55,7 +55,7 @@ const TASK_STATES = [
 ];
 const DEFAULT_ROLE = "consultor";
 
-// Para el "checklist" de comentarios => 3 estados
+// Para comentarios
 const COMMENT_STATES = ["Pendiente","Completado","En revisión"];
 
 // ====================
@@ -148,6 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
     dashboardSection.style.display = "none";
     adminUsersSection.style.display = "block";
     historySection.style.display = "none";
+    loadAllUsers();
   });
   btnHistorial.addEventListener("click", () => {
     dashboardSection.style.display = "none";
@@ -246,21 +247,11 @@ onAuthStateChanged(auth, async user => {
       btnHistorial.style.display = "none";
     }
 
-    // Si es consultor => autoasignar en crear tarea => ocultar el input newUserName
-    // y dejarlo invisible en la UI
+    // Consultor => oculta el rowResp + header "Responsable"
     if (currentRole === "consultor") {
-      document.getElementById("rowResp").style.display = "none"; 
-    }
-
-    // supervisor/admin => ver crear tarea
-    if (["admin","supervisor"].includes(currentRole)) {
-      taskCreationDiv.style.display = "block";
-    } else {
-      // consultor => tb la vería? 
-      // Si no queremos que consultor cree tarea, la ocultamos. 
-      // PERO el enunciado dice que consultor puede CREAR una tarea autoasignada. 
-      // => lo dejamos visible
-      taskCreationDiv.style.display = "block";
+      document.getElementById("rowResp").style.display = "none";
+      const thRespHeader = document.getElementById("thRespHeader");
+      if (thRespHeader) thRespHeader.style.display = "none";
     }
 
     listenTasks();
@@ -309,24 +300,21 @@ async function loginUser() {
 // CREAR / EDITAR TAREA
 // ====================
 async function handleTaskForm() {
-  // Si es consultor => autoasignar su name
+  // roles consultor => su name se toma de su user doc, no del input
   let respName = newUserName.value.trim();
   if (currentRole === "consultor") {
-    // consultamos su userName guardado en Firestore, si existe
-    // si no => su email
+    // consultor no llena "Responsable", autoasignar
     const userSnap = await getDoc(doc(db, "users", currentUser.uid));
     if (userSnap.exists() && userSnap.data().name) {
       respName = userSnap.data().name;
     } else {
       respName = currentUser.email;
     }
-  } else {
-    // roles senior/supervisor/admin => cogen lo del input
-    respName = newUserName.value.trim();
   }
 
-  if (!respName || !newTaskName.value.trim()) {
-    alert("Completa 'Responsable' y 'Actividad' (o autoasignado).");
+  const activityName = newTaskName.value.trim();
+  if (!activityName) {
+    alert("Completa la 'Actividad'.");
     return;
   }
 
@@ -338,14 +326,18 @@ async function handleTaskForm() {
   }
 
   try {
-    const emailResponsible = await findEmailByName(respName);
-    // si no existe => lo autoasignamos al email actual si es consultor
-    let assignedEmail = emailResponsible;
-    if (!assignedEmail) {
-      if (currentRole === "consultor") {
-        assignedEmail = currentUser.email;
-      } else {
-        // para roles mayores => si no existe => error
+    let assignedEmail = null;
+    if (currentRole === "consultor") {
+      // autoasignar su email
+      assignedEmail = currentUser.email;
+    } else {
+      // roles senior/sup/admin => se busca por name, si no => error
+      if (!respName) {
+        alert("Completa 'Responsable'.");
+        return;
+      }
+      assignedEmail = await findEmailByName(respName);
+      if (!assignedEmail) {
         alert("No existe un usuario con ese 'Responsable (Name)'.");
         return;
       }
@@ -368,7 +360,7 @@ async function handleTaskForm() {
         idTarea: nextId,
         userName: respName,
         assignedTo: assignedEmail,
-        name: newTaskName.value.trim(),
+        name: activityName,
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
@@ -376,11 +368,11 @@ async function handleTaskForm() {
         fechaEntrega: newFechaEntrega.value || null
       });
       alert("Tarea actualizada.");
-      // GUARDAR EN HISTORY => action=edit
+      // Historial => "Editó la tarea"
       await addDoc(collection(db, "history"), {
         taskId: nextId,
         responsible: respName,
-        activity: newTaskName.value.trim(),
+        activity: activityName,
         company: newEmpresa.value.trim(),
         group: newGrupo.value.trim(),
         action: "Editó la tarea",
@@ -396,7 +388,7 @@ async function handleTaskForm() {
         fechaEntrega: newFechaEntrega.value || null,
         userName: respName,
         assignedTo: assignedEmail,
-        name: newTaskName.value.trim(),
+        name: activityName,
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
@@ -406,11 +398,11 @@ async function handleTaskForm() {
         createdBy: currentUser.uid
       });
       alert("Tarea creada.");
-      // GUARDAR EN HISTORY => action=create
+      // Historial => "Creó la tarea"
       await addDoc(collection(db, "history"), {
         taskId: nextId,
         responsible: respName,
-        activity: newTaskName.value.trim(),
+        activity: activityName,
         company: newEmpresa.value.trim(),
         group: newGrupo.value.trim(),
         action: "Creó la tarea",
@@ -474,7 +466,6 @@ function renderTasks(tasksArray) {
     tasksArray = tasksArray.slice().sort((a,b) => {
       let va = a[currentSortKey];
       let vb = b[currentSortKey];
-      // si es Timestamp
       if (va && va.toDate) va = va.toDate();
       if (vb && vb.toDate) vb = vb.toDate();
       if (typeof va === "string") va = va.toLowerCase();
@@ -497,7 +488,7 @@ function renderTasks(tasksArray) {
     // col1: Responsable (blanco para consultor)
     const tdResp = document.createElement("td");
     if (currentRole === "consultor") {
-      tdResp.textContent = ""; 
+      tdResp.textContent = "";
     } else {
       tdResp.textContent = task.userName || "";
     }
@@ -658,8 +649,9 @@ function renderTasks(tasksArray) {
     }
     tr.appendChild(tdLastCom);
 
-    // col12: Acciones => "Comentarios", y Edit/Del si admin/supervisor
+    // col12: Acciones
     const tdAcc = document.createElement("td");
+    // Edit/Del => admin/supervisor
     if (["admin","supervisor"].includes(currentRole)) {
       const btnEdit = document.createElement("button");
       btnEdit.textContent = "Editar";
@@ -683,7 +675,7 @@ function renderTasks(tasksArray) {
       btnDel.style.marginLeft = "5px";
       btnDel.addEventListener("click", async () => {
         if (!confirm("¿Deseas eliminar la tarea?")) return;
-        // primero guardamos en history
+        // registrar en history => "Eliminó la tarea"
         await addDoc(collection(db, "history"), {
           taskId: task.idTarea || -1,
           responsible: task.userName,
@@ -699,6 +691,7 @@ function renderTasks(tasksArray) {
       tdAcc.appendChild(btnDel);
     }
 
+    // Botón Comentarios => todos
     const btnComments = document.createElement("button");
     btnComments.textContent = "Comentarios";
     btnComments.style.marginLeft = "5px";
@@ -724,7 +717,7 @@ function getNextMonday(baseDate) {
 }
 
 // ====================
-// Comentarios => estilo checklist
+// Comentarios => checklist
 // ====================
 function openCommentsPanel(taskDocId, tareaId) {
   currentCommentTaskId = taskDocId;
@@ -749,15 +742,21 @@ async function loadComments(taskDocId) {
   for (let c of commentsData) {
     const dateStr = c.createdAt ? new Date(c.createdAt.toDate()).toLocaleString("es-CL") : "";
     const isOwner = (c.authorUid === currentUser?.uid);
-    // Estado => select => cualquiera lo puede cambiar
-    let stateSelect = `<select class="comment-state-select" onchange="changeCommentState('${c.id}',this.value)">`;
+    // Estado => select => cualquiera puede cambiar
+    let stateSelect = `<select class="comment-state-select" onchange="changeCommentState('${c.id}', this.value)">`;
     COMMENT_STATES.forEach(st => {
       stateSelect += `<option value="${st}" ${st===c.state?"selected":""}>${st}</option>`;
     });
     stateSelect += `</select>`;
 
+    // Color de estado
+    let stateClass = "comment-state-" + c.state?.toLowerCase().replace(" ","-") || "";
     html += `<div class="comment-item">`;
-    html += `<div class="comment-author"><b>${c.authorEmail||"Desconocido"}</b> ${stateSelect}</div>`;
+    html += `<div class="comment-author">`;
+    html += `<b>${c.authorEmail||"Desconocido"}</b>`;
+    html += ` <span class="${stateClass}">[${c.state||"Pendiente"}]</span>`;
+    html += ` ${stateSelect}`;
+    html += `</div>`;
     html += `<div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>`;
     html += `<div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>`;
     html += `<div class="comment-actions" style="margin-left:1rem;">`;
@@ -780,12 +779,13 @@ window.changeCommentState = async function(commentId, newSt) {
     await updateDoc(doc(db, "tasks", currentCommentTaskId, "comments", commentId), {
       state: newSt
     });
+    loadComments(currentCommentTaskId);
   } catch(e) {
     console.error("Error al cambiar estado del comentario:", e);
   }
 };
 
-// Agregar
+// Agregar comentario
 async function addNewComment() {
   if (!currentCommentTaskId) return;
   const text = commentTextArea.value.trim();
@@ -807,7 +807,7 @@ async function addNewComment() {
       authorEmail: userName,
       authorUid: userUid,
       createdAt: new Date(),
-      state: "Pendiente" // default
+      state: "Pendiente"
     });
     await updateDoc(doc(db, "tasks", currentCommentTaskId), {
       lastCommentAt: new Date()
@@ -878,14 +878,14 @@ async function updateTaskStatus(docId, newStatus) {
     const tdata = taskSnap.data();
 
     await updateDoc(doc(db, "tasks", docId), { status: newStatus });
-    // Guardar en history => "Cambió estado"
+    // Historial => "Cambió estado"
     await addDoc(collection(db, "history"), {
       taskId: tdata.idTarea || -1,
       responsible: tdata.userName,
       activity: tdata.name,
       company: tdata.empresa,
       group: tdata.grupoCliente,
-      action: `Cambiò estado a ${newStatus}`,
+      action: `Cambió estado a ${newStatus}`,
       date: new Date(),
       userEmail: currentUser.email
     });
@@ -962,7 +962,7 @@ function limpiarFiltros() {
 }
 
 // ====================
-// ADMIN: loadAllUsers
+// ADMIN / loadAllUsers
 // ====================
 async function loadAllUsers() {
   usersTableBody.innerHTML = "";
@@ -1032,31 +1032,36 @@ async function loadAllUsers() {
 }
 
 // ====================
-// HISTORIAL => (Senior, Supervisor, Admin)
+// HISTORIAL
 // ====================
 async function loadHistory() {
   historyTableBody.innerHTML = "Cargando...";
-  const qRef = query(collection(db, "history"), orderBy("date","desc"));
-  const snap = await getDocs(qRef);
+  try {
+    const qRef = query(collection(db, "history"), orderBy("date","desc"));
+    const snap = await getDocs(qRef);
 
-  let html = "";
-  snap.forEach(docu => {
-    const h = docu.data();
-    const dStr = h.date ? new Date(h.date.toDate()).toLocaleString("es-CL") : "";
-    html += `
-      <tr>
-        <td>${h.taskId || ""}</td>
-        <td>${h.responsible || ""}</td>
-        <td>${h.activity || ""}</td>
-        <td>${h.company || ""}</td>
-        <td>${h.group || ""}</td>
-        <td>${h.action || ""} (por ${h.userEmail||"Desconocido"})</td>
-        <td>${dStr}</td>
-      </tr>
-    `;
-  });
-  if (!html) html = "<tr><td colspan='7'>Sin historial</td></tr>";
-  historyTableBody.innerHTML = html;
+    let html = "";
+    snap.forEach(docu => {
+      const h = docu.data();
+      const dStr = h.date ? new Date(h.date.toDate()).toLocaleString("es-CL") : "";
+      html += `
+        <tr>
+          <td>${h.taskId || ""}</td>
+          <td>${h.responsible || ""}</td>
+          <td>${h.activity || ""}</td>
+          <td>${h.company || ""}</td>
+          <td>${h.group || ""}</td>
+          <td>${h.action || ""} (por ${h.userEmail||"Desconocido"})</td>
+          <td>${dStr}</td>
+        </tr>
+      `;
+    });
+    if (!html) html = "<tr><td colspan='7'>Sin historial</td></tr>";
+    historyTableBody.innerHTML = html;
+  } catch(e) {
+    console.error("Error cargando historial:", e);
+    historyTableBody.innerHTML = `<tr><td colspan='7'>Error: ${e.message}</td></tr>`;
+  }
 }
 
 /****************************************************
