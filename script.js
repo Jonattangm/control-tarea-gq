@@ -18,7 +18,8 @@ import {
   onSnapshot,
   getDocs,
   query,
-  orderBy
+  orderBy,
+  where
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 // ====================
@@ -55,7 +56,6 @@ const TASK_STATES = [
 ];
 const DEFAULT_ROLE = "consultor";
 
-// Para comentarios
 const COMMENT_STATES = ["Pendiente","Completado","En revisión"];
 
 // ====================
@@ -110,13 +110,9 @@ const newHoras = document.getElementById("newHoras");
 const newFechaEntrega = document.getElementById("newFechaEntrega");
 const createTaskBtn = document.getElementById("createTaskBtn");
 
-// Tabla Tareas
 const tasksTableBody = document.getElementById("tasksBody");
-
-// Admin Users
 const usersTableBody = document.getElementById("usersBody");
 
-// Historial
 const historyTableBody = document.getElementById("historyBody");
 
 // Panel comentarios
@@ -157,7 +153,6 @@ document.addEventListener("DOMContentLoaded", () => {
     loadHistory();
   });
 
-  // Filtros
   btnAplicarFiltros.addEventListener("click", aplicarFiltros);
   btnLimpiarFiltros.addEventListener("click", limpiarFiltros);
 
@@ -247,11 +242,12 @@ onAuthStateChanged(auth, async user => {
       btnHistorial.style.display = "none";
     }
 
-    // Consultor => oculta el rowResp + header "Responsable"
+    // Si es consultor => ocultar label "Responsable" + col header
     if (currentRole === "consultor") {
-      document.getElementById("rowResp").style.display = "none";
+      const lblResp = document.getElementById("lblResp");
+      if (lblResp) lblResp.style.display = "none";
       const thRespHeader = document.getElementById("thRespHeader");
-      if (thRespHeader) thRespHeader.style.display = "none";
+      if (thRespHeader) thRespHeader.textContent = ""; // solo lo dejamos en blanco
     }
 
     listenTasks();
@@ -300,10 +296,9 @@ async function loginUser() {
 // CREAR / EDITAR TAREA
 // ====================
 async function handleTaskForm() {
-  // roles consultor => su name se toma de su user doc, no del input
+  // roles consultor => autoasignar
   let respName = newUserName.value.trim();
   if (currentRole === "consultor") {
-    // consultor no llena "Responsable", autoasignar
     const userSnap = await getDoc(doc(db, "users", currentUser.uid));
     if (userSnap.exists() && userSnap.data().name) {
       respName = userSnap.data().name;
@@ -328,10 +323,9 @@ async function handleTaskForm() {
   try {
     let assignedEmail = null;
     if (currentRole === "consultor") {
-      // autoasignar su email
       assignedEmail = currentUser.email;
     } else {
-      // roles senior/sup/admin => se busca por name, si no => error
+      // senior/sup/admin => usa respName => buscar
       if (!respName) {
         alert("Completa 'Responsable'.");
         return;
@@ -355,8 +349,12 @@ async function handleTaskForm() {
     const nextId = maxId + 1;
 
     if (editTaskId) {
-      // Update
-      await updateDoc(doc(db, "tasks", editTaskId), {
+      // EDIT => Comparamos campos para Historial
+      const oldSnap = await getDoc(doc(db, "tasks", editTaskId));
+      const oldData = oldSnap.exists() ? oldSnap.data() : {};
+
+      // Nuevos
+      const newData = {
         idTarea: nextId,
         userName: respName,
         assignedTo: assignedEmail,
@@ -366,23 +364,39 @@ async function handleTaskForm() {
         folioProyecto: newFolio.value.trim(),
         horasAsignadas: horasVal,
         fechaEntrega: newFechaEntrega.value || null
-      });
+      };
+
+      await updateDoc(doc(db, "tasks", editTaskId), newData);
       alert("Tarea actualizada.");
-      // Historial => "Editó la tarea"
+
+      // Determinar qué cambió
+      let changes = [];
+      for (let k of ["userName","name","empresa","grupoCliente","folioProyecto","horasAsignadas","fechaEntrega"]) {
+        const oldVal = oldData[k] || "";
+        const newVal = newData[k] || "";
+        if (oldVal !== newVal) {
+          changes.push(`${k}: "${oldVal}" => "${newVal}"`);
+        }
+      }
+      if (changes.length === 0) {
+        changes.push("Sin cambios detectados");
+      }
+
+      // Historial => "Editó la tarea" con detalles
       await addDoc(collection(db, "history"), {
         taskId: nextId,
         responsible: respName,
         activity: activityName,
-        company: newEmpresa.value.trim(),
-        group: newGrupo.value.trim(),
-        action: "Editó la tarea",
+        company: newData.empresa,
+        group: newData.grupoCliente,
+        action: `Editó la tarea (campos: ${changes.join(", ")})`,
         date: new Date(),
         userEmail: currentUser.email
       });
       clearTaskForm();
     } else {
-      // Create
-      await addDoc(colRef, {
+      // CREATE
+      const newTask = {
         idTarea: nextId,
         fechaAsignacion: new Date().toLocaleDateString("es-CL"),
         fechaEntrega: newFechaEntrega.value || null,
@@ -396,15 +410,16 @@ async function handleTaskForm() {
         status: "Asignado",
         createdAt: new Date(),
         createdBy: currentUser.uid
-      });
+      };
+      await addDoc(colRef, newTask);
       alert("Tarea creada.");
-      // Historial => "Creó la tarea"
+
       await addDoc(collection(db, "history"), {
         taskId: nextId,
         responsible: respName,
         activity: activityName,
-        company: newEmpresa.value.trim(),
-        group: newGrupo.value.trim(),
+        company: newTask.empresa,
+        group: newTask.grupoCliente,
         action: "Creó la tarea",
         date: new Date(),
         userEmail: currentUser.email
@@ -477,11 +492,6 @@ function renderTasks(tasksArray) {
     });
   }
 
-  // Filtra consultor => assignedTo su email
-  if (currentRole === "consultor" && currentUser) {
-    tasksArray = tasksArray.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase());
-  }
-
   tasksArray.forEach(task => {
     const tr = document.createElement("tr");
 
@@ -551,6 +561,8 @@ function renderTasks(tasksArray) {
       }
     }
     // Consultor => no Finalizado/Reportar
+    // (pero se pidió que consultor también pueda ver Editar/Eliminar, 
+    //  no cambiamos la restricción de estado)
     if (currentRole === "consultor") {
       if (["Finalizado","Reportar","Por revisar"].includes(task.status)) {
         possibleStates = [task.status];
@@ -601,7 +613,6 @@ function renderTasks(tasksArray) {
         });
       }
 
-      // Permisos
       if (!canChangeStatus(currentRole, task.status, newSt)) {
         alert("No tienes permiso para ese cambio.");
         selectStatus.value = task.status;
@@ -649,49 +660,48 @@ function renderTasks(tasksArray) {
     }
     tr.appendChild(tdLastCom);
 
-    // col12: Acciones
+    // col12: Acciones => consultor tb lo ve
     const tdAcc = document.createElement("td");
-    // Edit/Del => admin/supervisor
-    if (["admin","supervisor"].includes(currentRole)) {
-      const btnEdit = document.createElement("button");
-      btnEdit.textContent = "Editar";
-      btnEdit.addEventListener("click", async () => {
-        editTaskId = task.docId;
-        frmTareaTitle.textContent = "Editar Tarea (ID: " + (task.idTarea||"N/A") + ")";
-        createTaskBtn.textContent = "Actualizar Tarea";
+    // Botón Editar
+    const btnEdit = document.createElement("button");
+    btnEdit.textContent = "Editar";
+    btnEdit.addEventListener("click", async () => {
+      editTaskId = task.docId;
+      frmTareaTitle.textContent = "Editar Tarea (ID: " + (task.idTarea||"N/A") + ")";
+      createTaskBtn.textContent = "Actualizar Tarea";
 
-        newUserName.value = task.userName || "";
-        newTaskName.value = task.name || "";
-        newEmpresa.value = task.empresa || "";
-        newGrupo.value = task.grupoCliente || "";
-        newFolio.value = task.folioProyecto || "";
-        newHoras.value = task.horasAsignadas || "";
-        newFechaEntrega.value = task.fechaEntrega || "";
+      newUserName.value = task.userName || "";
+      newTaskName.value = task.name || "";
+      newEmpresa.value = task.empresa || "";
+      newGrupo.value = task.grupoCliente || "";
+      newFolio.value = task.folioProyecto || "";
+      newHoras.value = task.horasAsignadas || "";
+      newFechaEntrega.value = task.fechaEntrega || "";
+    });
+    tdAcc.appendChild(btnEdit);
+
+    // Botón Eliminar
+    const btnDel = document.createElement("button");
+    btnDel.textContent = "Eliminar";
+    btnDel.style.marginLeft = "5px";
+    btnDel.addEventListener("click", async () => {
+      if (!confirm("¿Deseas eliminar la tarea?")) return;
+      // registrar en history => "Eliminó la tarea"
+      await addDoc(collection(db, "history"), {
+        taskId: task.idTarea || -1,
+        responsible: task.userName,
+        activity: task.name,
+        company: task.empresa,
+        group: task.grupoCliente,
+        action: "Eliminó la tarea",
+        date: new Date(),
+        userEmail: currentUser.email
       });
-      tdAcc.appendChild(btnEdit);
+      await deleteDoc(doc(db, "tasks", task.docId));
+    });
+    tdAcc.appendChild(btnDel);
 
-      const btnDel = document.createElement("button");
-      btnDel.textContent = "Eliminar";
-      btnDel.style.marginLeft = "5px";
-      btnDel.addEventListener("click", async () => {
-        if (!confirm("¿Deseas eliminar la tarea?")) return;
-        // registrar en history => "Eliminó la tarea"
-        await addDoc(collection(db, "history"), {
-          taskId: task.idTarea || -1,
-          responsible: task.userName,
-          activity: task.name,
-          company: task.empresa,
-          group: task.grupoCliente,
-          action: "Eliminó la tarea",
-          date: new Date(),
-          userEmail: currentUser.email
-        });
-        await deleteDoc(doc(db, "tasks", task.docId));
-      });
-      tdAcc.appendChild(btnDel);
-    }
-
-    // Botón Comentarios => todos
+    // Botón Comentarios
     const btnComments = document.createElement("button");
     btnComments.textContent = "Comentarios";
     btnComments.style.marginLeft = "5px";
@@ -742,20 +752,21 @@ async function loadComments(taskDocId) {
   for (let c of commentsData) {
     const dateStr = c.createdAt ? new Date(c.createdAt.toDate()).toLocaleString("es-CL") : "";
     const isOwner = (c.authorUid === currentUser?.uid);
-    // Estado => select => cualquiera puede cambiar
-    let stateSelect = `<select class="comment-state-select" onchange="changeCommentState('${c.id}', this.value)">`;
+    // Indicador de color en lugar de texto
+    // st => Pendiente/Completado/En revisión => classes comment-state-X
+    const stLower = (c.state||"Pendiente").toLowerCase().replace(" ","-");
+    let stateIndicator = `<span class="comment-state-indicator comment-state-${stLower}"></span>`;
+
+    // Desplegable => cualquier usuario cambia
+    let stateSelect = `<select class="comment-state-select" onchange="changeCommentState('${c.id}', this.value)" style="margin-left:5px;">`;
     COMMENT_STATES.forEach(st => {
       stateSelect += `<option value="${st}" ${st===c.state?"selected":""}>${st}</option>`;
     });
     stateSelect += `</select>`;
 
-    // Color de estado
-    let stateClass = "comment-state-" + c.state?.toLowerCase().replace(" ","-") || "";
     html += `<div class="comment-item">`;
     html += `<div class="comment-author">`;
-    html += `<b>${c.authorEmail||"Desconocido"}</b>`;
-    html += ` <span class="${stateClass}">[${c.state||"Pendiente"}]</span>`;
-    html += ` ${stateSelect}`;
+    html += `<b>${c.authorEmail||"Desconocido"}</b> ${stateIndicator} ${stateSelect}`;
     html += `</div>`;
     html += `<div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>`;
     html += `<div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>`;
@@ -937,10 +948,6 @@ function aplicarFiltros() {
     return true;
   });
 
-  // consultor => assignedTo su email
-  if (currentRole === "consultor" && currentUser) {
-    arr = arr.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase());
-  }
   renderTasks(arr);
 }
 
@@ -954,11 +961,7 @@ function limpiarFiltros() {
   filterGrupo.value = "";
   chkExcludeGrupo.checked = false;
 
-  if (currentRole === "consultor" && currentUser) {
-    renderTasks(allTasks.filter(t => (t.assignedTo||"").toLowerCase() === currentUser.email.toLowerCase()));
-  } else {
-    renderTasks(allTasks);
-  }
+  renderTasks(allTasks);
 }
 
 // ====================
@@ -1032,12 +1035,18 @@ async function loadAllUsers() {
 }
 
 // ====================
-// HISTORIAL
+// HISTORIAL => 2 semanas
 // ====================
 async function loadHistory() {
   historyTableBody.innerHTML = "Cargando...";
   try {
-    const qRef = query(collection(db, "history"), orderBy("date","desc"));
+    // Filtrar solo últimos 14 días
+    const twoWeeksAgo = new Date(Date.now() - 14*24*60*60*1000);
+    const qRef = query(
+      collection(db, "history"),
+      where("date", ">=", twoWeeksAgo),
+      orderBy("date","desc")
+    );
     const snap = await getDocs(qRef);
 
     let html = "";
@@ -1056,7 +1065,7 @@ async function loadHistory() {
         </tr>
       `;
     });
-    if (!html) html = "<tr><td colspan='7'>Sin historial</td></tr>";
+    if (!html) html = "<tr><td colspan='7'>Sin historial (últimos 14 días)</td></tr>";
     historyTableBody.innerHTML = html;
   } catch(e) {
     console.error("Error cargando historial:", e);

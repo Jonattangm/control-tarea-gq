@@ -8,7 +8,7 @@
 <body>
   <div class="main-container">
 
-    <!-- Sección de Login/Registro -->
+    <!-- Sección de Login/Registro (visible inicialmente) -->
     <section id="authSection" class="auth-section" style="display:block;">
       <div class="auth-container">
         <h2>Registro / Login</h2>
@@ -30,7 +30,7 @@
       </div>
     </section>
 
-    <!-- Barra lateral (sidebar) -->
+    <!-- Barra lateral (oculta hasta login) -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">Tareas</button>
       <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
@@ -87,35 +87,38 @@
           <button id="toggleTaskBoxBtn">-</button>
         </div>
         <div id="taskCreation" style="display:none; margin-top:0.5rem;">
-          <!-- "Responsable" se oculta si es consultor -->
-          <div id="rowResp" class="form-inline">
-            <label for="newUserName" id="lblResp">Responsable:</label>
-            <input type="text" id="newUserName" />
-            <label for="newTaskName" style="margin-left:1rem;">Actividad:</label>
-            <input type="text" id="newTaskName" />
+          <div class="form-inline">
+            <label id="lblResp" style="width:90px;">Responsable:</label>
+            <input type="text" id="newUserName" style="width:120px;" />
+            <label style="margin-left:1rem; width:70px;">Actividad:</label>
+            <input type="text" id="newTaskName" style="width:120px;" />
           </div>
           <div class="form-inline">
-            <input type="text" id="newEmpresa" placeholder="Empresa" />
-            <input type="text" id="newGrupo" placeholder="Grupo" />
+            <label style="width:90px;">Empresa:</label>
+            <input type="text" id="newEmpresa" style="width:120px;" />
+            <label style="margin-left:1rem; width:70px;">Grupo:</label>
+            <input type="text" id="newGrupo" style="width:120px;" />
           </div>
           <div class="form-inline">
-            <input type="text" id="newFolio" placeholder="Folio" />
-            <input type="text" id="newHoras" placeholder="Horas (HH:MM)" />
+            <label style="width:90px;">Folio:</label>
+            <input type="text" id="newFolio" style="width:120px;" />
+            <label style="margin-left:1rem; width:70px;">Horas:</label>
+            <input type="text" id="newHoras" style="width:120px;" placeholder="HH:MM" />
           </div>
           <div class="form-inline">
-            <label>Fecha de Entrega:</label>
+            <label style="width:120px;">Fecha de Entrega:</label>
             <input type="date" id="newFechaEntrega" />
           </div>
           <button id="createTaskBtn">Crear Tarea</button>
         </div>
       </div>
 
-      <!-- Tabla Tareas -->
+      <!-- Tabla de Tareas -->
       <table id="tasksTable">
         <thead>
           <tr>
-            <!-- Este th no aparece al consultor -->
-            <th data-sortkey="userName" id="thRespHeader">Responsable</th>
+            <!-- El consultor vera el th en blanco: -->
+            <th data-sortkey="userName" id="thRespHeader"> </th>
             <th data-sortkey="idTarea">ID Tarea</th>
             <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
             <th data-sortkey="fechaEntrega">Fecha de Entrega</th>
@@ -135,7 +138,7 @@
       </table>
     </section>
 
-    <!-- Sección Administrar Usuarios (solo Admin) -->
+    <!-- Sección de Administración de Usuarios (solo Admin) -->
     <section class="dashboard" id="adminUsersSection" style="display:none;">
       <h2>Administrar Usuarios</h2>
       <table id="usersTable">

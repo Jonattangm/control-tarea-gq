@@ -257,16 +257,21 @@ th[data-sortkey] {
   gap: 0.5rem;
 }
 
-/* Estilos para los estados de los comentarios */
+/* Para el comentario => pequeño indicador en vez de color de texto */
+.comment-state-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
 .comment-state-pendiente {
-  color: #e67e22; /* naranja */
-  font-weight: 500;
+  background: #f39c12; /* naranja */
 }
 .comment-state-completado {
-  color: #27ae60; /* verde */
-  font-weight: 500;
+  background: #27ae60; /* verde */
 }
 .comment-state-en-revisión {
-  color: #2980b9; /* azul */
-  font-weight: 500;
+  background: #2980b9; /* azul */
 }
