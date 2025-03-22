@@ -54,6 +54,9 @@ const TASK_STATES = [
 ];
 const DEFAULT_ROLE = "consultor";
 
+// Para comentarios => 3 estados:
+const COMMENT_STATES = ["pendiente","completado","en revisión"];
+
 // ===========================================================
 //  DOM
 // ===========================================================
@@ -86,6 +89,7 @@ const filterGrupo = document.getElementById("filterGrupo");
 const chkExcludeGrupo = document.getElementById("chkExcludeGrupo");
 const btnAplicarFiltros = document.getElementById("btnAplicarFiltros");
 const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
+const rowFilterResponsable = document.getElementById("rowFilterResponsable");
 
 // Crear Tarea
 const toggleTaskBoxBtn = document.getElementById("toggleTaskBoxBtn");
@@ -154,12 +158,11 @@ document.addEventListener("DOMContentLoaded", () => {
     renderFinalTasks(allTasks);
   });
   btnUsuarios.addEventListener("click", () => {
-    // Llamamos a loadAllUsers (definida abajo)
     adminUsersSection.style.display = "block";
     dashboardSection.style.display = "none";
     finalTasksSection.style.display = "none";
     historySection.style.display = "none";
-    loadAllUsers();
+    loadAllUsers(); // definimos más abajo
   });
   btnHistorial.addEventListener("click", () => {
     dashboardSection.style.display = "none";
@@ -243,7 +246,7 @@ onAuthStateChanged(auth, async user => {
     // Tareas finalizadas => visible
     btnFinalizadas.style.display = "inline-block";
 
-    // Admin => ver "Usuarios"
+    // Si es admin => ver "Usuarios"
     if (currentRole === "admin") {
       btnUsuarios.style.display = "inline-block";
     } else {
@@ -256,13 +259,16 @@ onAuthStateChanged(auth, async user => {
       btnHistorial.style.display = "none";
     }
 
-    // consultor => oculta input "Responsable"
+    // consultor => oculta input "Responsable" y su filtro
     if (currentRole==="consultor") {
       rowRespInput.style.display = "none";
+      rowFilterResponsable.style.display = "none";
       thRespHeader.textContent = "";
-      thRespHeaderFinal.textContent = ""; // en final tasks
+      thRespHeaderFinal.textContent = "";
     } else {
       // revert si no consultor
+      rowRespInput.style.display = "flex";
+      rowFilterResponsable.style.display = "flex";
       thRespHeader.textContent = "Responsable";
       thRespHeaderFinal.textContent = "Responsable";
     }
@@ -364,6 +370,7 @@ async function handleTaskForm() {
 
     const colRef= collection(db, "tasks");
     const snap= await getDocs(colRef);
+    
     // Buscamos la Tarea actual para no cambiar su ID
     let oldId=0; 
     if(editTaskId){
@@ -462,6 +469,20 @@ async function handleTaskForm() {
   } catch(e) {
     console.error("Error al crear/editar tarea:", e);
   }
+}
+
+// ===========================================================
+//  Buscar email por name
+// ===========================================================
+async function findEmailByName(name){
+  const snap= await getDocs(collection(db,"users"));
+  for(const d of snap.docs){
+    const ud= d.data();
+    if((ud.name||"").toLowerCase()=== name.toLowerCase()){
+      return ud.email;
+    }
+  }
+  return null;
 }
 
 function clearTaskForm() {
@@ -1105,17 +1126,20 @@ export async function addNewComment(){
   try{
     let userName= currentUser.email;
     let userUid= currentUser.uid;
+    // Buscamos si tiene un name
     const userSnap= await getDoc(doc(db,"users", currentUser.uid));
     if(userSnap.exists()){
       const dat= userSnap.data();
       if(dat.name) userName= dat.name;
     }
+    // Creamos el doc con default status "pendiente"
     const cRef= collection(db,"tasks", currentCommentTaskId,"comments");
     await addDoc(cRef, {
       text,
       authorEmail: userName,
       authorUid: userUid,
-      createdAt: new Date()
+      createdAt: new Date(),
+      commentStatus: "pendiente"
     });
     // update lastcomment
     await updateDoc(doc(db,"tasks", currentCommentTaskId), {
@@ -1137,6 +1161,49 @@ function closeCommentsPanel(){
 }
 window.closeCommentsPanel= closeCommentsPanel;
 
+async function loadComments(taskDocId){
+  commentsListDiv.innerHTML="Cargando...";
+  const cRef= collection(db,"tasks", taskDocId,"comments");
+  const qRef= query(cRef, orderBy("createdAt","asc"));
+  const snap= await getDocs(qRef);
+  let commentData=[];
+  snap.forEach(docu=>{
+    commentData.push({ id: docu.id, ...docu.data()});
+  });
+  let html="";
+  commentData.forEach(c=>{
+    const dateStr= c.createdAt ? new Date(c.createdAt.toDate()).toLocaleDateString("es-CL") : "";
+    // Render del estado de comentario
+    let selCommentStatus= `<select data-cid="${c.id}" onchange="changeCommentStatus(this)">`;
+    COMMENT_STATES.forEach(st=>{
+      selCommentStatus += `<option value="${st}" ${st===c.commentStatus?"selected":""}>${st}</option>`;
+    });
+    selCommentStatus += `</select>`;
+    
+    // checar si soy autor o rol≥senior => muestro Edit/Del
+    let canEditDelete= false;
+    if(currentUser){
+      if(c.authorUid=== currentUser.uid) canEditDelete=true;
+      if(["senior","supervisor","admin"].includes(currentRole)) canEditDelete=true;
+    }
+
+    html+= `<div class="comment-item">`;
+    html+= `<div class="comment-author"><b>${c.authorEmail||"?"}</b> - Estado: ${selCommentStatus}</div>`;
+    html+= `<div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>`;
+    html+= `<div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>`;
+    if(canEditDelete){
+      html+= `<div class="comment-actions" style="margin-left:1rem;">`;
+      html+= `<button onclick="editComment('${c.id}')">Editar</button>`;
+      html+= `<button style="margin-left:5px;" onclick="deleteComment('${c.id}')">Eliminar</button>`;
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  });
+  if(!html) html="<p>Sin comentarios</p>";
+  commentsListDiv.innerHTML= html;
+}
+
+// Se definen en window para poder usarlas en inline
 window.editComment= async function(commentId){
   if(!currentCommentTaskId)return;
   const newText= prompt("Editar comentario:");
@@ -1151,6 +1218,7 @@ window.editComment= async function(commentId){
     loadComments(currentCommentTaskId);
   }catch(e){
     console.error("Error editando comentario:", e);
+    alert("Error al editar: "+ e.message);
   }
 };
 window.deleteComment= async function(commentId){
@@ -1161,32 +1229,23 @@ window.deleteComment= async function(commentId){
     loadComments(currentCommentTaskId);
   }catch(e){
     console.error("Error al eliminar comentario:", e);
+    alert("Error al eliminar comentario: "+ e.message);
   }
 };
-async function loadComments(taskDocId){
-  commentsListDiv.innerHTML="Cargando...";
-  const cRef= collection(db,"tasks", taskDocId,"comments");
-  const qRef= query(cRef, orderBy("createdAt","asc"));
-  const snap= await getDocs(qRef);
-  let commentData=[];
-  snap.forEach(docu=>{
-    commentData.push({ id: docu.id, ...docu.data()});
-  });
-  let html="";
-  commentData.forEach(c=>{
-    const dateStr= c.createdAt ? new Date(c.createdAt.toDate()).toLocaleDateString("es-CL") : "";
-    html+= `<div class="comment-item">`;
-    html+= `<div class="comment-author"><b>${c.authorEmail||"?"}</b></div>`;
-    html+= `<div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>`;
-    html+= `<div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>`;
-    html+= `<div class="comment-actions" style="margin-left:1rem;">`;
-    html+= `<button onclick="editComment('${c.id}')">Editar</button>`;
-    html+= `<button style="margin-left:5px;" onclick="deleteComment('${c.id}')">Eliminar</button>`;
-    html+=`</div></div>`;
-  });
-  if(!html) html="<p>Sin comentarios</p>";
-  commentsListDiv.innerHTML= html;
-}
+
+window.changeCommentStatus= async function(selectEl){
+  if(!currentCommentTaskId)return;
+  const cid= selectEl.getAttribute("data-cid");
+  const newVal= selectEl.value;
+  try{
+    await updateDoc(doc(db,"tasks", currentCommentTaskId,"comments",cid), {
+      commentStatus: newVal
+    });
+  }catch(e){
+    console.error("Error cambiando estado de comentario:", e);
+    alert("Error al cambiar estado de comentario: "+ e.message);
+  }
+};
 
 // ===========================================================
 //  HISTORIAL

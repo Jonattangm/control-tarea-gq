@@ -53,7 +53,7 @@
           <button id="toggleFiltersBtn">-</button>
         </div>
         <div class="filters-container" id="filtersContainer">
-          <div class="filter-row">
+          <div class="filter-row" id="rowFilterResponsable">
             <div class="form-inline">
               <input type="text" id="filterResponsable" placeholder="Responsable" />
               <label><input type="checkbox" id="chkExcludeAsignado" />Excluir</label>
@@ -87,6 +87,7 @@
           <button id="toggleTaskBoxBtn">-</button>
         </div>
         <div id="taskCreation" style="display:block; margin-top:0.5rem;">
+          <!-- El consultor no ve "Responsable", pero ve "Actividad" -->
           <div class="form-inline" id="rowRespInput">
             <label id="lblResp" style="width:90px;">Responsable:</label>
             <input type="text" id="newUserName" style="width:120px;" />
