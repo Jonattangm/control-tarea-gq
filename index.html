@@ -81,13 +81,13 @@
         </div>
       </div>
 
-      <!-- Crear Tarea -->
+      <!-- Crear Tarea (visible, consultor no ve label/input "Responsable") -->
       <div class="task-creation-box">
         <div class="filters-header">
           <h3 id="frmTareaTitle">Crear Tarea</h3>
           <button id="toggleTaskBoxBtn">-</button>
         </div>
-        <div id="taskCreation" style="display:none; margin-top:0.5rem;">
+        <div id="taskCreation" style="display:block; margin-top:0.5rem;">
           <div class="form-inline" id="rowRespInput">
             <label id="lblResp" style="width:90px;">Responsable:</label>
             <input type="text" id="newUserName" style="width:120px;" />
@@ -118,7 +118,6 @@
       <table id="tasksTable">
         <thead>
           <tr>
-            <!-- Para el consultor => en blanco, para roles senior/sup/admin => dice "Responsable" -->
             <th data-sortkey="userName" id="thRespHeader">Responsable</th>
             <th data-sortkey="idTarea">ID Tarea</th>
             <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
@@ -182,7 +181,10 @@
     <!-- Historial (Senior, Supervisor, Admin) -->
     <section class="dashboard" id="historySection" style="display:none;">
       <h2>Historial de Tareas</h2>
-      <table id="historyTable">
+      <!-- Botón para vaciar historial (solo visible a admin y supervisor) -->
+      <button id="btnClearHistory" style="display:none;">Borrar Historial</button>
+
+      <table id="historyTable" style="margin-top:0.5rem;">
         <thead>
           <tr>
             <th>ID Tarea</th>
