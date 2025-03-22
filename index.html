@@ -87,10 +87,12 @@
           <button id="toggleTaskBoxBtn">-</button>
         </div>
         <div id="taskCreation" style="display:block; margin-top:0.5rem;">
-          <!-- El consultor no ve "Responsable", pero ve "Actividad" -->
+          <!-- newUserName => select con los nombres de usuario -->
           <div class="form-inline" id="rowRespInput">
             <label id="lblResp" style="width:90px;">Responsable:</label>
-            <input type="text" id="newUserName" style="width:120px;" />
+            <select id="newUserSelect" style="width:130px;">
+              <option value="">Seleccione</option>
+            </select>
             <label style="margin-left:1rem; width:70px;">Actividad:</label>
             <input type="text" id="newTaskName" style="width:120px;" />
           </div>

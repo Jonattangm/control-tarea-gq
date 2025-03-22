@@ -269,3 +269,29 @@ th[data-sortkey] {
 .action-btn:hover {
   color: #007bff;
 }
+
+/* Comentarios con status => color indicator */
+.status-comment-pendiente {
+  background: #ff9800; /* naranja */
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  margin-right: 5px;
+  border-radius: 2px;
+}
+.status-comment-completado {
+  background: #4caf50; /* verde */
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  margin-right: 5px;
+  border-radius: 2px;
+}
+.status-comment-en-revisión {
+  background: #2196f3; /* azul */
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  margin-right: 5px;
+  border-radius: 2px;
+}

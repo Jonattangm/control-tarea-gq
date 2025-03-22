@@ -22,7 +22,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 // ===========================================================
-//  CONFIGURACIÓN
+//  CONFIG
 // ===========================================================
 const firebaseConfig = {
   apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
@@ -38,8 +38,6 @@ const auth = getAuth();
 const db = getFirestore();
 
 // ===========================================================
-//  VARIABLES GLOBALES
-// ===========================================================
 let currentUser = null;
 let currentRole = null;
 let allTasks = [];
@@ -54,7 +52,7 @@ const TASK_STATES = [
 ];
 const DEFAULT_ROLE = "consultor";
 
-// Para comentarios => 3 estados:
+// 3 estados de comentario
 const COMMENT_STATES = ["pendiente","completado","en revisión"];
 
 // ===========================================================
@@ -76,7 +74,6 @@ const historySection = document.getElementById("historySection");
 const userEmailSpan = document.getElementById("userEmail");
 const userRoleSpan = document.getElementById("userRole");
 
-// Filtros
 const toggleFiltersBtn = document.getElementById("toggleFiltersBtn");
 const filtersContainer = document.getElementById("filtersContainer");
 const filterResponsable = document.getElementById("filterResponsable");
@@ -87,15 +84,17 @@ const filterEmpresa = document.getElementById("filterEmpresa");
 const chkExcludeEmpresa = document.getElementById("chkExcludeEmpresa");
 const filterGrupo = document.getElementById("filterGrupo");
 const chkExcludeGrupo = document.getElementById("chkExcludeGrupo");
+
 const btnAplicarFiltros = document.getElementById("btnAplicarFiltros");
 const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
+
 const rowFilterResponsable = document.getElementById("rowFilterResponsable");
 
 // Crear Tarea
 const toggleTaskBoxBtn = document.getElementById("toggleTaskBoxBtn");
 const taskCreationDiv = document.getElementById("taskCreation");
 const frmTareaTitle = document.getElementById("frmTareaTitle");
-const newUserName = document.getElementById("newUserName");
+const newUserSelect = document.getElementById("newUserSelect");
 const newTaskName = document.getElementById("newTaskName");
 const newEmpresa = document.getElementById("newEmpresa");
 const newGrupo = document.getElementById("newGrupo");
@@ -103,17 +102,17 @@ const newFolio = document.getElementById("newFolio");
 const newHoras = document.getElementById("newHoras");
 const newFechaEntrega = document.getElementById("newFechaEntrega");
 const createTaskBtn = document.getElementById("createTaskBtn");
+
 const rowRespInput = document.getElementById("rowRespInput");
 const thRespHeader = document.getElementById("thRespHeader");
 const thRespHeaderFinal = document.getElementById("thRespHeaderFinal");
 
-// Tablas
 const tasksTableBody = document.getElementById("tasksBody");
 const finalTasksBody = document.getElementById("finalTasksBody");
 const usersTableBody = document.getElementById("usersBody");
 const historyTableBody = document.getElementById("historyBody");
 
-// Botón Borrar Historial
+// Borrar Historial
 const btnClearHistory = document.getElementById("btnClearHistory");
 
 // Comentarios
@@ -124,7 +123,7 @@ const commentTextArea = document.getElementById("commentText");
 const closeCommentsBtn = document.getElementById("closeCommentsBtn");
 const addCommentBtn = document.getElementById("addCommentBtn");
 
-// Auth form
+// Auth
 const authForm = document.getElementById("authForm");
 const emailInput = document.getElementById("email");
 const passInput = document.getElementById("password");
@@ -134,7 +133,7 @@ const authMessage = document.getElementById("authMessage");
 const btnLogout = document.getElementById("btnLogout");
 
 // ===========================================================
-//  EVENTOS
+//  DOMContentLoaded
 // ===========================================================
 document.addEventListener("DOMContentLoaded", () => {
   authForm.addEventListener("submit", e => e.preventDefault());
@@ -162,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
     dashboardSection.style.display = "none";
     finalTasksSection.style.display = "none";
     historySection.style.display = "none";
-    loadAllUsers(); // definimos más abajo
+    loadAllUsers();
   });
   btnHistorial.addEventListener("click", () => {
     dashboardSection.style.display = "none";
@@ -172,7 +171,6 @@ document.addEventListener("DOMContentLoaded", () => {
     loadHistory();
   });
 
-  // Borrar historial
   btnClearHistory?.addEventListener("click", clearHistory);
 
   // Filtros
@@ -183,9 +181,8 @@ document.addEventListener("DOMContentLoaded", () => {
   addCommentBtn.addEventListener("click", addNewComment);
   closeCommentsBtn.addEventListener("click", closeCommentsPanel);
 
-  // Toggle filters
+  // Toggle
   toggleFiltersBtn.addEventListener("click", toggleFilters);
-  // Toggle task creation
   toggleTaskBoxBtn.addEventListener("click", toggleTaskBox);
 
   // Ordenar tabla principal
@@ -246,7 +243,7 @@ onAuthStateChanged(auth, async user => {
     // Tareas finalizadas => visible
     btnFinalizadas.style.display = "inline-block";
 
-    // Si es admin => ver "Usuarios"
+    // Admin => ver "Usuarios"
     if (currentRole === "admin") {
       btnUsuarios.style.display = "inline-block";
     } else {
@@ -266,7 +263,6 @@ onAuthStateChanged(auth, async user => {
       thRespHeader.textContent = "";
       thRespHeaderFinal.textContent = "";
     } else {
-      // revert si no consultor
       rowRespInput.style.display = "flex";
       rowFilterResponsable.style.display = "flex";
       thRespHeader.textContent = "Responsable";
@@ -279,6 +275,9 @@ onAuthStateChanged(auth, async user => {
     } else {
       btnClearHistory.style.display="none";
     }
+
+    // Cargar la lista de usuarios en newUserSelect (solo si no es consultor)
+    await loadUserNamesToSelect();
 
     listenTasks();
   } else {
@@ -323,20 +322,45 @@ async function loginUser() {
 }
 
 // ===========================================================
+//  Cargar Nombres de Usuario en <select id="newUserSelect">
+// ===========================================================
+async function loadUserNamesToSelect(){
+  if(currentRole==="consultor"){
+    // consultor no usa el select
+    return;
+  }
+  // Limpia y recarga
+  newUserSelect.innerHTML= `<option value="">Seleccione</option>`;
+  const snap= await getDocs(collection(db,"users"));
+  snap.forEach(d=>{
+    const dt= d.data();
+    const nm= dt.name|| dt.email||"";
+    if(nm){
+      const opt= document.createElement("option");
+      opt.value= nm;
+      opt.textContent= nm;
+      newUserSelect.appendChild(opt);
+    }
+  });
+}
+
+// ===========================================================
 //  CREAR / EDITAR TAREA
 // ===========================================================
 async function handleTaskForm() {
-  // autoasignar si consultor
-  let respName = newUserName.value.trim();
-  if (currentRole==="consultor") {
-    // Buscar su name en users
+  let respName= "";
+  if(currentRole==="consultor"){
+    // Buscamos su name => auto
     const userRef= doc(db, "users", currentUser.uid);
     const userSnap= await getDoc(userRef);
     if(userSnap.exists() && userSnap.data().name) {
-      respName = userSnap.data().name;
+      respName= userSnap.data().name;
     } else {
-      respName = currentUser.email;
+      respName= currentUser.email;
     }
+  } else {
+    // Toma lo que venga del select
+    respName= newUserSelect.value.trim();
   }
 
   const activityName = newTaskName.value.trim();
@@ -358,23 +382,22 @@ async function handleTaskForm() {
       assignedEmail = currentUser.email;
     } else {
       if(!respName) {
-        alert("Completa 'Responsable'.");
+        alert("Selecciona un 'Responsable' de la lista.");
         return;
       }
       assignedEmail = await findEmailByName(respName);
       if(!assignedEmail){
-        alert("No existe un usuario con ese 'Responsable (Name)'.");
+        alert(`No existe un usuario con Nombre "${respName}".`);
         return;
       }
     }
 
     const colRef= collection(db, "tasks");
     const snap= await getDocs(colRef);
-    
+
     // Buscamos la Tarea actual para no cambiar su ID
     let oldId=0; 
     if(editTaskId){
-      // si edit
       const oldSnap= await getDoc(doc(db,"tasks",editTaskId));
       if(oldSnap.exists()){
         oldId= oldSnap.data().idTarea||0;
@@ -393,12 +416,10 @@ async function handleTaskForm() {
     let nextId= oldId>0 ? oldId : maxId+1;
 
     if(editTaskId) {
-      // Modo Edit
+      // Edit
       const oldSnap= await getDoc(doc(db,"tasks",editTaskId));
       const oldData= oldSnap.exists()? oldSnap.data(): {};
-
       const newData= {
-        // Mantiene el ID
         idTarea: nextId,
         userName: respName,
         assignedTo: assignedEmail,
@@ -412,7 +433,7 @@ async function handleTaskForm() {
       await updateDoc(doc(db,"tasks",editTaskId), newData);
       alert("Tarea actualizada.");
 
-      // Cambios
+      // Cambios => para el historial (no cambios de estado)
       let changes=[];
       for(let k of ["userName","name","empresa","grupoCliente","folioProyecto","horasAsignadas","fechaEntrega"]){
         const oldVal= oldData[k]||"";
@@ -423,7 +444,6 @@ async function handleTaskForm() {
       }
       if(changes.length===0) changes.push("Sin cambios detectados");
 
-      // Historial
       await addDoc(collection(db,"history"), {
         taskId: nextId,
         responsible: respName,
@@ -436,7 +456,7 @@ async function handleTaskForm() {
       });
       clearTaskForm();
     } else {
-      // CREATE
+      // Create
       const newTask = {
         idTarea: nextId,
         fechaAsignacion: new Date().toLocaleDateString("es-CL"),
@@ -472,21 +492,21 @@ async function handleTaskForm() {
 }
 
 // ===========================================================
-//  Buscar email por name
+//  findEmailByName
 // ===========================================================
 async function findEmailByName(name){
   const snap= await getDocs(collection(db,"users"));
   for(const d of snap.docs){
-    const ud= d.data();
-    if((ud.name||"").toLowerCase()=== name.toLowerCase()){
-      return ud.email;
+    const dt= d.data();
+    if((dt.name||"").toLowerCase()=== name.toLowerCase()){
+      return dt.email;
     }
   }
   return null;
 }
 
 function clearTaskForm() {
-  newUserName.value="";
+  newUserSelect.value="";
   newTaskName.value="";
   newEmpresa.value="";
   newGrupo.value="";
@@ -499,7 +519,7 @@ function clearTaskForm() {
 }
 
 // ===========================================================
-//  Cargar Usuarios (Admin Users)
+//  loadAllUsers => Admin
 // ===========================================================
 async function loadAllUsers(){
   usersTableBody.innerHTML="";
@@ -566,7 +586,7 @@ async function loadAllUsers(){
 }
 
 // ===========================================================
-//  ESCUCHAR TAREAS
+//  listenTasks
 // ===========================================================
 function listenTasks(){
   const colRef= collection(db,"tasks");
@@ -582,22 +602,19 @@ function listenTasks(){
 }
 
 // ===========================================================
-//  RENDER TAREAS (No finalizadas)
+//  renderTasks => no final
 // ===========================================================
 function renderTasks(tasksArray){
   tasksTableBody.innerHTML="";
-  // Filtrar NO final
   let arr= tasksArray.filter(t=> t.status!=="Finalizado");
-  // Filtrar consultor => solo sus tareas
   if(currentRole==="consultor" && currentUser){
     arr= arr.filter(t=> (t.assignedTo||"").toLowerCase()=== currentUser.email.toLowerCase());
   }
-  // Ordenar
   let sorted= arr.slice();
   if(currentSortKey){
     sorted= sorted.sort((a,b)=>{
-      let va=a[currentSortKey];
-      let vb=b[currentSortKey];
+      let va= a[currentSortKey];
+      let vb= b[currentSortKey];
       if(va && va.toDate) va= va.toDate();
       if(vb && vb.toDate) vb= vb.toDate();
       if(typeof va==="string") va= va.toLowerCase();
@@ -607,7 +624,6 @@ function renderTasks(tasksArray){
       return 0;
     });
   }
-  // Filtros locales
   const filtered= filtrarDash(sorted);
 
   filtered.forEach(task=>{
@@ -615,7 +631,7 @@ function renderTasks(tasksArray){
 
     // col1 => Responsable
     const tdResp= document.createElement("td");
-    if (currentRole==="consultor") {
+    if(currentRole==="consultor"){
       tdResp.textContent= "";
     } else {
       tdResp.textContent= task.userName||"";
@@ -627,12 +643,12 @@ function renderTasks(tasksArray){
     tdId.textContent= task.idTarea||"N/A";
     tr.appendChild(tdId);
 
-    // Fecha asig
+    // Fecha Asign
     const tdFA= document.createElement("td");
     tdFA.textContent= task.fechaAsignacion||"--";
     tr.appendChild(tdFA);
 
-    // Fecha ent => sin hora
+    // Fecha Ent
     const tdFE= document.createElement("td");
     if(task.fechaEntrega){
       const formatted= formatDDMMYYYY(task.fechaEntrega);
@@ -655,13 +671,13 @@ function renderTasks(tasksArray){
     tr.appendChild(tdFE);
 
     // Actividad
-    const tdAct= document.createElement("td");
+    let tdAct= document.createElement("td");
     tdAct.textContent= task.name||"";
     tr.appendChild(tdAct);
 
-    // Estado => select
-    const tdEst= document.createElement("td");
-    const sel= document.createElement("select");
+    // Estado
+    let tdEst= document.createElement("td");
+    let sel= document.createElement("select");
     let possible= TASK_STATES.slice();
     if(currentRole==="consultor"){
       if(["Finalizado","Reportar","Por revisar"].includes(task.status)){
@@ -717,63 +733,74 @@ function renderTasks(tasksArray){
         const iso=`${y}-${m}-${d}`;
         await updateDoc(doc(db,"tasks",task.docId), { fechaEntrega: iso });
       }
+      if(newSt==="Tesoreria"){
+        alert("Recuerda revisar cada semana");
+        let baseDate=new Date();
+        if(task.lastCommentAt) baseDate= task.lastCommentAt.toDate();
+        const nm= getNextMonday(baseDate);
+        const y= nm.getFullYear();
+        const m= String(nm.getMonth()+1).padStart(2,'0');
+        const d= String(nm.getDate()).padStart(2,'0');
+        const iso=`${y}-${m}-${d}`;
+        await updateDoc(doc(db,"tasks",task.docId), { fechaEntrega: iso });
+      }
+
       if(!canChangeStatus(currentRole, task.status, newSt)){
         alert("No tienes permiso para ese cambio.");
         sel.value= task.status;
       } else {
-        await updateTaskStatus(task.docId, newSt);
+        // No se registra en historial => hemos quitado esa parte
+        await updateDoc(doc(db,"tasks",task.docId), { status:newSt });
       }
     });
     tdEst.appendChild(sel);
-    // indicator
-    const ind= document.createElement("span");
+    let ind= document.createElement("span");
     ind.classList.add("status-indicator");
-    const lowered= (task.status||"").toLowerCase().replace(" ","-");
+    let lowered= (task.status||"").toLowerCase().replace(" ","-");
     ind.classList.add(`status-${lowered}`);
     tdEst.appendChild(ind);
-
     tr.appendChild(tdEst);
 
     // Empresa
-    let tdEm= document.createElement("td");
-    tdEm.textContent= task.empresa||"";
-    tr.appendChild(tdEm);
+    let tdE= document.createElement("td");
+    tdE.textContent= task.empresa||"";
+    tr.appendChild(tdE);
 
     // Grupo
-    let tdGr= document.createElement("td");
-    tdGr.textContent= task.grupoCliente||"";
-    tr.appendChild(tdGr);
+    let tdG= document.createElement("td");
+    tdG.textContent= task.grupoCliente||"";
+    tr.appendChild(tdG);
 
     // Folio
-    let tdFo= document.createElement("td");
-    tdFo.textContent= task.folioProyecto||"";
-    tr.appendChild(tdFo);
+    let tdF= document.createElement("td");
+    tdF.textContent= task.folioProyecto||"";
+    tr.appendChild(tdF);
 
     // Horas
-    let tdHr= document.createElement("td");
-    tdHr.textContent= task.horasAsignadas||"";
-    tr.appendChild(tdHr);
+    let tdH= document.createElement("td");
+    tdH.textContent= task.horasAsignadas||"";
+    tr.appendChild(tdH);
 
     // ultima => solo fecha
-    let tdUl= document.createElement("td");
+    let tdU= document.createElement("td");
     if(task.lastCommentAt){
-      const dd= task.lastCommentAt.toDate();
-      tdUl.textContent= dd.toLocaleDateString("es-CL");
-    } else tdUl.textContent= "--";
-    tr.appendChild(tdUl);
+      let dd= task.lastCommentAt.toDate();
+      tdU.textContent= dd.toLocaleDateString("es-CL");
+    } else tdU.textContent="--";
+    tr.appendChild(tdU);
 
     // Acciones => iconos
-    let tdAc= document.createElement("td");
+    let tdC= document.createElement("td");
     let bEd= document.createElement("button");
     bEd.classList.add("action-btn");
-    bEd.innerHTML= "✎";
-    bEd.title= "Editar Tarea";
+    bEd.innerHTML="✎";
+    bEd.title="Editar Tarea";
     bEd.addEventListener("click", ()=>{
       editTaskId= task.docId;
       frmTareaTitle.textContent= "Editar Tarea (ID: "+(task.idTarea||"N/A")+")";
       createTaskBtn.textContent= "Actualizar Tarea";
 
-      newUserName.value= task.userName||"";
+      newUserSelect.value= task.userName||"";
       newTaskName.value= task.name||"";
       newEmpresa.value= task.empresa||"";
       newGrupo.value= task.grupoCliente||"";
@@ -781,15 +808,16 @@ function renderTasks(tasksArray){
       newHoras.value= task.horasAsignadas||"";
       newFechaEntrega.value= task.fechaEntrega||"";
     });
-    tdAc.appendChild(bEd);
+    tdC.appendChild(bEd);
 
     let bDel= document.createElement("button");
     bDel.classList.add("action-btn");
-    bDel.innerHTML= "🗑";
-    bDel.title= "Eliminar Tarea";
+    bDel.innerHTML="🗑";
+    bDel.title="Eliminar Tarea";
     bDel.style.marginLeft="5px";
     bDel.addEventListener("click", async()=>{
       if(!confirm("¿Deseas eliminar la tarea?")) return;
+      // Se registra en historial => "Eliminó la tarea"
       await addDoc(collection(db,"history"),{
         taskId: task.idTarea||-1,
         responsible: task.userName,
@@ -802,21 +830,20 @@ function renderTasks(tasksArray){
       });
       await deleteDoc(doc(db,"tasks",task.docId));
     });
-    tdAc.appendChild(bDel);
+    tdC.appendChild(bDel);
 
     // Comments
     let bCom= document.createElement("button");
     bCom.classList.add("action-btn");
-    bCom.innerHTML= "💬";
-    bCom.title= "Comentarios";
+    bCom.innerHTML="💬";
+    bCom.title="Comentarios";
     bCom.style.marginLeft="5px";
     bCom.addEventListener("click", ()=>{
       openCommentsPanel(task.docId, task.idTarea);
     });
-    tdAc.appendChild(bCom);
+    tdC.appendChild(bCom);
 
-    tr.appendChild(tdAc);
-
+    tr.appendChild(tdC);
     tasksTableBody.appendChild(tr);
   });
 }
@@ -828,12 +855,10 @@ function renderFinalTasks(tasksArray){
   finalTasksBody.innerHTML="";
   let arr= tasksArray.filter(t=> t.status==="Finalizado");
 
-  // filtrar consultor => solo las suyas
   if(currentRole==="consultor" && currentUser){
     arr= arr.filter(t=> (t.assignedTo||"").toLowerCase()=== currentUser.email.toLowerCase());
   }
 
-  // Orden
   let sorted= arr.slice();
   if(currentSortKey){
     sorted= sorted.sort((a,b)=>{
@@ -849,7 +874,6 @@ function renderFinalTasks(tasksArray){
     });
   }
 
-  // Generar rows
   sorted.forEach(task=>{
     let tr= document.createElement("tr");
 
@@ -898,12 +922,13 @@ function renderFinalTasks(tasksArray){
     sel.addEventListener("change", async()=>{
       const newSt= sel.value;
       if(newSt!=="Finalizado"){
+        // no se registra en historial
         if(!canChangeStatus(currentRole,"Finalizado", newSt)){
           alert("No tienes permiso para ese cambio.");
           sel.value="Finalizado";
           return;
         }
-        await updateTaskStatus(task.docId,newSt);
+        await updateDoc(doc(db,"tasks",task.docId), { status:newSt });
         dashboardSection.style.display="block";
         finalTasksSection.style.display="none";
       }
@@ -955,7 +980,7 @@ function renderFinalTasks(tasksArray){
       frmTareaTitle.textContent= "Editar Tarea (ID: "+(task.idTarea||"N/A")+")";
       createTaskBtn.textContent= "Actualizar Tarea";
 
-      newUserName.value= task.userName||"";
+      newUserSelect.value= task.userName||"";
       newTaskName.value= task.name||"";
       newEmpresa.value= task.empresa||"";
       newGrupo.value= task.grupoCliente||"";
@@ -1065,7 +1090,7 @@ function filtrarDash(arr){
 }
 
 // ===========================================================
-//  canChangeStatus (Solo UNA vez)
+//  canChangeStatus
 // ===========================================================
 function canChangeStatus(role, currentSt, newSt){
   if(role==="senior"){
@@ -1079,30 +1104,6 @@ function canChangeStatus(role, currentSt, newSt){
     return true;
   }
   return true;
-}
-
-// ===========================================================
-//  updateTaskStatus (una sola)
-// ===========================================================
-async function updateTaskStatus(docId,newStatus){
-  try{
-    const snap= await getDoc(doc(db,"tasks",docId));
-    if(!snap.exists())return;
-    const tdata= snap.data();
-    await updateDoc(doc(db,"tasks",docId), { status:newStatus });
-    await addDoc(collection(db,"history"),{
-      taskId: tdata.idTarea||-1,
-      responsible: tdata.userName,
-      activity: tdata.name,
-      company: tdata.empresa,
-      group: tdata.grupoCliente,
-      action: `Cambió estado a ${newStatus}`,
-      date: new Date(),
-      userEmail: currentUser.email
-    });
-  }catch(e){
-    console.error("Error al cambiar estado:", e);
-  }
 }
 
 // ===========================================================
@@ -1173,22 +1174,24 @@ async function loadComments(taskDocId){
   let html="";
   commentData.forEach(c=>{
     const dateStr= c.createdAt ? new Date(c.createdAt.toDate()).toLocaleDateString("es-CL") : "";
-    // Render del estado de comentario
+
+    // Indicador del estado del comentario (pendiente,completado,en revisión)
+    let commentIndicator= `<span class="status-comment-${c.commentStatus.replace(" ","-")}"></span>`;
+
+    // select => todos pueden cambiar
     let selCommentStatus= `<select data-cid="${c.id}" onchange="changeCommentStatus(this)">`;
     COMMENT_STATES.forEach(st=>{
-      selCommentStatus += `<option value="${st}" ${st===c.commentStatus?"selected":""}>${st}</option>`;
+      selCommentStatus += `<option value="${st}" ${st===c.commentStatus ? "selected":""}>${st}</option>`;
     });
     selCommentStatus += `</select>`;
-    
-    // checar si soy autor o rol≥senior => muestro Edit/Del
-    let canEditDelete= false;
-    if(currentUser){
-      if(c.authorUid=== currentUser.uid) canEditDelete=true;
-      if(["senior","supervisor","admin"].includes(currentRole)) canEditDelete=true;
-    }
+
+    // es autor?
+    let isAuthor= (c.authorUid=== (currentUser?.uid||""));
+    let canEditDelete = isAuthor; // no mas roles
+    // no => "senior, supervisor, admin" no ve => se quita
 
     html+= `<div class="comment-item">`;
-    html+= `<div class="comment-author"><b>${c.authorEmail||"?"}</b> - Estado: ${selCommentStatus}</div>`;
+    html+= `<div class="comment-author">${commentIndicator}<b>${c.authorEmail||"?"}</b> - ${selCommentStatus}</div>`;
     html+= `<div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>`;
     html+= `<div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>`;
     if(canEditDelete){
@@ -1203,7 +1206,6 @@ async function loadComments(taskDocId){
   commentsListDiv.innerHTML= html;
 }
 
-// Se definen en window para poder usarlas en inline
 window.editComment= async function(commentId){
   if(!currentCommentTaskId)return;
   const newText= prompt("Editar comentario:");
@@ -1221,6 +1223,7 @@ window.editComment= async function(commentId){
     alert("Error al editar: "+ e.message);
   }
 };
+
 window.deleteComment= async function(commentId){
   if(!currentCommentTaskId)return;
   if(!confirm("¿Eliminar este comentario?"))return;
@@ -1241,9 +1244,10 @@ window.changeCommentStatus= async function(selectEl){
     await updateDoc(doc(db,"tasks", currentCommentTaskId,"comments",cid), {
       commentStatus: newVal
     });
+    loadComments(currentCommentTaskId);
   }catch(e){
-    console.error("Error cambiando estado de comentario:", e);
-    alert("Error al cambiar estado de comentario: "+ e.message);
+    console.error("Error al cambiar estado de comentario:", e);
+    alert("Error al cambiar estado: "+ e.message);
   }
 };
 
@@ -1253,7 +1257,6 @@ window.changeCommentStatus= async function(selectEl){
 async function loadHistory(){
   historyTableBody.innerHTML="Cargando...";
   try{
-    // Leemos TODO el historial
     const qRef= query(collection(db,"history"), orderBy("date","desc"));
     const snap= await getDocs(qRef);
     let html="";
@@ -1334,7 +1337,7 @@ function calcBusinessDaysDiff(fromDate,toDate){
 }
 
 // ===========================================================
-//  TOGGLE Filters, TaskBox
+//  TOGGLE
 // ===========================================================
 function toggleFilters(){
   if(!filtersContainer)return;
