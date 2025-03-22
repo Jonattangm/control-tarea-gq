@@ -18,7 +18,7 @@ import {
   onSnapshot,
   getDocs,
   query,
-  orderBy,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 // ===========================================================
@@ -552,7 +552,7 @@ function renderTasks(tasksArray){
     // Fecha ent => sin hora
     const tdFE= document.createElement("td");
     if(task.fechaEntrega){
-      const formatted= formatDDMMYYYY(task.fechaEntrega);
+      const formatted= formatDDMMYYYY(task.fechaEntrega); 
       let diff=0;
       if(task.status==="Finalizado"){
         diff=0;
@@ -1170,4 +1170,55 @@ async function clearHistory(){
     console.error("Error al borrar historial:", err);
     alert("Error al borrar historial: "+err.message);
   }
+}
+
+// ===========================================================
+//  HELPER => formatDDMMYYYY
+// ===========================================================
+function formatDDMMYYYY(yyyy_mm_dd){
+  if(!yyyy_mm_dd)return "";
+  const [y,m,d]= yyyy_mm_dd.split("-");
+  return `${d}-${m}-${y}`;
+}
+
+// ===========================================================
+//  HELPER => parseDateDMY
+// ===========================================================
+function parseDateDMY(dd_mm_yyyy){
+  if(!dd_mm_yyyy) return null;
+  const [d,m,y]= dd_mm_yyyy.split("-");
+  return new Date(parseInt(y), parseInt(m)-1, parseInt(d));
+}
+
+// ===========================================================
+//  HELPER => getNextMonday
+// ===========================================================
+function getNextMonday(baseDate){
+  const d= new Date(baseDate);
+  while(d.getDay()!==1){
+    d.setDate(d.getDate()+1);
+  }
+  return d;
+}
+
+// ===========================================================
+//  HELPER => calcBusinessDaysDiff
+// ===========================================================
+function calcBusinessDaysDiff(fromDate,toDate){
+  if(!fromDate||!toDate)return 9999;
+  let start= new Date(fromDate.getFullYear(),fromDate.getMonth(),fromDate.getDate());
+  let end= new Date(toDate.getFullYear(),toDate.getMonth(),toDate.getDate());
+  let invert=1;
+  if(end<start){
+    invert=-1;
+    let tmp=start; start=end; end=tmp;
+  }
+  let days=0;
+  let current= new Date(start);
+  while(current<=end){
+    const dow= current.getDay();
+    if(dow!==0 && dow!==6) days++;
+    current.setDate(current.getDate()+1);
+  }
+  return (days-1)*invert;
 }
