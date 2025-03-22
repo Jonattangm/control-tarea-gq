@@ -101,6 +101,7 @@ const newFechaEntrega = document.getElementById("newFechaEntrega");
 const createTaskBtn = document.getElementById("createTaskBtn");
 const rowRespInput = document.getElementById("rowRespInput");
 const thRespHeader = document.getElementById("thRespHeader");
+const thRespHeaderFinal = document.getElementById("thRespHeaderFinal");
 
 // Tablas
 const tasksTableBody = document.getElementById("tasksBody");
@@ -153,9 +154,10 @@ document.addEventListener("DOMContentLoaded", () => {
     renderFinalTasks(allTasks);
   });
   btnUsuarios.addEventListener("click", () => {
+    // Llamamos a loadAllUsers (definida abajo)
+    adminUsersSection.style.display = "block";
     dashboardSection.style.display = "none";
     finalTasksSection.style.display = "none";
-    adminUsersSection.style.display = "block";
     historySection.style.display = "none";
     loadAllUsers();
   });
@@ -258,6 +260,11 @@ onAuthStateChanged(auth, async user => {
     if (currentRole==="consultor") {
       rowRespInput.style.display = "none";
       thRespHeader.textContent = "";
+      thRespHeaderFinal.textContent = ""; // en final tasks
+    } else {
+      // revert si no consultor
+      thRespHeader.textContent = "Responsable";
+      thRespHeaderFinal.textContent = "Responsable";
     }
 
     // Botón Borrar Historial => visible a admin/supervisor
@@ -470,16 +477,71 @@ function clearTaskForm() {
   createTaskBtn.textContent= "Crear Tarea";
 }
 
-// Buscar email por name
-async function findEmailByName(name) {
-  const snap= await getDocs(collection(db,"users"));
-  for(const docu of snap.docs) {
-    const dat= docu.data();
-    if((dat.name||"").toLowerCase()=== name.toLowerCase()){
-      return dat.email;
-    }
+// ===========================================================
+//  Cargar Usuarios (Admin Users)
+// ===========================================================
+async function loadAllUsers(){
+  usersTableBody.innerHTML="";
+  try{
+    const snap= await getDocs(collection(db,"users"));
+    snap.forEach(docu=>{
+      const data= docu.data();
+      const tr= document.createElement("tr");
+
+      // Email
+      const tdEmail= document.createElement("td");
+      tdEmail.textContent= data.email || docu.id;
+      tr.appendChild(tdEmail);
+
+      // Nombre => input c/ confirm
+      const tdName= document.createElement("td");
+      const inp= document.createElement("input");
+      inp.type="text";
+      inp.value= data.name||"";
+      inp.addEventListener("change", async ()=>{
+        if(!confirm("¿Cambiar Nombre Usuario?")){
+          inp.value= data.name||"";
+          return;
+        }
+        await updateDoc(doc(db,"users",docu.id), { name: inp.value });
+        data.name= inp.value;
+      });
+      tdName.appendChild(inp);
+      tr.appendChild(tdName);
+
+      // Rol
+      const tdRole= document.createElement("td");
+      tdRole.textContent= data.role||"consultor";
+      tr.appendChild(tdRole);
+
+      // Cambiar Rol => select c/ confirm
+      const tdChange= document.createElement("td");
+      const sRole= document.createElement("select");
+      ["consultor","senior","supervisor","admin"].forEach(r=>{
+        const o= document.createElement("option");
+        o.value= r;
+        o.textContent= r;
+        if(r=== data.role) o.selected=true;
+        sRole.appendChild(o);
+      });
+      sRole.addEventListener("change", async ()=>{
+        if(!confirm("¿Cambiar Rol de Usuario?")) {
+          sRole.value= data.role;
+          return;
+        }
+        await updateDoc(doc(db,"users",docu.id), { role: sRole.value });
+        data.role= sRole.value;
+        tdRole.textContent= sRole.value;
+      });
+      tdChange.appendChild(sRole);
+      tr.appendChild(tdChange);
+
+      usersTableBody.appendChild(tr);
+    });
+  }catch(e){
+    console.error("Error en loadAllUsers:", e);
+    usersTableBody.innerHTML=`<tr><td colspan="4">Error cargando usuarios: ${e.message}</td></tr>`;
   }
-  return null;
 }
 
 // ===========================================================
@@ -505,7 +567,7 @@ function renderTasks(tasksArray){
   tasksTableBody.innerHTML="";
   // Filtrar NO final
   let arr= tasksArray.filter(t=> t.status!=="Finalizado");
-  // Filtrar consultor => solo las suyas
+  // Filtrar consultor => solo sus tareas
   if(currentRole==="consultor" && currentUser){
     arr= arr.filter(t=> (t.assignedTo||"").toLowerCase()=== currentUser.email.toLowerCase());
   }
@@ -533,7 +595,7 @@ function renderTasks(tasksArray){
     // col1 => Responsable
     const tdResp= document.createElement("td");
     if (currentRole==="consultor") {
-      tdResp.textContent="";
+      tdResp.textContent= "";
     } else {
       tdResp.textContent= task.userName||"";
     }
@@ -552,7 +614,7 @@ function renderTasks(tasksArray){
     // Fecha ent => sin hora
     const tdFE= document.createElement("td");
     if(task.fechaEntrega){
-      const formatted= formatDDMMYYYY(task.fechaEntrega); 
+      const formatted= formatDDMMYYYY(task.fechaEntrega);
       let diff=0;
       if(task.status==="Finalizado"){
         diff=0;
@@ -766,6 +828,7 @@ function renderFinalTasks(tasksArray){
     });
   }
 
+  // Generar rows
   sorted.forEach(task=>{
     let tr= document.createElement("tr");
 
@@ -1173,26 +1236,18 @@ async function clearHistory(){
 }
 
 // ===========================================================
-//  HELPER => formatDDMMYYYY
+//  HELPERS
 // ===========================================================
 function formatDDMMYYYY(yyyy_mm_dd){
   if(!yyyy_mm_dd)return "";
   const [y,m,d]= yyyy_mm_dd.split("-");
   return `${d}-${m}-${y}`;
 }
-
-// ===========================================================
-//  HELPER => parseDateDMY
-// ===========================================================
 function parseDateDMY(dd_mm_yyyy){
   if(!dd_mm_yyyy) return null;
   const [d,m,y]= dd_mm_yyyy.split("-");
   return new Date(parseInt(y), parseInt(m)-1, parseInt(d));
 }
-
-// ===========================================================
-//  HELPER => getNextMonday
-// ===========================================================
 function getNextMonday(baseDate){
   const d= new Date(baseDate);
   while(d.getDay()!==1){
@@ -1200,10 +1255,6 @@ function getNextMonday(baseDate){
   }
   return d;
 }
-
-// ===========================================================
-//  HELPER => calcBusinessDaysDiff
-// ===========================================================
 function calcBusinessDaysDiff(fromDate,toDate){
   if(!fromDate||!toDate)return 9999;
   let start= new Date(fromDate.getFullYear(),fromDate.getMonth(),fromDate.getDate());
@@ -1222,3 +1273,30 @@ function calcBusinessDaysDiff(fromDate,toDate){
   }
   return (days-1)*invert;
 }
+
+// ===========================================================
+//  TOGGLE Filters, TaskBox
+// ===========================================================
+function toggleFilters(){
+  if(!filtersContainer)return;
+  if(filtersContainer.style.display==="none"){
+    filtersContainer.style.display="flex";
+    toggleFiltersBtn.textContent="-";
+  } else {
+    filtersContainer.style.display="none";
+    toggleFiltersBtn.textContent="+";
+  }
+}
+window.toggleFilters= toggleFilters;
+
+function toggleTaskBox(){
+  if(!taskCreationDiv)return;
+  if(taskCreationDiv.style.display==="none"){
+    taskCreationDiv.style.display="block";
+    toggleTaskBoxBtn.textContent="-";
+  } else {
+    taskCreationDiv.style.display="none";
+    toggleTaskBoxBtn.textContent="+";
+  }
+}
+window.toggleTaskBox= toggleTaskBox;
