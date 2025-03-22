@@ -19,7 +19,6 @@ import {
   getDocs,
   query,
   orderBy,
-  where
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 // ===========================================================
@@ -468,7 +467,7 @@ function clearTaskForm() {
   newFechaEntrega.value="";
   editTaskId= null;
   frmTareaTitle.textContent="Crear Tarea";
-  createTaskBtn.textContent="Crear Tarea";
+  createTaskBtn.textContent= "Crear Tarea";
 }
 
 // Buscar email por name
@@ -525,7 +524,7 @@ function renderTasks(tasksArray){
       return 0;
     });
   }
-  // Filtros
+  // Filtros locales
   const filtered= filtrarDash(sorted);
 
   filtered.forEach(task=>{
@@ -942,33 +941,47 @@ function limpiarFiltros(){
 }
 window.limpiarFiltros= limpiarFiltros;
 
-// Toggles
-function toggleFilters(){
-  if(!filtersContainer)return;
-  if(filtersContainer.style.display==="none"){
-    filtersContainer.style.display="flex";
-    toggleFiltersBtn.textContent="-";
-  } else {
-    filtersContainer.style.display="none";
-    toggleFiltersBtn.textContent="+";
-  }
-}
-window.toggleFilters= toggleFilters;
+function filtrarDash(arr){
+  const valResp= filterResponsable.value.trim().toLowerCase();
+  const exResp= chkExcludeAsignado.checked;
+  const valEst= filterEstado.value.trim().toLowerCase();
+  const exEst= chkExcludeEstado.checked;
+  const valEmp= filterEmpresa.value.trim().toLowerCase();
+  const exEmp= chkExcludeEmpresa.checked;
+  const valGru= filterGrupo.value.trim().toLowerCase();
+  const exGru= chkExcludeGrupo.checked;
 
-function toggleTaskBox(){
-  if(!taskCreationDiv)return;
-  if(taskCreationDiv.style.display==="none"){
-    taskCreationDiv.style.display="block";
-    toggleTaskBoxBtn.textContent="-";
-  } else {
-    taskCreationDiv.style.display="none";
-    toggleTaskBoxBtn.textContent="+";
-  }
+  return arr.filter(t=>{
+    // resp => t.userName
+    if(valResp){
+      const match= (t.userName||"").toLowerCase().includes(valResp);
+      if(exResp && match) return false;
+      if(!exResp && !match) return false;
+    }
+    // estado
+    if(valEst){
+      const match= (t.status||"").toLowerCase().includes(valEst);
+      if(exEst && match) return false;
+      if(!exEst && !match) return false;
+    }
+    // empresa
+    if(valEmp){
+      const match= (t.empresa||"").toLowerCase().includes(valEmp);
+      if(exEmp && match) return false;
+      if(!exEmp && !match) return false;
+    }
+    // grupo
+    if(valGru){
+      const match= (t.grupoCliente||"").toLowerCase().includes(valGru);
+      if(exGru && match) return false;
+      if(!exGru && !match) return false;
+    }
+    return true;
+  });
 }
-window.toggleTaskBox= toggleTaskBox;
 
 // ===========================================================
-//  canChangeStatus (unica definición)
+//  canChangeStatus (Solo UNA vez)
 // ===========================================================
 function canChangeStatus(role, currentSt, newSt){
   if(role==="senior"){
@@ -1157,89 +1170,4 @@ async function clearHistory(){
     console.error("Error al borrar historial:", err);
     alert("Error al borrar historial: "+err.message);
   }
-}
-
-// ===========================================================
-//  FILTROS LOCALES
-// ===========================================================
-function aplicarFiltros(){
-  renderTasks(allTasks);
-}
-window.aplicarFiltros= aplicarFiltros;
-
-function limpiarFiltros(){
-  filterResponsable.value="";
-  chkExcludeAsignado.checked=false;
-  filterEstado.value="";
-  chkExcludeEstado.checked=false;
-  filterEmpresa.value="";
-  chkExcludeEmpresa.checked=false;
-  filterGrupo.value="";
-  chkExcludeGrupo.checked=false;
-  renderTasks(allTasks);
-}
-window.limpiarFiltros= limpiarFiltros;
-
-// Toggles
-function toggleFilters(){
-  if(!filtersContainer)return;
-  if(filtersContainer.style.display==="none"){
-    filtersContainer.style.display="flex";
-    toggleFiltersBtn.textContent="-";
-  } else {
-    filtersContainer.style.display="none";
-    toggleFiltersBtn.textContent="+";
-  }
-}
-window.toggleFilters= toggleFilters;
-
-function toggleTaskBox(){
-  if(!taskCreationDiv)return;
-  if(taskCreationDiv.style.display==="none"){
-    taskCreationDiv.style.display="block";
-    toggleTaskBoxBtn.textContent="-";
-  } else {
-    taskCreationDiv.style.display="none";
-    toggleTaskBoxBtn.textContent="+";
-  }
-}
-window.toggleTaskBox= toggleTaskBox;
-
-// ===========================================================
-//  HELPERS
-// ===========================================================
-function calcBusinessDaysDiff(fromDate,toDate){
-  if(!fromDate||!toDate)return 9999;
-  let start= new Date(fromDate.getFullYear(),fromDate.getMonth(),fromDate.getDate());
-  let end= new Date(toDate.getFullYear(),toDate.getMonth(),toDate.getDate());
-  let invert=1;
-  if(end<start){
-    invert=-1;
-    let tmp=start; start=end; end=tmp;
-  }
-  let days=0;
-  let current= new Date(start);
-  while(current<=end){
-    const dow= current.getDay();
-    if(dow!==0 && dow!==6) days++;
-    current.setDate(current.getDate()+1);
-  }
-  return (days-1)*invert;
-}
-function formatDDMMYYYY(yyyy_mm_dd){
-  if(!yyyy_mm_dd)return "";
-  const [y,m,d]= yyyy_mm_dd.split("-");
-  return `${d}-${m}-${y}`;
-}
-function parseDateDMY(dd_mm_yyyy){
-  if(!dd_mm_yyyy) return null;
-  const [d,m,y]= dd_mm_yyyy.split("-");
-  return new Date(parseInt(y), parseInt(m)-1, parseInt(d));
-}
-function getNextMonday(baseDate){
-  const d= new Date(baseDate);
-  while(d.getDay()!==1){
-    d.setDate(d.getDate()+1);
-  }
-  return d;
 }
