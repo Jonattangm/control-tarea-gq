@@ -22,6 +22,7 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
+// Configuración Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
   authDomain: "control-tarea-gq.firebaseapp.com",
@@ -35,7 +36,7 @@ initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-// Variables globales
+// Variables
 let currentUser = null;
 let currentRole = null;
 let allTasks = [];
@@ -94,7 +95,6 @@ const newHoras = document.getElementById("newHoras");
 const newFechaEntrega = document.getElementById("newFechaEntrega");
 const createTaskBtn = document.getElementById("createTaskBtn");
 const rowRespInput = document.getElementById("rowRespInput");
-const lblResp = document.getElementById("lblResp");
 const thRespHeader = document.getElementById("thRespHeader");
 
 // Tablas
@@ -123,6 +123,7 @@ const btnLogin = document.getElementById("btnLogin");
 const authMessage = document.getElementById("authMessage");
 const btnLogout = document.getElementById("btnLogout");
 
+// DOMContentLoaded
 document.addEventListener("DOMContentLoaded", () => {
   authForm.addEventListener("submit", e => e.preventDefault());
   btnRegister.addEventListener("click", registerUser);
@@ -160,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Borrar historial
-  btnClearHistory.addEventListener("click", clearHistory);
+  btnClearHistory?.addEventListener("click", clearHistory);
 
   // Filtros
   btnAplicarFiltros.addEventListener("click", aplicarFiltros);
@@ -228,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // onAuthStateChanged
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
     const userRef = doc(db, "users", user.uid);
@@ -249,10 +250,10 @@ onAuthStateChanged(auth, async (user) => {
     userEmailSpan.textContent = user.email || "";
     userRoleSpan.textContent = currentRole || "";
 
-    // Ver Tareas Finalizadas a todos
+    // Tareas finalizadas => visible
     btnFinalizadas.style.display = "inline-block";
 
-    // Admin => ver "Administrar Usuarios"
+    // Admin => ver "Usuarios"
     if (currentRole === "admin") {
       btnUsuarios.style.display = "inline-block";
     } else {
@@ -265,17 +266,17 @@ onAuthStateChanged(auth, async (user) => {
       btnHistorial.style.display = "none";
     }
 
-    // Mostramos/ocultamos label "Responsable" en Crear Tarea
+    // consultor => oculta input "Responsable" en crear
     if (currentRole==="consultor") {
       rowRespInput.style.display = "none";
       thRespHeader.textContent = "";
     }
 
-    // Botón Borrar Historial => solo admin/supervisor
-    if (["admin","supervisor"].includes(currentRole)) {
-      btnClearHistory.style.display = "inline-block";
+    // Botón Borrar Historial
+    if(["admin","supervisor"].includes(currentRole)){
+      btnClearHistory.style.display="inline-block";
     } else {
-      btnClearHistory.style.display = "none";
+      btnClearHistory.style.display="none";
     }
 
     listenTasks();
@@ -305,7 +306,6 @@ async function registerUser() {
     authMessage.textContent = `Error al crear usuario: ${err.message}`;
   }
 }
-
 async function loginUser() {
   authMessage.textContent = "";
   if (!emailInput.value.trim() || !passInput.value.trim()) {
@@ -598,7 +598,7 @@ function renderTasks(tasksArray){
           sel.value= task.status;
           return;
         }
-        // al poner final => ultima actividad
+        // Al poner final => ultimaAct
         await updateDoc(doc(db,"tasks",task.docId), {
           lastCommentAt: new Date()
         });
@@ -801,7 +801,6 @@ function renderFinalTasks(tasksArray){
     sel.addEventListener("change", async()=>{
       const newSt= sel.value;
       if(newSt!=="Finalizado"){
-        // Regresa
         if(!canChangeStatus(currentRole,"Finalizado", newSt)){
           alert("No tienes permiso para ese cambio.");
           sel.value="Finalizado";
@@ -972,285 +971,6 @@ async function updateTaskStatus(docId,newStatus){
     if(!snap.exists())return;
     const tdata= snap.data();
     await updateDoc(doc(db,"tasks",docId), { status:newStatus });
-    // Historial
-    await addDoc(collection(db,"history"), {
-      taskId: tdata.idTarea||-1,
-      responsible: tdata.userName,
-      activity: tdata.name,
-      company: tdata.empresa,
-      group: tdata.grupoCliente,
-      action: `Cambió estado a ${newStatus}`,
-      date: new Date(),
-      userEmail: currentUser.email
-    });
-  }catch(e){
-    console.error("Error al cambiar estado:", e);
-  }
-}
-
-// Comentarios
-export function openCommentsPanel(taskDocId, tareaId){
-  currentCommentTaskId= taskDocId;
-  commentTaskIdSpan.textContent= tareaId||"N/A";
-  commentsPanel.style.display= "block";
-  loadComments(taskDocId);
-}
-async function loadComments(taskDocId){
-  commentsListDiv.innerHTML="Cargando...";
-  const cRef= collection(db,"tasks",taskDocId,"comments");
-  const qRef= query(cRef, orderBy("createdAt","asc"));
-  const snap= await getDocs(qRef);
-  let commentData=[];
-  snap.forEach(docu=>{
-    commentData.push({ id:docu.id, ...docu.data()});
-  });
-  let html="";
-  commentData.forEach(c=>{
-    const dateStr= c.createdAt? new Date(c.createdAt.toDate()).toLocaleDateString("es-CL") : "";
-    const isOwner= (c.authorUid=== currentUser?.uid);
-    html+= `<div class="comment-item">`;
-    html+= `<div class="comment-author"><b>${c.authorEmail||"?"}</b></div>`;
-    html+= `<div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>`;
-    html+= `<div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>`;
-    html+= `<div class="comment-actions" style="margin-left:1rem;">`;
-    if(isOwner){
-      html+= `<button onclick="editComment('${c.id}')">Editar</button>`;
-      html+= `<button style="margin-left:5px;" onclick="deleteComment('${c.id}')">Eliminar</button>`;
-    }
-    html+= `</div></div>`;
-  });
-  if(!html) html="<p>Sin comentarios</p>";
-  commentsListDiv.innerHTML= html;
-}
-
-window.openCommentsPanel= openCommentsPanel; // export to global
-
-export async function addNewComment(){
-  if(!currentCommentTaskId) return;
-  const txt= commentTextArea.value.trim();
-  if(!txt){
-    alert("Escribe un comentario");
-    return;
-  }
-  try{
-    let userName= currentUser.email;
-    let userUid= currentUser.uid;
-    const userSnap= await getDoc(doc(db,"users", currentUser.uid));
-    if(userSnap.exists()){
-      const dat= userSnap.data();
-      if(dat.name) userName= dat.name;
-    }
-    const cRef= collection(db,"tasks", currentCommentTaskId,"comments");
-    await addDoc(cRef, {
-      text: txt,
-      authorEmail: userName,
-      authorUid: userUid,
-      createdAt: new Date()
-    });
-    // update lastCommentAt
-    await updateDoc(doc(db,"tasks", currentCommentTaskId), {
-      lastCommentAt: new Date()
-    });
-    commentTextArea.value="";
-    loadComments(currentCommentTaskId);
-  }catch(e){
-    console.error("Error agregando comentario:", e);
-  }
-}
-window.addNewComment= addNewComment; // to fix "not defined" error
-
-window.editComment= async function(commentId){
-  if(!currentCommentTaskId) return;
-  const newText= prompt("Editar comentario:");
-  if(!newText) return;
-  try{
-    await updateDoc(doc(db,"tasks", currentCommentTaskId,"comments",commentId), {
-      text:newText
-    });
-    await updateDoc(doc(db,"tasks", currentCommentTaskId), {
-      lastCommentAt: new Date()
-    });
-    loadComments(currentCommentTaskId);
-  }catch(e){
-    console.error("Error editando comentario:", e);
-  }
-};
-window.deleteComment= async function(commentId){
-  if(!currentCommentTaskId) return;
-  if(!confirm("¿Eliminar este comentario?")) return;
-  try{
-    await deleteDoc(doc(db,"tasks", currentCommentTaskId,"comments", commentId));
-    loadComments(currentCommentTaskId);
-  }catch(e){
-    console.error("Error al eliminar comentario:", e);
-  }
-};
-
-// Filtros
-function aplicarFiltros(){
-  // Re-render Tareas
-  renderTasks(allTasks);
-}
-function limpiarFiltros(){
-  filterResponsable.value="";
-  chkExcludeAsignado.checked=false;
-  filterEstado.value="";
-  chkExcludeEstado.checked=false;
-  filterEmpresa.value="";
-  chkExcludeEmpresa.checked=false;
-  filterGrupo.value="";
-  chkExcludeGrupo.checked=false;
-  renderTasks(allTasks);
-}
-
-// Filtra interno en "renderTasks" con filtrarDash
-
-// ADMIN => loadAllUsers
-async function loadAllUsers(){
-  usersTableBody.innerHTML="";
-  const snap= await getDocs(collection(db,"users"));
-  snap.forEach(docu=>{
-    const u= docu.data();
-    let tr= document.createElement("tr");
-    // Email
-    let tdE= document.createElement("td");
-    tdE.textContent= u.email||docu.id;
-    tr.appendChild(tdE);
-
-    // Nombre => confirm
-    let tdN= document.createElement("td");
-    let inp= document.createElement("input");
-    inp.type="text";
-    inp.value= u.name||"";
-    inp.addEventListener("change", async()=>{
-      if(!confirm("¿Confirmar cambio de Nombre de Usuario?")){
-        inp.value= u.name||"";
-        return;
-      }
-      try{
-        await updateDoc(doc(db,"users", docu.id), { name: inp.value });
-        u.name=inp.value;
-      }catch(er){
-        console.error("Error actualizando name:", er);
-      }
-    });
-    tdN.appendChild(inp);
-    tr.appendChild(tdN);
-
-    // Rol
-    let tdR= document.createElement("td");
-    tdR.textContent= u.role||"consultor";
-    tr.appendChild(tdR);
-
-    // Cambiar Rol => confirm
-    let tdC= document.createElement("td");
-    let sel= document.createElement("select");
-    ["consultor","senior","supervisor","admin"].forEach(rr=>{
-      let o= document.createElement("option");
-      o.value= rr;
-      o.textContent= rr;
-      if(rr===u.role) o.selected=true;
-      sel.appendChild(o);
-    });
-    sel.addEventListener("change", async()=>{
-      if(!confirm(`¿Confirmar cambio de Rol a "${sel.value}"?`)){
-        sel.value= u.role;
-        return;
-      }
-      try{
-        await updateDoc(doc(db,"users", docu.id), { role: sel.value });
-        u.role= sel.value;
-        tdR.textContent= sel.value;
-      }catch(error){
-        console.error("Error cambiando rol:", error);
-      }
-    });
-    tdC.appendChild(sel);
-    tr.appendChild(tdC);
-
-    usersTableBody.appendChild(tr);
-  });
-}
-
-// Historial => 2 semanas
-async function loadHistory(){
-  historyTableBody.innerHTML="Cargando...";
-  try{
-    const twoWeeksAgo= new Date(Date.now()-14*24*60*60*1000);
-    const qRef= query(
-      collection(db,"history"),
-      where("date", ">=", twoWeeksAgo),
-      orderBy("date","desc")
-    );
-    const snap= await getDocs(qRef);
-    let html="";
-    snap.forEach(docu=>{
-      const h= docu.data();
-      const dStr= h.date ? new Date(h.date.toDate()).toLocaleDateString("es-CL") : "";
-      html+=`
-      <tr>
-        <td>${h.taskId||""}</td>
-        <td>${h.responsible||""}</td>
-        <td>${h.activity||""}</td>
-        <td>${h.company||""}</td>
-        <td>${h.group||""}</td>
-        <td>${h.action||""} (por ${h.userEmail||"Desconocido"})</td>
-        <td>${dStr}</td>
-      </tr>`;
-    });
-    if(!html) html="<tr><td colspan='7'>Sin historial (últimos 14 días)</td></tr>";
-    historyTableBody.innerHTML= html;
-  }catch(e){
-    console.error("Error cargando historial:", e);
-    historyTableBody.innerHTML=`<tr><td colspan='7'>Error: ${e.message}</td></tr>`;
-  }
-}
-
-// Borrar historial => admin/supervisor
-async function clearHistory(){
-  if(!confirm("¿Borrar todo el historial (últimos 14 días)?")) return;
-  try{
-    // Obtenemos todos
-    const twoWeeksAgo= new Date(Date.now()-14*24*60*60*1000);
-    const qRef= query(
-      collection(db,"history"),
-      where("date", ">=", twoWeeksAgo)
-    );
-    const snap= await getDocs(qRef);
-    for(const docu of snap.docs){
-      await deleteDoc(docu.ref);
-    }
-    alert("Historial borrado.");
-    loadHistory();
-  }catch(err){
-    console.error("Error al borrar historial:", err);
-  }
-}
-
-// canChangeStatus
-function canChangeStatus(role, currentSt, newSt){
-  if(role==="senior"){
-    if(newSt==="Finalizado" && currentSt!=="Finalizado") return false;
-    if(["Finalizado","Reportar"].includes(currentSt)) return false;
-    return true;
-  }
-  if(role==="consultor"){
-    if(["Finalizado","Reportar","Por revisar"].includes(currentSt)) return false;
-    if(["Finalizado","Reportar"].includes(newSt)) return false;
-    return true;
-  }
-  return true;
-}
-
-// updateTaskStatus
-async function updateTaskStatus(docId,newStatus){
-  try{
-    const snap= await getDoc(doc(db,"tasks",docId));
-    if(!snap.exists())return;
-    const tdata= snap.data();
-
-    await updateDoc(doc(db,"tasks",docId), { status:newStatus });
-    // Historial
     await addDoc(collection(db,"history"),{
       taskId: tdata.idTarea||-1,
       responsible: tdata.userName,
@@ -1266,37 +986,7 @@ async function updateTaskStatus(docId,newStatus){
   }
 }
 
-/****************************************************
- * Comentarios => load + edit + del
- ****************************************************/
-async function loadComments(taskDocId){
-  commentsListDiv.innerHTML="Cargando...";
-  const cRef= collection(db,"tasks", taskDocId,"comments");
-  const qRef= query(cRef, orderBy("createdAt","asc"));
-  const snap= await getDocs(qRef);
-  let commentData=[];
-  snap.forEach(docu=>{
-    commentData.push({ id: docu.id, ...docu.data()});
-  });
-  let html="";
-  commentData.forEach(c=>{
-    const dateStr= c.createdAt ? new Date(c.createdAt.toDate()).toLocaleDateString("es-CL") : "";
-    const isOwner= (c.authorUid=== currentUser?.uid);
-    html+= `<div class="comment-item">`;
-    html+= `<div class="comment-author"><b>${c.authorEmail||"?"}</b></div>`;
-    html+= `<div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>`;
-    html+= `<div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>`;
-    html+= `<div class="comment-actions" style="margin-left:1rem;">`;
-    if(isOwner){
-      html+= `<button onclick="editComment('${c.id}')">Editar</button>`;
-      html+= `<button style="margin-left:5px;" onclick="deleteComment('${c.id}')">Eliminar</button>`;
-    }
-    html+=`</div></div>`;
-  });
-  if(!html) html="<p>Sin comentarios</p>";
-  commentsListDiv.innerHTML= html;
-}
-
+// Comentarios
 export function openCommentsPanel(taskDocId, tareaId){
   currentCommentTaskId= taskDocId;
   commentTaskIdSpan.textContent= tareaId||"N/A";
@@ -1339,15 +1029,16 @@ export async function addNewComment(){
 }
 window.addNewComment= addNewComment;
 
+// Edit/Delete comments
 window.editComment= async function(commentId){
   if(!currentCommentTaskId)return;
   const newText= prompt("Editar comentario:");
   if(!newText)return;
   try{
-    await updateDoc(doc(db,"tasks",currentCommentTaskId,"comments",commentId), {
+    await updateDoc(doc(db,"tasks", currentCommentTaskId,"comments",commentId), {
       text:newText
     });
-    await updateDoc(doc(db,"tasks",currentCommentTaskId), {
+    await updateDoc(doc(db,"tasks", currentCommentTaskId), {
       lastCommentAt: new Date()
     });
     loadComments(currentCommentTaskId);
@@ -1359,97 +1050,41 @@ window.deleteComment= async function(commentId){
   if(!currentCommentTaskId)return;
   if(!confirm("¿Eliminar este comentario?"))return;
   try{
-    await deleteDoc(doc(db,"tasks",currentCommentTaskId,"comments",commentId));
+    await deleteDoc(doc(db,"tasks", currentCommentTaskId,"comments",commentId));
     loadComments(currentCommentTaskId);
   }catch(e){
     console.error("Error al eliminar comentario:", e);
   }
 };
-
-// Filtrar en Dashboard
-function aplicarFiltros(){
-  renderTasks(allTasks);
-}
-function limpiarFiltros(){
-  filterResponsable.value="";
-  chkExcludeAsignado.checked=false;
-  filterEstado.value="";
-  chkExcludeEstado.checked=false;
-  filterEmpresa.value="";
-  chkExcludeEmpresa.checked=false;
-  filterGrupo.value="";
-  chkExcludeGrupo.checked=false;
-  renderTasks(allTasks);
-}
-
-// loadAllUsers
-async function loadAllUsers(){
-  usersTableBody.innerHTML="";
-  const snap= await getDocs(collection(db,"users"));
+async function loadComments(taskDocId){
+  commentsListDiv.innerHTML="Cargando...";
+  const cRef= collection(db,"tasks", taskDocId,"comments");
+  const qRef= query(cRef, orderBy("createdAt","asc"));
+  const snap= await getDocs(qRef);
+  let commentData=[];
   snap.forEach(docu=>{
-    const u= docu.data();
-    let tr= document.createElement("tr");
-    // email
-    let tdE= document.createElement("td");
-    tdE.textContent= u.email||docu.id;
-    tr.appendChild(tdE);
-
-    // name
-    let tdN= document.createElement("td");
-    let inp= document.createElement("input");
-    inp.type="text";
-    inp.value= u.name||"";
-    inp.addEventListener("change", async()=>{
-      if(!confirm("¿Confirmar cambio de Nombre de Usuario?")){
-        inp.value= u.name||"";
-        return;
-      }
-      try{
-        await updateDoc(doc(db,"users",docu.id), { name:inp.value });
-        u.name=inp.value;
-      }catch(er){
-        console.error("Error actualizando name:", er);
-      }
-    });
-    tdN.appendChild(inp);
-    tr.appendChild(tdN);
-
-    // rol
-    let tdR= document.createElement("td");
-    tdR.textContent= u.role||"consultor";
-    tr.appendChild(tdR);
-
-    // change rol
-    let tdC= document.createElement("td");
-    let sel= document.createElement("select");
-    ["consultor","senior","supervisor","admin"].forEach(rr=>{
-      let o= document.createElement("option");
-      o.value= rr;
-      o.textContent= rr;
-      if(rr===u.role) o.selected=true;
-      sel.appendChild(o);
-    });
-    sel.addEventListener("change", async()=>{
-      if(!confirm(`¿Confirmar cambio de Rol a "${sel.value}"?`)){
-        sel.value= u.role;
-        return;
-      }
-      try{
-        await updateDoc(doc(db,"users", docu.id), { role: sel.value });
-        u.role= sel.value;
-        tdR.textContent= sel.value;
-      }catch(e){
-        console.error("Error cambiando rol:", e);
-      }
-    });
-    tdC.appendChild(sel);
-    tr.appendChild(tdC);
-
-    usersTableBody.appendChild(tr);
+    commentData.push({ id: docu.id, ...docu.data()});
   });
+  let html="";
+  commentData.forEach(c=>{
+    const dateStr= c.createdAt ? new Date(c.createdAt.toDate()).toLocaleDateString("es-CL") : "";
+    const isOwner= (c.authorUid=== currentUser?.uid);
+    html+= `<div class="comment-item">`;
+    html+= `<div class="comment-author"><b>${c.authorEmail||"?"}</b></div>`;
+    html+= `<div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>`;
+    html+= `<div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>`;
+    html+= `<div class="comment-actions" style="margin-left:1rem;">`;
+    if(isOwner){
+      html+= `<button onclick="editComment('${c.id}')">Editar</button>`;
+      html+= `<button style="margin-left:5px;" onclick="deleteComment('${c.id}')">Eliminar</button>`;
+    }
+    html+=`</div></div>`;
+  });
+  if(!html) html="<p>Sin comentarios</p>";
+  commentsListDiv.innerHTML= html;
 }
 
-// Historial => 2 semanas
+// Historial
 async function loadHistory(){
   historyTableBody.innerHTML="Cargando...";
   try{
@@ -1482,8 +1117,6 @@ async function loadHistory(){
     historyTableBody.innerHTML=`<tr><td colspan='7'>Error: ${e.message}</td></tr>`;
   }
 }
-
-// Borrar historial => admin/supervisor
 async function clearHistory(){
   if(!confirm("¿Borrar todo el historial (últimos 14 días)?")) return;
   try{
@@ -1503,44 +1136,9 @@ async function clearHistory(){
   }
 }
 
-// canChangeStatus
-function canChangeStatus(role, currentSt, newSt){
-  if(role==="senior"){
-    if(newSt==="Finalizado" && currentSt!=="Finalizado") return false;
-    if(["Finalizado","Reportar"].includes(currentSt)) return false;
-    return true;
-  }
-  if(role==="consultor"){
-    if(["Finalizado","Reportar","Por revisar"].includes(currentSt)) return false;
-    if(["Finalizado","Reportar"].includes(newSt)) return false;
-    return true;
-  }
-  return true;
-}
-
-// updateTaskStatus
-async function updateTaskStatus(docId,newStatus){
-  try{
-    const snap= await getDoc(doc(db,"tasks",docId));
-    if(!snap.exists())return;
-    const tdata= snap.data();
-    await updateDoc(doc(db,"tasks",docId), { status:newStatus });
-    await addDoc(collection(db,"history"),{
-      taskId: tdata.idTarea||-1,
-      responsible: tdata.userName,
-      activity: tdata.name,
-      company: tdata.empresa,
-      group: tdata.grupoCliente,
-      action: `Cambió estado a ${newStatus}`,
-      date: new Date(),
-      userEmail: currentUser.email
-    });
-  }catch(e){
-    console.error("Error al cambiar estado:", e);
-  }
-}
-
-// Funciones de ayuda
+/****************************************************
+ * Helpers
+ ****************************************************/
 function calcBusinessDaysDiff(fromDate,toDate){
   if(!fromDate||!toDate)return 9999;
   let start= new Date(fromDate.getFullYear(),fromDate.getMonth(),fromDate.getDate());
@@ -1559,7 +1157,6 @@ function calcBusinessDaysDiff(fromDate,toDate){
   }
   return (days-1)*invert;
 }
-
 function formatDDMMYYYY(yyyy_mm_dd){
   if(!yyyy_mm_dd)return "";
   const [y,m,d]= yyyy_mm_dd.split("-");
