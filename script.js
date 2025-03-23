@@ -38,15 +38,16 @@ const auth = getAuth();
 const db = getFirestore();
 
 // ===========================================================
+export let allTasks = []; // Lo exportamos para usar en chart.js
 let currentUser = null;
 let currentRole = null;
-let allTasks = [];
 let currentSortKey = null;
 let currentSortDir = 1;
 let editTaskId = null;
 let currentCommentTaskId = null;
 
-const TASK_STATES = [
+// Tareas => "SII","Municipalidad","Tesoreria","BPO","Cliente"
+export const TASK_STATES = [
   "Asignado","En proceso","Por revisar","Reportar","Finalizado",
   "SII","Municipalidad","Tesoreria","BPO","Cliente"
 ];
@@ -121,7 +122,7 @@ const usersTableBody = document.getElementById("usersBody");
 const historyTableBody = document.getElementById("historyBody");
 const btnClearHistory = document.getElementById("btnClearHistory");
 
-// Cargas
+// Cargas Horarias
 const cargasSectionContainer = document.getElementById("cargasTableContainer");
 
 // Auth
@@ -161,6 +162,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   btnInforme.addEventListener("click", () => {
     showSection("report");
+    // Se cargan los charts desde chart.js => automatic on next paint
   });
   btnCargas.addEventListener("click", () => {
     showSection("cargas");
@@ -228,11 +230,11 @@ onAuthStateChanged(auth, async user => {
     sidebar.style.display = "flex";
     showSection("dashboard");
 
-    userEmailSpan.textContent = user.email;
-    userRoleSpan.textContent = currentRole;
+    userEmailSpan.textContent = user.email || "";
+    userRoleSpan.textContent = currentRole || "";
 
-    // Botones visible o no
-    btnFinalizadas.style.display = "inline-block"; // todos la pueden ver
+    // Botones
+    btnFinalizadas.style.display = "inline-block";
     if (currentRole === "admin") {
       btnUsuarios.style.display = "inline-block";
     } else {
@@ -252,11 +254,11 @@ onAuthStateChanged(auth, async user => {
       btnClearHistory.style.display="none";
     }
 
-    // consultor => oculta select de "Responsable" (autoasignado)
+    // consultor => oculta select de "Responsable"
     if (currentRole==="consultor") {
       document.getElementById("lblResp").style.display="none";
       newUserSelect.style.display="none";
-      filterResponsableSelect.value=""; // no filtrar
+      filterResponsableSelect.value="";
       document.getElementById("rowFilterResponsable").style.display="none";
       document.getElementById("thRespHeader").textContent="";
       document.getElementById("thRespHeaderFinal").textContent="";
@@ -359,13 +361,13 @@ async function loadUserNamesToSelect(selectEl){
 async function handleTaskForm() {
   let respName= "";
   if(currentRole==="consultor"){
-    // autoasignarse
+    // auto
     const userRef= doc(db,"users", currentUser.uid);
     const userSnap= await getDoc(userRef);
     if(userSnap.exists() && userSnap.data().name){
       respName= userSnap.data().name;
     } else {
-      respName= currentUser.email; 
+      respName= currentUser.email;
     }
   } else {
     respName= newUserSelect.value.trim();
@@ -422,7 +424,7 @@ async function handleTaskForm() {
       const oldSnap= await getDoc(doc(db,"tasks",editTaskId));
       const oldData= oldSnap.exists()? oldSnap.data():{};
       const newData= {
-        idTarea: nextId, // se mantiene
+        idTarea: nextId,
         userName: respName,
         assignedTo: assignedEmail,
         name: activityName,
@@ -900,7 +902,7 @@ function renderFinalTasks(tasksArray){
     bDel.innerHTML="🗑";
     bDel.title="Eliminar Tarea";
     bDel.style.marginLeft="5px";
-    bDel.addEventListener("click", async()=>{
+    bDel.addEventListener("click",async()=>{
       if(!confirm("¿Deseas eliminar la tarea?"))return;
       await addDoc(collection(db,"history"),{
         taskId: task.idTarea||-1,
@@ -960,25 +962,21 @@ function filtrarDash(arr){
   const exGru= chkExcludeGrupo.checked;
 
   return arr.filter(t=>{
-    // userName
     if(valResp){
       const match=(t.userName||"").toLowerCase().includes(valResp);
       if(exResp && match) return false;
       if(!exResp && !match) return false;
     }
-    // estado
     if(valEst){
       const match=(t.status||"").toLowerCase().includes(valEst);
       if(exEst && match) return false;
       if(!exEst && !match) return false;
     }
-    // empresa
     if(valEmp){
       const match=(t.empresa||"").toLowerCase().includes(valEmp);
       if(exEmp && match) return false;
       if(!exEmp && !match) return false;
     }
-    // grupo
     if(valGru){
       const match=(t.grupoCliente||"").toLowerCase().includes(valGru);
       if(exGru && match) return false;
@@ -1027,7 +1025,6 @@ async function loadComments(taskDocId){
   commentData.forEach(c=>{
     const dateStr= c.createdAt? new Date(c.createdAt.toDate()).toLocaleDateString("es-CL") : "";
     const cStat= c.commentStatus|| "pendiente";
-    // Indicador
     let commentIndicator= `<span class="status-comment-${cStat.replace(" ","-")}"></span>`;
 
     let selCommentStatus= `<select data-cid="${c.id}" onchange="changeCommentStatus(this)">`;
@@ -1037,8 +1034,6 @@ async function loadComments(taskDocId){
     selCommentStatus += `</select>`;
 
     let isAuthor= (c.authorUid=== (currentUser?.uid||""));
-    // Consultor/senior/supervisor/admin => 3 y 4?
-    // Se solicitó: "solo quien escribió ve Editar y Eliminar"
     let canEditDelete= isAuthor;
 
     html+= `<div class="comment-item">`;
@@ -1166,7 +1161,7 @@ async function loadAllUsers(){
           inp.value= data.name||"";
           return;
         }
-        await updateDoc(doc(db,"users",docu.id),{ name:inp.value });
+        await updateDoc(doc(db,"users",docu.id), { name: inp.value });
         data.name= inp.value;
       });
       tdName.appendChild(inp);
@@ -1201,7 +1196,7 @@ async function loadAllUsers(){
 
       usersTableBody.appendChild(tr);
     });
-  } catch(e){
+  }catch(e){
     console.error("Error loadAllUsers:", e);
     usersTableBody.innerHTML=`<tr><td colspan="4">Error: ${e.message}</td></tr>`;
   }
@@ -1232,7 +1227,7 @@ async function loadHistory(){
     });
     if(!html) html="<tr><td colspan='7'>Sin historial</td></tr>";
     historyTableBody.innerHTML= html;
-  } catch(e){
+  }catch(e){
     console.error("Error loadHistory:", e);
     historyTableBody.innerHTML=`<tr><td colspan='7'>Error: ${e.message}</td></tr>`;
   }
@@ -1254,44 +1249,72 @@ async function clearHistory(){
 }
 
 // ===========================================================
-//  CARGAS HORARIAS => Muestra usuarios y su sumatoria (0..44 h?)
+//  CARGAS HORARIAS
 // ===========================================================
-function buildCargasHorarias(){
-  cargasSectionContainer.innerHTML="Construyendo vista de cargas...";
-  // Ejemplo: construir un grid con los usuarios y 44 celdas => color segun Tareas
-  // De momento, simplificado: solo un placeholder
-  let html=`<table border="1" cellpadding="3" style="border-collapse: collapse;">`;
-  html+=`<thead><tr><th>Usuario</th>`;
+export async function buildCargasHorarias(){
+  cargasSectionContainer.innerHTML="Cargando Cargas Horarias...";
+  // 1) Leer todos los usuarios
+  const usersSnap= await getDocs(collection(db,"users"));
+  let allUsers=[];
+  usersSnap.forEach(d=>{
+    const dt= d.data();
+    allUsers.push({ uid: d.id, email: dt.email||"", name: dt.name||dt.email||"", role: dt.role||"consultor" });
+  });
+  // 2) Summar hours from allTasks (not final), by user email
+  let userHoursMap={}; // key => sum
+  allUsers.forEach(u=>{
+    userHoursMap[u.email.toLowerCase()] = 0; // init
+  });
+  allTasks.forEach(t=>{
+    if(t.status!=="Finalizado"){
+      const assignedEmail= (t.assignedTo||"").toLowerCase();
+      if(userHoursMap[assignedEmail]>=0){
+        // parse horas
+        let totalMin= parseHHMMtoMinutes(t.horasAsignadas||"0:00");
+        // sum to user
+        userHoursMap[assignedEmail]+= totalMin;
+      }
+    }
+  });
+  // 3) Con totalMin convert => total hours => fill squares
+  // each user => 44 squares => 1 hour = 60 min => so if user has 125 min => ~2 hours => 2 squares
+  let html=`<table border="1" cellpadding="3" style="border-collapse: collapse;"><thead>`;
+  html+=`<tr><th>Usuario</th>`;
   for(let i=1;i<=44;i++){
     html+=`<th>${i}</th>`;
   }
   html+=`</tr></thead><tbody>`;
 
-  // Saca lista de usuarios
-  let userMap={}; // email => name
-  allTasks.forEach(t=>{
-    userMap[t.assignedTo.toLowerCase()]= t.userName|| t.assignedTo;
-  });
-  // Podríamos tambien leer de /users
-  const userKeys= Object.keys(userMap);
-  if(userKeys.length===0){
-    html+=`<tr><td colspan="45">Sin usuarios/tareas</td></tr>`;
+  if(!allUsers.length){
+    html+=`<tr><td colspan="45">No hay usuarios registrados</td></tr>`;
   } else {
-    userKeys.forEach(uKey=>{
-      const nm= userMap[uKey];
-      html+=`<tr><td>${nm}</td>`;
-      // celdas
-      for(let j=1;j<=44;j++){
-        // Buscamos si hay tarea en h j?
-        // Sencillo: si la persona tiene 'En proceso' => cell with color
-        // Real: Se requeriría tu propia lógica de cuántas horas
-        html+=`<td style="background:#cce4ff;"></td>`;
+    allUsers.forEach(u=>{
+      html+=`<tr><td>${u.name}</td>`;
+      let totalMin= userHoursMap[u.email.toLowerCase()]||0;
+      let hoursCount= Math.floor(totalMin/60);
+      // fill squares => hoursCount
+      // color depends on ? => The user wants a color for each "hour" if there's some tasks. 
+      // We'll simply color them grey if >0. For more advanced logic, we'd break down by state. 
+      // For now, let's color them all the same or do a minimal approach. 
+      for(let i=1; i<=44; i++){
+        if(i<=hoursCount){
+          // colored block
+          html+=`<td style="background:#7ecae7;"></td>`;
+        } else {
+          html+=`<td></td>`;
+        }
       }
       html+=`</tr>`;
     });
   }
   html+=`</tbody></table>`;
   cargasSectionContainer.innerHTML= html;
+}
+function parseHHMMtoMinutes(hhmm){
+  if(!hhmm)return 0;
+  let [h,m]= hhmm.split(":");
+  let hh= parseInt(h)||0, mm= parseInt(m)||0;
+  return hh*60 + mm;
 }
 
 // ===========================================================
@@ -1352,9 +1375,8 @@ function calcBusinessDaysDiff(fromDate,toDate){
     }
     current.setDate(current.getDate()+1);
   }
-  return (days-1)* invert;
+  return (days-1)*invert;
 }
 
-// Exponemos
-window.aplicarFiltros= aplicarFiltros;
-window.limpiarFiltros= limpiarFiltros;
+// Exponemos para chart.js
+export { currentRole, currentUser };

@@ -64,10 +64,9 @@ body {
   padding: 1rem;
   display: none;
   flex-direction: column;
-  justify-content: flex-start;
   position: sticky;
   top: 0;
-  height: 100vh; /* Para ocupar viewport completo */
+  height: 100vh;
   overflow-y: auto;
 }
 .sidebar button {
@@ -144,7 +143,7 @@ body {
   margin-top: 0.5rem;
 }
 
-/* Contenedor con overflow */
+/* Contenedor con overflow para la tabla principal */
 .table-container {
   max-height: 400px;
   overflow-y: auto;
@@ -289,7 +288,7 @@ th[data-sortkey] {
 
 /* Comentarios con status => color indicator */
 .status-comment-pendiente {
-  background: #ff9800; /* naranja */
+  background: #ff9800;
   width: 12px;
   height: 12px;
   display: inline-block;
@@ -297,7 +296,7 @@ th[data-sortkey] {
   border-radius: 2px;
 }
 .status-comment-completado {
-  background: #4caf50; /* verde */
+  background: #4caf50;
   width: 12px;
   height: 12px;
   display: inline-block;
@@ -305,7 +304,7 @@ th[data-sortkey] {
   border-radius: 2px;
 }
 .status-comment-en-revisión {
-  background: #2196f3; /* azul */
+  background: #2196f3;
   width: 12px;
   height: 12px;
   display: inline-block;
@@ -313,7 +312,7 @@ th[data-sortkey] {
   border-radius: 2px;
 }
 
-/* Sección de Informe */
+/* Informe => chart boxes */
 .charts-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px,1fr));
@@ -326,14 +325,10 @@ th[data-sortkey] {
   padding: 0.5rem;
 }
 .chart-box h3 {
-  margin-top: 0;
+  margin-top:0;
 }
-.chart-placeholder {
-  width: 100%;
-  height: 200px;
-  background: #eee;
-  border-radius: 4px;
-  margin-top: 0.5rem;
+canvas {
+  background: #fff;
 }
 
 /* Cargas Horarias */

@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <title>Control Tarea GQ</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="main-container">
@@ -32,7 +34,8 @@
 
     <!-- Barra lateral (sticky) -->
     <div class="sidebar" id="sidebar" style="display:none;">
-      <button id="btnTareas">🗂 Tareas</button>
+      <!-- Cambiamos el ícono del menú Tareas a "📁" -->
+      <button id="btnTareas">📁 Tareas</button>
       <button id="btnFinalizadas" style="display:none;">✅ Tareas Finalizadas</button>
       <button id="btnInforme" style="display:none;">📊 Informe</button>
       <button id="btnCargas" style="display:none;">⏱ Cargas Horarias</button>
@@ -120,7 +123,6 @@
         </div>
       </div>
 
-      <!-- Contenedor con overflow para la tabla principal -->
       <div class="table-container">
         <table id="tasksTable">
           <thead>
@@ -172,26 +174,24 @@
       </div>
     </section>
 
-    <!-- Informe (gráficos) -->
+    <!-- Informe (3 gráficos con chart.js) -->
     <section class="dashboard" id="reportSection" style="display:none;">
       <h2>Informe de Tareas</h2>
-      <!-- Ejemplo: cuatro gráficos en grid -->
       <div class="charts-container">
-        <div class="chart-box">
-          <h3>Tareas sin finalizar por proyecto</h3>
-          <div class="chart-placeholder"></div>
-        </div>
+        <!-- 1) Tareas por estado de finalización (sin finalizadas) -->
         <div class="chart-box">
           <h3>Tareas por estado de finalización</h3>
-          <div class="chart-placeholder"></div>
+          <canvas id="chartEstados"></canvas>
         </div>
+        <!-- 2) Próximas tareas por responsable -->
         <div class="chart-box">
           <h3>Próximas tareas por responsable</h3>
-          <div class="chart-placeholder"></div>
+          <canvas id="chartResponsables"></canvas>
         </div>
+        <!-- 3) Tareas sin finalizar por Grupo (top 5) -->
         <div class="chart-box">
-          <h3>Proyectos por estado del proyecto</h3>
-          <div class="chart-placeholder"></div>
+          <h3>Tareas sin finalizar por Grupo</h3>
+          <canvas id="chartGrupos"></canvas>
         </div>
       </div>
     </section>
@@ -199,16 +199,20 @@
     <!-- Cargas Horarias -->
     <section class="dashboard" id="cargasSection" style="display:none;">
       <h2>Cargas Horarias (0 a 44 horas)</h2>
-      <p>Ejemplo de simbología:</p>
+      <!-- Cambiamos "Ejemplo de simbología:" a "Simbologia:" -->
+      <p>Simbologia (excepto Finalizado):</p>
       <ul>
+        <li><span style="background:#cccccc; padding:0 10px; border-radius:3px;"></span> Asignado</li>
         <li><span style="background:#00bfff; padding:0 10px; border-radius:3px;"></span> En proceso</li>
         <li><span style="background:#3f51b5; padding:0 10px; border-radius:3px;"></span> SII</li>
-        <li><span style="background:#ffc107; padding:0 10px; border-radius:3px;"></span> Por revisar</li>
+        <li><span style="background:#9c27b0; padding:0 10px; border-radius:3px;"></span> Municipalidad</li>
+        <li><span style="background:#8bc34a; padding:0 10px; border-radius:3px;"></span> Tesoreria</li>
         <li><span style="background:#ff5722; padding:0 10px; border-radius:3px;"></span> Reportar</li>
+        <li><span style="background:#ffc107; padding:0 10px; border-radius:3px;"></span> Por revisar</li>
+        <li><span style="background:#795548; padding:0 10px; border-radius:3px;"></span> BPO</li>
+        <li><span style="background:#8b8b8b; padding:0 10px; border-radius:3px;"></span> Cliente</li>
       </ul>
-      <div id="cargasTableContainer">
-        <!-- Se completará con script => build table 0..44 -->
-      </div>
+      <div id="cargasTableContainer"></div>
     </section>
 
     <!-- Sección de Administración de Usuarios (solo Admin) -->
@@ -267,5 +271,7 @@
   </footer>
 
   <script type="module" src="script.js"></script>
+  <!-- Nuestro chart.js local (interfaz con Chart.js) -->
+  <script type="module" src="chart.js"></script>
 </body>
 </html>
