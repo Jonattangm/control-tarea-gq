@@ -54,8 +54,11 @@
         </div>
         <div class="filters-container" id="filtersContainer">
           <div class="filter-row" id="rowFilterResponsable">
+            <!-- En lugar de input text => select -->
             <div class="form-inline">
-              <input type="text" id="filterResponsable" placeholder="Responsable" />
+              <select id="filterResponsableSelect">
+                <option value="">(Todos)</option>
+              </select>
               <label><input type="checkbox" id="chkExcludeAsignado" />Excluir</label>
             </div>
             <div class="form-inline">
@@ -87,29 +90,29 @@
           <button id="toggleTaskBoxBtn">-</button>
         </div>
         <div id="taskCreation" style="display:block; margin-top:0.5rem;">
-          <!-- newUserName => select con los nombres de usuario -->
+          <!-- newUserSelect => select con los nombres de usuario -->
           <div class="form-inline" id="rowRespInput">
             <label id="lblResp" style="width:90px;">Responsable:</label>
             <select id="newUserSelect" style="width:130px;">
               <option value="">Seleccione</option>
             </select>
-            <label style="margin-left:1rem; width:70px;">Actividad:</label>
+          </div>
+          <div class="form-inline">
+            <label style="width:70px;">Actividad:</label>
             <input type="text" id="newTaskName" style="width:120px;" />
-          </div>
-          <div class="form-inline">
-            <label style="width:90px;">Empresa:</label>
+            <label style="margin-left:1rem; width:70px;">Empresa:</label>
             <input type="text" id="newEmpresa" style="width:120px;" />
-            <label style="margin-left:1rem; width:70px;">Grupo:</label>
+          </div>
+          <div class="form-inline">
+            <label style="width:70px;">Grupo:</label>
             <input type="text" id="newGrupo" style="width:120px;" />
-          </div>
-          <div class="form-inline">
-            <label style="width:90px;">Folio:</label>
+            <label style="margin-left:1rem; width:70px;">Folio:</label>
             <input type="text" id="newFolio" style="width:120px;" />
-            <label style="margin-left:1rem; width:70px;">Horas:</label>
-            <input type="text" id="newHoras" style="width:120px;" placeholder="HH:MM" />
           </div>
           <div class="form-inline">
-            <label style="width:120px;">Fecha de Entrega:</label>
+            <label style="width:70px;">Horas:</label>
+            <input type="text" id="newHoras" style="width:80px;" placeholder="HH:MM" />
+            <label style="margin-left:1rem; width:90px;">Entrega:</label>
             <input type="date" id="newFechaEntrega" />
           </div>
           <button id="createTaskBtn">Crear Tarea</button>
@@ -183,7 +186,7 @@
     <!-- Historial (Senior, Supervisor, Admin) -->
     <section class="dashboard" id="historySection" style="display:none;">
       <h2>Historial de Tareas</h2>
-      <!-- Botón para vaciar historial (solo visible a admin y supervisor) -->
+      <!-- Botón para vaciar historial (solo visible a admin/supervisor) -->
       <button id="btnClearHistory" style="display:none;">Borrar Historial</button>
 
       <table id="historyTable" style="margin-top:0.5rem;">
