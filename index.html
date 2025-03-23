@@ -30,12 +30,14 @@
       </div>
     </section>
 
-    <!-- Barra lateral (oculta hasta login) -->
+    <!-- Barra lateral (sticky) -->
     <div class="sidebar" id="sidebar" style="display:none;">
-      <button id="btnTareas">Tareas</button>
-      <button id="btnFinalizadas" style="display:none;">Tareas Finalizadas</button>
-      <button id="btnUsuarios" style="display:none;">Administrar Usuarios</button>
-      <button id="btnHistorial" style="display:none;">Historial</button>
+      <button id="btnTareas">🗂 Tareas</button>
+      <button id="btnFinalizadas" style="display:none;">✅ Tareas Finalizadas</button>
+      <button id="btnInforme" style="display:none;">📊 Informe</button>
+      <button id="btnCargas" style="display:none;">⏱ Cargas Horarias</button>
+      <button id="btnUsuarios" style="display:none;">👤 Administrar Usuarios</button>
+      <button id="btnHistorial" style="display:none;">📅 Historial</button>
       <div class="sidebar-bottom">
         <button id="btnLogout">Cerrar Sesión</button>
       </div>
@@ -54,7 +56,6 @@
         </div>
         <div class="filters-container" id="filtersContainer">
           <div class="filter-row" id="rowFilterResponsable">
-            <!-- En lugar de input text => select -->
             <div class="form-inline">
               <select id="filterResponsableSelect">
                 <option value="">(Todos)</option>
@@ -90,7 +91,7 @@
           <button id="toggleTaskBoxBtn">-</button>
         </div>
         <div id="taskCreation" style="display:block; margin-top:0.5rem;">
-          <!-- newUserSelect => select con los nombres de usuario -->
+          <!-- Responsable (solo si NO es consultor se muestra) -->
           <div class="form-inline" id="rowRespInput">
             <label id="lblResp" style="width:90px;">Responsable:</label>
             <select id="newUserSelect" style="width:130px;">
@@ -119,52 +120,95 @@
         </div>
       </div>
 
-      <!-- Tabla de Tareas -->
-      <table id="tasksTable">
-        <thead>
-          <tr>
-            <th data-sortkey="userName" id="thRespHeader">Responsable</th>
-            <th data-sortkey="idTarea">ID Tarea</th>
-            <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
-            <th data-sortkey="fechaEntrega">Fecha de Entrega</th>
-            <th data-sortkey="name">Actividad</th>
-            <th data-sortkey="status">Estado</th>
-            <th data-sortkey="empresa">Empresa</th>
-            <th data-sortkey="grupoCliente">Grupo</th>
-            <th data-sortkey="folioProyecto">Folio</th>
-            <th data-sortkey="horasAsignadas">Horas</th>
-            <th data-sortkey="lastCommentAt">Última actividad</th>
-            <th>Acciones</th>
-            <!-- colAsignado oculta a todos -->
-            <th class="colAsignado" style="display:none;">Asignado (email)</th>
-          </tr>
-        </thead>
-        <tbody id="tasksBody"></tbody>
-      </table>
+      <!-- Contenedor con overflow para la tabla principal -->
+      <div class="table-container">
+        <table id="tasksTable">
+          <thead>
+            <tr>
+              <th data-sortkey="userName" id="thRespHeader">Responsable</th>
+              <th data-sortkey="idTarea">ID Tarea</th>
+              <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
+              <th data-sortkey="fechaEntrega">Fecha de Entrega</th>
+              <th data-sortkey="name">Actividad</th>
+              <th data-sortkey="status">Estado</th>
+              <th data-sortkey="empresa">Empresa</th>
+              <th data-sortkey="grupoCliente">Grupo</th>
+              <th data-sortkey="folioProyecto">Folio</th>
+              <th data-sortkey="horasAsignadas">Horas</th>
+              <th data-sortkey="lastCommentAt">Última actividad</th>
+              <th>Acciones</th>
+              <!-- colAsignado oculta a todos -->
+              <th class="colAsignado" style="display:none;">Asignado (email)</th>
+            </tr>
+          </thead>
+          <tbody id="tasksBody"></tbody>
+        </table>
+      </div>
     </section>
 
     <!-- Tareas Finalizadas -->
     <section class="dashboard" id="finalTasksSection" style="display:none;">
       <h2>Tareas Finalizadas</h2>
-      <table id="finalTasksTable">
-        <thead>
-          <tr>
-            <th data-sortkey="userName" id="thRespHeaderFinal">Responsable</th>
-            <th data-sortkey="idTarea">ID Tarea</th>
-            <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
-            <th data-sortkey="fechaEntrega">Fecha de Entrega</th>
-            <th data-sortkey="name">Actividad</th>
-            <th data-sortkey="status">Estado</th>
-            <th data-sortkey="empresa">Empresa</th>
-            <th data-sortkey="grupoCliente">Grupo</th>
-            <th data-sortkey="folioProyecto">Folio</th>
-            <th data-sortkey="horasAsignadas">Horas</th>
-            <th data-sortkey="lastCommentAt">Última actividad</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="finalTasksBody"></tbody>
-      </table>
+      <div class="table-container">
+        <table id="finalTasksTable">
+          <thead>
+            <tr>
+              <th data-sortkey="userName" id="thRespHeaderFinal">Responsable</th>
+              <th data-sortkey="idTarea">ID Tarea</th>
+              <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
+              <th data-sortkey="fechaEntrega">Fecha de Entrega</th>
+              <th data-sortkey="name">Actividad</th>
+              <th data-sortkey="status">Estado</th>
+              <th data-sortkey="empresa">Empresa</th>
+              <th data-sortkey="grupoCliente">Grupo</th>
+              <th data-sortkey="folioProyecto">Folio</th>
+              <th data-sortkey="horasAsignadas">Horas</th>
+              <th data-sortkey="lastCommentAt">Última actividad</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="finalTasksBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Informe (gráficos) -->
+    <section class="dashboard" id="reportSection" style="display:none;">
+      <h2>Informe de Tareas</h2>
+      <!-- Ejemplo: cuatro gráficos en grid -->
+      <div class="charts-container">
+        <div class="chart-box">
+          <h3>Tareas sin finalizar por proyecto</h3>
+          <div class="chart-placeholder"></div>
+        </div>
+        <div class="chart-box">
+          <h3>Tareas por estado de finalización</h3>
+          <div class="chart-placeholder"></div>
+        </div>
+        <div class="chart-box">
+          <h3>Próximas tareas por responsable</h3>
+          <div class="chart-placeholder"></div>
+        </div>
+        <div class="chart-box">
+          <h3>Proyectos por estado del proyecto</h3>
+          <div class="chart-placeholder"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cargas Horarias -->
+    <section class="dashboard" id="cargasSection" style="display:none;">
+      <h2>Cargas Horarias (0 a 44 horas)</h2>
+      <p>Ejemplo de simbología:</p>
+      <ul>
+        <li><span style="background:#00bfff; padding:0 10px; border-radius:3px;"></span> En proceso</li>
+        <li><span style="background:#3f51b5; padding:0 10px; border-radius:3px;"></span> SII</li>
+        <li><span style="background:#ffc107; padding:0 10px; border-radius:3px;"></span> Por revisar</li>
+        <li><span style="background:#ff5722; padding:0 10px; border-radius:3px;"></span> Reportar</li>
+      </ul>
+      <div id="cargasTableContainer">
+        <!-- Se completará con script => build table 0..44 -->
+      </div>
     </section>
 
     <!-- Sección de Administración de Usuarios (solo Admin) -->
@@ -186,9 +230,7 @@
     <!-- Historial (Senior, Supervisor, Admin) -->
     <section class="dashboard" id="historySection" style="display:none;">
       <h2>Historial de Tareas</h2>
-      <!-- Botón para vaciar historial (solo visible a admin/supervisor) -->
       <button id="btnClearHistory" style="display:none;">Borrar Historial</button>
-
       <table id="historyTable" style="margin-top:0.5rem;">
         <thead>
           <tr>
