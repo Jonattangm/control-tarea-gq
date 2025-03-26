@@ -34,7 +34,6 @@
 
     <!-- Barra lateral (sticky) -->
     <div class="sidebar" id="sidebar" style="display:none;">
-      <!-- Cambiamos el ícono del menú Tareas a "📁" -->
       <button id="btnTareas">📁 Tareas</button>
       <button id="btnFinalizadas" style="display:none;">✅ Tareas Finalizadas</button>
       <button id="btnInforme" style="display:none;">📊 Informe</button>
@@ -194,12 +193,15 @@
           <canvas id="chartGrupos"></canvas>
         </div>
       </div>
+      <!-- Relleno para no dejar espacio vacío -->
+      <div style="margin-top:1rem;">
+        <p>Información adicional sobre proyectos, responsables y fechas próximas se podrá visualizar aquí en reportes futuros, además de la posibilidad de exportar en PDF.</p>
+      </div>
     </section>
 
     <!-- Cargas Horarias -->
     <section class="dashboard" id="cargasSection" style="display:none;">
       <h2>Cargas Horarias (0 a 44 horas)</h2>
-      <!-- Cambiamos "Ejemplo de simbología:" a "Simbologia:" -->
       <p>Simbologia (excepto Finalizado):</p>
       <ul>
         <li><span style="background:#cccccc; padding:0 10px; border-radius:3px;"></span> Asignado</li>
@@ -212,7 +214,17 @@
         <li><span style="background:#795548; padding:0 10px; border-radius:3px;"></span> BPO</li>
         <li><span style="background:#8b8b8b; padding:0 10px; border-radius:3px;"></span> Cliente</li>
       </ul>
+
       <div id="cargasTableContainer"></div>
+      <!-- Nueva tabla de Horas Extras (1..12) -->
+      <div id="extrasTableContainer" style="margin-top:1rem;"></div>
+
+      <!-- Gráficos horizontales para la misma info -->
+      <h3 style="margin-top:1rem;">Gráfico de Cargas Horarias</h3>
+      <canvas id="cargasBarCanvas" style="max-width:600px;"></canvas>
+
+      <h3 style="margin-top:1rem;">Gráfico de Horas Extras</h3>
+      <canvas id="extrasBarCanvas" style="max-width:600px;"></canvas>
     </section>
 
     <!-- Sección de Administración de Usuarios (solo Admin) -->

@@ -332,6 +332,22 @@ canvas {
 }
 
 /* Cargas Horarias */
-#cargasTableContainer {
+#cargasTableContainer, #extrasTableContainer {
   margin-top:1rem;
+  border:1px solid #ccc;
+  padding:0.5rem;
+  border-radius:5px;
+  background:#fff;
 }
+#cargasTableContainer table, #extrasTableContainer table {
+  border-collapse: collapse;
+  width:100%;
+}
+#cargasTableContainer th, #cargasTableContainer td,
+#extrasTableContainer th, #extrasTableContainer td {
+  border:1px solid #ccc;
+  padding:3px;
+  text-align:center;
+}
+
+/* Gráficos en Cargas Horarias */

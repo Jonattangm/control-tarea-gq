@@ -38,15 +38,14 @@ const auth = getAuth();
 const db = getFirestore();
 
 // ===========================================================
-export let allTasks = []; // Lo exportamos para usar en chart.js
+export let allTasks = []; // Usado también por chart.js
 let currentUser = null;
-let currentRole = null;
+export let currentRole = null;
 let currentSortKey = null;
 let currentSortDir = 1;
 let editTaskId = null;
 let currentCommentTaskId = null;
 
-// Tareas => "SII","Municipalidad","Tesoreria","BPO","Cliente"
 export const TASK_STATES = [
   "Asignado","En proceso","Por revisar","Reportar","Finalizado",
   "SII","Municipalidad","Tesoreria","BPO","Cliente"
@@ -124,6 +123,7 @@ const btnClearHistory = document.getElementById("btnClearHistory");
 
 // Cargas Horarias
 const cargasSectionContainer = document.getElementById("cargasTableContainer");
+const extrasTableContainer = document.getElementById("extrasTableContainer");
 
 // Auth
 const authForm = document.getElementById("authForm");
@@ -162,7 +162,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   btnInforme.addEventListener("click", () => {
     showSection("report");
-    // Se cargan los charts desde chart.js => automatic on next paint
   });
   btnCargas.addEventListener("click", () => {
     showSection("cargas");
@@ -537,7 +536,7 @@ function listenTasks(){
 // ===========================================================
 //  RENDER TASKS (no finalizadas)
 // ===========================================================
-function renderTasks(tasksArray){
+export function renderTasks(tasksArray){
   tasksTableBody.innerHTML="";
   let arr= tasksArray.filter(t=> t.status!=="Finalizado");
   if(currentRole==="consultor" && currentUser){
@@ -651,7 +650,7 @@ function renderTasks(tasksArray){
       if(newSt==="SII"){
         alert("Recuerda anotar Folio y Fiscalizador en comentarios");
         let baseDate=new Date();
-        if(task.lastCommentAt) baseDate= task.lastCommentAt.toDate();
+        if(task.lastCommentAt && task.lastCommentAt.toDate) baseDate= task.lastCommentAt.toDate();
         const nm= getNextMonday(baseDate);
         const y= nm.getFullYear();
         const m= String(nm.getMonth()+1).padStart(2,'0');
@@ -662,7 +661,7 @@ function renderTasks(tasksArray){
       if(newSt==="Tesoreria"){
         alert("Recuerda revisar cada semana");
         let baseDate=new Date();
-        if(task.lastCommentAt) baseDate= task.lastCommentAt.toDate();
+        if(task.lastCommentAt && task.lastCommentAt.toDate) baseDate= task.lastCommentAt.toDate();
         const nm= getNextMonday(baseDate);
         const y= nm.getFullYear();
         const m= String(nm.getMonth()+1).padStart(2,'0');
@@ -708,7 +707,7 @@ function renderTasks(tasksArray){
 
     // ultima => solo fecha
     let tdU= document.createElement("td");
-    if(task.lastCommentAt){
+    if(task.lastCommentAt && task.lastCommentAt.toDate){
       let dd= task.lastCommentAt.toDate();
       tdU.textContent= dd.toLocaleDateString("es-CL");
     } else tdU.textContent="--";
@@ -775,7 +774,7 @@ function renderTasks(tasksArray){
 // ===========================================================
 //  RENDER FINAL
 // ===========================================================
-function renderFinalTasks(tasksArray){
+export function renderFinalTasks(tasksArray){
   finalTasksBody.innerHTML="";
   let arr= tasksArray.filter(t=> t.status==="Finalizado");
   if(currentRole==="consultor" && currentUser){
@@ -870,7 +869,7 @@ function renderFinalTasks(tasksArray){
     tr.appendChild(tdH);
 
     let tdU= document.createElement("td");
-    if(task.lastCommentAt){
+    if(task.lastCommentAt && task.lastCommentAt.toDate){
       tdU.textContent= task.lastCommentAt.toDate().toLocaleDateString("es-CL");
     } else tdU.textContent="--";
     tr.appendChild(tdU);
@@ -1001,6 +1000,43 @@ function canChangeStatus(role, currentSt, newSt){
     return true;
   }
   return true;
+}
+function getNextMonday(baseDate){
+  const d= new Date(baseDate);
+  while(d.getDay()!==1){
+    d.setDate(d.getDate()+1);
+  }
+  return d;
+}
+function formatDDMMYYYY(yyyy_mm_dd){
+  if(!yyyy_mm_dd)return "";
+  const [y,m,d]= yyyy_mm_dd.split("-");
+  return `${d}-${m}-${y}`;
+}
+function parseDateDMY(dd_mm_yyyy){
+  if(!dd_mm_yyyy)return null;
+  const [d,m,y]= dd_mm_yyyy.split("-");
+  return new Date(parseInt(y), parseInt(m)-1, parseInt(d));
+}
+function calcBusinessDaysDiff(fromDate,toDate){
+  if(!fromDate||!toDate)return 9999;
+  let start= new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  let end= new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+  let invert=1;
+  if(end<start){
+    invert=-1;
+    let tmp=start; start=end; end=tmp;
+  }
+  let days=0;
+  let current= new Date(start);
+  while(current<=end){
+    const dow= current.getDay();
+    if(dow!==0 && dow!==6){
+      days++;
+    }
+    current.setDate(current.getDate()+1);
+  }
+  return (days-1)*invert;
 }
 
 // ===========================================================
@@ -1253,6 +1289,7 @@ async function clearHistory(){
 // ===========================================================
 export async function buildCargasHorarias(){
   cargasSectionContainer.innerHTML="Cargando Cargas Horarias...";
+  extrasTableContainer.innerHTML="";
   // 1) Leer todos los usuarios
   const usersSnap= await getDocs(collection(db,"users"));
   let allUsers=[];
@@ -1261,54 +1298,74 @@ export async function buildCargasHorarias(){
     allUsers.push({ uid: d.id, email: dt.email||"", name: dt.name||dt.email||"", role: dt.role||"consultor" });
   });
   // 2) Summar hours from allTasks (not final), by user email
-  let userHoursMap={}; // key => sum
+  let userHoursMap={}; // key => sum en minutos
   allUsers.forEach(u=>{
     userHoursMap[u.email.toLowerCase()] = 0; // init
   });
   allTasks.forEach(t=>{
     if(t.status!=="Finalizado"){
       const assignedEmail= (t.assignedTo||"").toLowerCase();
-      if(userHoursMap[assignedEmail]>=0){
-        // parse horas
+      if(typeof userHoursMap[assignedEmail]!=="undefined"){
         let totalMin= parseHHMMtoMinutes(t.horasAsignadas||"0:00");
-        // sum to user
         userHoursMap[assignedEmail]+= totalMin;
       }
     }
   });
-  // 3) Con totalMin convert => total hours => fill squares
-  // each user => 44 squares => 1 hour = 60 min => so if user has 125 min => ~2 hours => 2 squares
-  let html=`<table border="1" cellpadding="3" style="border-collapse: collapse;"><thead>`;
-  html+=`<tr><th>Usuario</th>`;
+
+  // 3) Con totalMin convert => hours => 44 + extras
+  let html=`<table><thead><tr><th>Usuario</th>`;
   for(let i=1;i<=44;i++){
     html+=`<th>${i}</th>`;
   }
   html+=`</tr></thead><tbody>`;
+  let chartDataMain=[]; // para el grafico horizontal principal
+  allUsers.forEach(u=>{
+    html+=`<tr><td>${u.name}</td>`;
+    let totalMin= userHoursMap[u.email.toLowerCase()]||0;
+    let hoursCount= Math.floor(totalMin/60);
 
-  if(!allUsers.length){
-    html+=`<tr><td colspan="45">No hay usuarios registrados</td></tr>`;
-  } else {
-    allUsers.forEach(u=>{
-      html+=`<tr><td>${u.name}</td>`;
-      let totalMin= userHoursMap[u.email.toLowerCase()]||0;
-      let hoursCount= Math.floor(totalMin/60);
-      // fill squares => hoursCount
-      // color depends on ? => The user wants a color for each "hour" if there's some tasks. 
-      // We'll simply color them grey if >0. For more advanced logic, we'd break down by state. 
-      // For now, let's color them all the same or do a minimal approach. 
-      for(let i=1; i<=44; i++){
-        if(i<=hoursCount){
-          // colored block
-          html+=`<td style="background:#7ecae7;"></td>`;
-        } else {
-          html+=`<td></td>`;
-        }
+    chartDataMain.push({ user:u.name, hours:(hoursCount>44?44:hoursCount) });
+
+    for(let i=1;i<=44;i++){
+      if(i<=hoursCount){
+        html+=`<td style="background:#7ecae7;"></td>`;
+      } else {
+        html+=`<td></td>`;
       }
-      html+=`</tr>`;
-    });
-  }
+    }
+    html+=`</tr>`;
+  });
   html+=`</tbody></table>`;
   cargasSectionContainer.innerHTML= html;
+
+  // Horas Extras => 1..12
+  let html2=`<table><thead><tr><th>Usuarios</th>`;
+  for(let i=1;i<=12;i++){
+    html2+=`<th>${i}</th>`;
+  }
+  html2+=`</tr></thead><tbody>`;
+  let chartDataExtras=[];
+  allUsers.forEach(u=>{
+    let totalMin= userHoursMap[u.email.toLowerCase()]||0;
+    let hoursCount= Math.floor(totalMin/60);
+    let extras= hoursCount>44? (hoursCount-44) : 0;
+
+    html2+=`<tr><td>${u.name}</td>`;
+    chartDataExtras.push({ user:u.name, hours: extras});
+    for(let i=1;i<=12;i++){
+      if(i<=extras){
+        html2+=`<td style="background:#fa8ecb;"></td>`;
+      } else {
+        html2+=`<td></td>`;
+      }
+    }
+    html2+=`</tr>`;
+  });
+  html2+=`</tbody></table>`;
+  extrasTableContainer.innerHTML= html2;
+
+  // Render horizontal bar charts
+  buildCargasBarChart(chartDataMain, chartDataExtras);
 }
 function parseHHMMtoMinutes(hhmm){
   if(!hhmm)return 0;
@@ -1318,9 +1375,63 @@ function parseHHMMtoMinutes(hhmm){
 }
 
 // ===========================================================
-//  UTILS
+//  HORIZONTAL BARS => CARGAS
 // ===========================================================
-function toggleFilters(){
+function buildCargasBarChart(mainData, extrasData){
+  // mainData => array of { user, hours }
+  // extrasData => array of { user, hours }
+  const ctxMain= document.getElementById("cargasBarCanvas");
+  const ctxExtras= document.getElementById("extrasBarCanvas");
+  if(!ctxMain || !ctxExtras)return;
+
+  // Para un bar horizontal => "indexAxis: 'y'"
+  let labels1= mainData.map(x=> x.user);
+  let data1= mainData.map(x=> x.hours);
+  new Chart(ctxMain, {
+    type:"bar",
+    data:{
+      labels: labels1,
+      datasets:[{
+        label: "Horas (0..44)",
+        data: data1,
+        backgroundColor:"#7ecae7"
+      }]
+    },
+    options:{
+      indexAxis:"y",
+      responsive:true,
+      scales:{
+        x:{ min:0, max:44}
+      }
+    }
+  });
+
+  let labels2= extrasData.map(x=> x.user);
+  let data2= extrasData.map(x=> x.hours);
+  new Chart(ctxExtras, {
+    type:"bar",
+    data:{
+      labels: labels2,
+      datasets:[{
+        label:"Horas Extras (1..12)",
+        data: data2,
+        backgroundColor:"#fa8ecb"
+      }]
+    },
+    options:{
+      indexAxis:"y",
+      responsive:true,
+      scales:{
+        x:{ min:0, max:12}
+      }
+    }
+  });
+}
+
+// ===========================================================
+//  FILTROS => Export
+// ===========================================================
+export function toggleFilters(){
   if(!filtersContainer)return;
   if(filtersContainer.style.display==="none"){
     filtersContainer.style.display="flex";
@@ -1330,7 +1441,7 @@ function toggleFilters(){
     toggleFiltersBtn.textContent="+";
   }
 }
-function toggleTaskBox(){
+export function toggleTaskBox(){
   if(!taskCreationDiv)return;
   if(taskCreationDiv.style.display==="none"){
     taskCreationDiv.style.display="block";
@@ -1340,43 +1451,49 @@ function toggleTaskBox(){
     toggleTaskBoxBtn.textContent="+";
   }
 }
-function formatDDMMYYYY(yyyy_mm_dd){
-  if(!yyyy_mm_dd)return "";
-  const [y,m,d]= yyyy_mm_dd.split("-");
-  return `${d}-${m}-${y}`;
-}
-function parseDateDMY(dd_mm_yyyy){
-  if(!dd_mm_yyyy)return null;
-  const [d,m,y]= dd_mm_yyyy.split("-");
-  return new Date(parseInt(y), parseInt(m)-1, parseInt(d));
-}
-function getNextMonday(baseDate){
-  const d= new Date(baseDate);
-  while(d.getDay()!==1){
-    d.setDate(d.getDate()+1);
-  }
-  return d;
-}
-function calcBusinessDaysDiff(fromDate,toDate){
-  if(!fromDate||!toDate)return 9999;
-  let start= new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
-  let end= new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
-  let invert=1;
-  if(end<start){
-    invert=-1;
-    let tmp=start; start=end; end=tmp;
-  }
-  let days=0;
-  let current= new Date(start);
-  while(current<=end){
-    const dow= current.getDay();
-    if(dow!==0 && dow!==6){
-      days++;
-    }
-    current.setDate(current.getDate()+1);
-  }
-  return (days-1)*invert;
-}
 
-// Exponemos para chart.js
-export { currentRole, currentUser };
+// ===========================================================
+//  HISTORIAL
+// ===========================================================
+async function loadHistory(){
+  historyTableBody.innerHTML="Cargando...";
+  try{
+    const qRef= query(collection(db,"history"), orderBy("date","desc"));
+    const snap= await getDocs(qRef);
+    let html="";
+    snap.forEach(docu=>{
+      const h= docu.data();
+      const dStr= h.date? new Date(h.date.toDate()).toLocaleDateString("es-CL"):"";
+      html+=`
+      <tr>
+        <td>${h.taskId||""}</td>
+        <td>${h.responsible||""}</td>
+        <td>${h.activity||""}</td>
+        <td>${h.company||""}</td>
+        <td>${h.group||""}</td>
+        <td>${h.action||""} (por ${h.userEmail||"?"})</td>
+        <td>${dStr}</td>
+      </tr>`;
+    });
+    if(!html) html="<tr><td colspan='7'>Sin historial</td></tr>";
+    historyTableBody.innerHTML= html;
+  }catch(e){
+    console.error("Error loadHistory:", e);
+    historyTableBody.innerHTML=`<tr><td colspan='7'>Error: ${e.message}</td></tr>`;
+  }
+}
+async function clearHistory(){
+  if(!confirm("¿Borrar TODO el historial?"))return;
+  try{
+    const qRef= query(collection(db,"history"));
+    const snap= await getDocs(qRef);
+    for(const docu of snap.docs){
+      await deleteDoc(docu.ref);
+    }
+    alert("Historial borrado.");
+    loadHistory();
+  }catch(e){
+    console.error("Error al borrar historial:", e);
+    alert("Error al borrar historial: "+ e.message);
+  }
+}
