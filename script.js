@@ -1452,48 +1452,4 @@ export function toggleTaskBox(){
   }
 }
 
-// ===========================================================
-//  HISTORIAL
-// ===========================================================
-async function loadHistory(){
-  historyTableBody.innerHTML="Cargando...";
-  try{
-    const qRef= query(collection(db,"history"), orderBy("date","desc"));
-    const snap= await getDocs(qRef);
-    let html="";
-    snap.forEach(docu=>{
-      const h= docu.data();
-      const dStr= h.date? new Date(h.date.toDate()).toLocaleDateString("es-CL"):"";
-      html+=`
-      <tr>
-        <td>${h.taskId||""}</td>
-        <td>${h.responsible||""}</td>
-        <td>${h.activity||""}</td>
-        <td>${h.company||""}</td>
-        <td>${h.group||""}</td>
-        <td>${h.action||""} (por ${h.userEmail||"?"})</td>
-        <td>${dStr}</td>
-      </tr>`;
-    });
-    if(!html) html="<tr><td colspan='7'>Sin historial</td></tr>";
-    historyTableBody.innerHTML= html;
-  }catch(e){
-    console.error("Error loadHistory:", e);
-    historyTableBody.innerHTML=`<tr><td colspan='7'>Error: ${e.message}</td></tr>`;
-  }
-}
-async function clearHistory(){
-  if(!confirm("¿Borrar TODO el historial?"))return;
-  try{
-    const qRef= query(collection(db,"history"));
-    const snap= await getDocs(qRef);
-    for(const docu of snap.docs){
-      await deleteDoc(docu.ref);
-    }
-    alert("Historial borrado.");
-    loadHistory();
-  }catch(e){
-    console.error("Error al borrar historial:", e);
-    alert("Error al borrar historial: "+ e.message);
-  }
-}
+
