@@ -21,9 +21,9 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-// ===========================================================
-//  CONFIG
-// ===========================================================
+//===================================================
+// Config
+//===================================================
 const firebaseConfig = {
   apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
   authDomain: "control-tarea-gq.firebaseapp.com",
@@ -37,42 +37,43 @@ initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-// ===========================================================
-export let allTasks = []; // Usado también por chart.js
-let currentUser = null;
+//===================================================
+export let allTasks = [];
 export let currentRole = null;
+let currentUser = null;
+let editTaskId = null;
 let currentSortKey = null;
 let currentSortDir = 1;
-let editTaskId = null;
 let currentCommentTaskId = null;
 
-export const TASK_STATES = [
+const TASK_STATES = [
   "Asignado","En proceso","Por revisar","Reportar","Finalizado",
   "SII","Municipalidad","Tesoreria","BPO","Cliente"
 ];
 const COMMENT_STATES = ["pendiente","completado","en revisión"];
 const DEFAULT_ROLE = "consultor";
 
-// ===========================================================
-//  DOM
-// ===========================================================
+//===================================================
+// DOM
+//===================================================
 const authSection = document.getElementById("authSection");
 const loginFooter = document.getElementById("loginFooter");
 
 const sidebar = document.getElementById("sidebar");
 const btnTareas = document.getElementById("btnTareas");
 const btnFinalizadas = document.getElementById("btnFinalizadas");
-const btnUsuarios = document.getElementById("btnUsuarios");
-const btnHistorial = document.getElementById("btnHistorial");
 const btnInforme = document.getElementById("btnInforme");
 const btnCargas = document.getElementById("btnCargas");
+const btnUsuarios = document.getElementById("btnUsuarios");
+const btnHistorial = document.getElementById("btnHistorial");
+const btnLogout = document.getElementById("btnLogout");
 
 const dashboardSection = document.getElementById("dashboardSection");
 const finalTasksSection = document.getElementById("finalTasksSection");
-const adminUsersSection = document.getElementById("adminUsersSection");
-const historySection = document.getElementById("historySection");
 const reportSection = document.getElementById("reportSection");
 const cargasSection = document.getElementById("cargasSection");
+const adminUsersSection = document.getElementById("adminUsersSection");
+const historySection = document.getElementById("historySection");
 
 const userEmailSpan = document.getElementById("userEmail");
 const userRoleSpan = document.getElementById("userRole");
@@ -91,11 +92,13 @@ const chkExcludeGrupo = document.getElementById("chkExcludeGrupo");
 const btnAplicarFiltros = document.getElementById("btnAplicarFiltros");
 const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
 
-// Crear Tarea
+// Tareas
 const toggleTaskBoxBtn = document.getElementById("toggleTaskBoxBtn");
 const taskCreationDiv = document.getElementById("taskCreation");
 const frmTareaTitle = document.getElementById("frmTareaTitle");
+
 const newUserSelect = document.getElementById("newUserSelect");
+const newRevisorSelect = document.getElementById("newRevisorSelect");
 const newTaskName = document.getElementById("newTaskName");
 const newEmpresa = document.getElementById("newEmpresa");
 const newGrupo = document.getElementById("newGrupo");
@@ -121,57 +124,40 @@ const usersTableBody = document.getElementById("usersBody");
 const historyTableBody = document.getElementById("historyBody");
 const btnClearHistory = document.getElementById("btnClearHistory");
 
-// Cargas Horarias
-const cargasSectionContainer = document.getElementById("cargasTableContainer");
-const extrasTableContainer = document.getElementById("extrasTableContainer");
+//===================================================
+// DOMContentLoaded
+//===================================================
+document.addEventListener("DOMContentLoaded", ()=>{
+  // Auth form
+  const authForm= document.getElementById("authForm");
+  authForm.addEventListener("submit", e=> e.preventDefault());
 
-// Auth
-const authForm = document.getElementById("authForm");
-const emailInput = document.getElementById("email");
-const passInput = document.getElementById("password");
-const btnRegister = document.getElementById("btnRegister");
-const btnLogin = document.getElementById("btnLogin");
-const authMessage = document.getElementById("authMessage");
-const btnLogout = document.getElementById("btnLogout");
-
-// ===========================================================
-//  DOMContentLoaded
-// ===========================================================
-document.addEventListener("DOMContentLoaded", () => {
-  authForm.addEventListener("submit", e => e.preventDefault());
   btnRegister.addEventListener("click", registerUser);
   btnLogin.addEventListener("click", loginUser);
-  btnLogout.addEventListener("click", () => signOut(auth));
+  btnLogout.addEventListener("click", ()=> signOut(auth));
 
   createTaskBtn.addEventListener("click", handleTaskForm);
 
-  btnTareas.addEventListener("click", () => {
-    showSection("dashboard");
-  });
-  btnFinalizadas.addEventListener("click", () => {
+  btnTareas.addEventListener("click", ()=> showSection("dashboard"));
+  btnFinalizadas.addEventListener("click", ()=> {
     showSection("finalTasks");
     renderFinalTasks(allTasks);
   });
-  btnUsuarios.addEventListener("click", () => {
+  btnInforme.addEventListener("click", ()=> showSection("report"));
+  btnCargas.addEventListener("click", ()=> {
+    showSection("cargas");
+    buildCargasStacked();
+  });
+  btnUsuarios.addEventListener("click", ()=> {
     showSection("adminUsers");
     loadAllUsers();
   });
-  btnHistorial.addEventListener("click", () => {
+  btnHistorial.addEventListener("click", ()=> {
     showSection("history");
     loadHistory();
   });
-  btnInforme.addEventListener("click", () => {
-    showSection("report");
-  });
-  btnCargas.addEventListener("click", () => {
-    showSection("cargas");
-    buildCargasHorarias();
-  });
 
-  btnClearHistory?.addEventListener("click", clearHistory);
-
-  btnAplicarFiltros.addEventListener("click", aplicarFiltros);
-  btnLimpiarFiltros.addEventListener("click", limpiarFiltros);
+  btnClearHistory.addEventListener("click", clearHistory);
 
   addCommentBtn.addEventListener("click", addNewComment);
   closeCommentsBtn.addEventListener("click", closeCommentsPanel);
@@ -179,89 +165,92 @@ document.addEventListener("DOMContentLoaded", () => {
   toggleFiltersBtn.addEventListener("click", toggleFilters);
   toggleTaskBoxBtn.addEventListener("click", toggleTaskBox);
 
-  // Ordenar la tabla principal
-  const thsTasks = document.querySelectorAll("#tasksTable thead th[data-sortkey]");
-  thsTasks.forEach(th => {
-    th.addEventListener("click", () => {
-      const sortKey = th.getAttribute("data-sortkey");
-      if (sortKey === currentSortKey) {
-        currentSortDir *= -1;
+  // Ordenar Tareas
+  const thsTasks= document.querySelectorAll("#tasksTable thead th[data-sortkey]");
+  thsTasks.forEach(th=>{
+    th.addEventListener("click", ()=>{
+      const sortKey= th.getAttribute("data-sortkey");
+      if(sortKey=== currentSortKey){
+        currentSortDir*= -1;
       } else {
-        currentSortKey = sortKey;
-        currentSortDir = 1;
+        currentSortKey= sortKey;
+        currentSortDir=1;
       }
       renderTasks(allTasks);
     });
   });
-  // Ordenar la tabla final
-  const thsFinal = document.querySelectorAll("#finalTasksTable thead th[data-sortkey]");
-  thsFinal.forEach(th => {
-    th.addEventListener("click", () => {
-      const sortKey = th.getAttribute("data-sortkey");
-      if (sortKey === currentSortKey) {
-        currentSortDir *= -1;
+  // Ordenar Final
+  const thsFinal= document.querySelectorAll("#finalTasksTable thead th[data-sortkey]");
+  thsFinal.forEach(th=>{
+    th.addEventListener("click", ()=>{
+      const sortKey= th.getAttribute("data-sortkey");
+      if(sortKey=== currentSortKey){
+        currentSortDir*= -1;
       } else {
-        currentSortKey = sortKey;
-        currentSortDir = 1;
+        currentSortKey= sortKey;
+        currentSortDir=1;
       }
       renderFinalTasks(allTasks);
     });
   });
+
+  btnAplicarFiltros.addEventListener("click", aplicarFiltros);
+  btnLimpiarFiltros.addEventListener("click", limpiarFiltros);
 });
 
-// ===========================================================
-//  onAuthStateChanged
-// ===========================================================
-onAuthStateChanged(auth, async user => {
-  if (user) {
-    currentUser = user;
-    const userRef = doc(db, "users", user.uid);
-    const snap = await getDoc(userRef);
-    if (snap.exists()) {
-      currentRole = snap.data().role;
-    } else {
+//===================================================
+// onAuthStateChanged
+//===================================================
+onAuthStateChanged(auth, async user=>{
+  if(user){
+    const userRef= doc(db,"users", user.uid);
+    const snap= await getDoc(userRef);
+    if(snap.exists()){
+      currentRole= snap.data().role;
+    }else{
       await setDoc(userRef, { role: DEFAULT_ROLE, email: user.email.toLowerCase() });
-      currentRole = DEFAULT_ROLE;
+      currentRole= DEFAULT_ROLE;
     }
+    currentUser= user;
 
-    authSection.style.display = "none";
-    loginFooter.style.display = "none";
-    sidebar.style.display = "flex";
+    authSection.style.display="none";
+    loginFooter.style.display="none";
+    sidebar.style.display="flex";
     showSection("dashboard");
 
-    userEmailSpan.textContent = user.email || "";
-    userRoleSpan.textContent = currentRole || "";
+    userEmailSpan.textContent= user.email||"";
+    userRoleSpan.textContent= currentRole||"";
 
-    // Botones
-    btnFinalizadas.style.display = "inline-block";
-    if (currentRole === "admin") {
-      btnUsuarios.style.display = "inline-block";
-    } else {
-      btnUsuarios.style.display = "none";
-    }
-    if (["senior","supervisor","admin"].includes(currentRole)) {
-      btnHistorial.style.display="inline-block";
-    } else {
-      btnHistorial.style.display="none";
-    }
+    // Buttons
+    btnFinalizadas.style.display="inline-block";
     btnInforme.style.display="inline-block";
     btnCargas.style.display="inline-block";
 
+    if(currentRole==="admin"){
+      btnUsuarios.style.display="inline-block";
+    }else{
+      btnUsuarios.style.display="none";
+    }
+    if(["senior","supervisor","admin"].includes(currentRole)){
+      btnHistorial.style.display="inline-block";
+    }else{
+      btnHistorial.style.display="none";
+    }
     if(["admin","supervisor"].includes(currentRole)){
       btnClearHistory.style.display="inline-block";
     } else {
       btnClearHistory.style.display="none";
     }
 
-    // consultor => oculta select de "Responsable"
-    if (currentRole==="consultor") {
+    // consultor => no ver newUserSelect
+    if(currentRole==="consultor"){
       document.getElementById("lblResp").style.display="none";
       newUserSelect.style.display="none";
       filterResponsableSelect.value="";
       document.getElementById("rowFilterResponsable").style.display="none";
       document.getElementById("thRespHeader").textContent="";
       document.getElementById("thRespHeaderFinal").textContent="";
-    } else {
+    }else{
       document.getElementById("lblResp").style.display="inline-block";
       newUserSelect.style.display="inline-block";
       document.getElementById("rowFilterResponsable").style.display="flex";
@@ -270,72 +259,76 @@ onAuthStateChanged(auth, async user => {
       await loadUserNamesToSelect(newUserSelect);
     }
 
+    // Revisor
+    await loadUserNamesToSelect(newRevisorSelect);
     await loadUserNamesToSelect(filterResponsableSelect);
 
     listenTasks();
-  } else {
-    currentUser = null;
-    currentRole = null;
-    authSection.style.display = "block";
-    loginFooter.style.display = "block";
-    sidebar.style.display = "none";
+  }else{
+    currentUser=null; currentRole=null;
+    authSection.style.display="block";
+    loginFooter.style.display="block";
+    sidebar.style.display="none";
     showSection("none");
   }
 });
 
-// ===========================================================
-//  Helpers para mostrar secciones
-// ===========================================================
+//===================================================
+// Helpers show/hide sections
+//===================================================
 function showSection(name){
   dashboardSection.style.display="none";
   finalTasksSection.style.display="none";
-  adminUsersSection.style.display="none";
-  historySection.style.display="none";
   reportSection.style.display="none";
   cargasSection.style.display="none";
-
+  adminUsersSection.style.display="none";
+  historySection.style.display="none";
   switch(name){
     case "dashboard": dashboardSection.style.display="block"; break;
     case "finalTasks": finalTasksSection.style.display="block"; break;
-    case "adminUsers": adminUsersSection.style.display="block"; break;
-    case "history": historySection.style.display="block"; break;
     case "report": reportSection.style.display="block"; break;
     case "cargas": cargasSection.style.display="block"; break;
+    case "adminUsers": adminUsersSection.style.display="block"; break;
+    case "history": historySection.style.display="block"; break;
     default: break;
   }
 }
 
-// ===========================================================
-//  LOGIN / REGISTER
-// ===========================================================
-async function registerUser() {
-  if (!emailInput.value.trim() || !passInput.value.trim()) {
-    authMessage.textContent = "Por favor, llena todos los campos.";
+//===================================================
+// LOGIN / REGISTER
+//===================================================
+async function registerUser(){
+  const email= emailInput.value.trim();
+  const pass= passInput.value.trim();
+  if(!email||!pass){
+    authMessage.textContent="Por favor, llena todos los campos.";
     return;
   }
-  try {
-    await createUserWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value.trim());
-  } catch (err) {
-    authMessage.textContent = `Error al crear usuario: ${err.message}`;
+  try{
+    await createUserWithEmailAndPassword(auth, email, pass);
+  }catch(e){
+    authMessage.textContent=`Error al crear usuario: ${e.message}`;
   }
 }
-async function loginUser() {
-  if (!emailInput.value.trim() || !passInput.value.trim()) {
-    authMessage.textContent = "Por favor, llena todos los campos.";
+async function loginUser(){
+  const email= emailInput.value.trim();
+  const pass= passInput.value.trim();
+  if(!email||!pass){
+    authMessage.textContent="Por favor, llena todos los campos.";
     return;
   }
-  try {
-    await signInWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value.trim());
-  } catch (err) {
-    authMessage.textContent = `Error al iniciar sesión: ${err.message}`;
+  try{
+    await signInWithEmailAndPassword(auth, email, pass);
+  }catch(e){
+    authMessage.textContent=`Error al iniciar sesión: ${e.message}`;
   }
 }
 
-// ===========================================================
-//  loadUserNamesToSelect => para combos
-// ===========================================================
+//===================================================
+// loadUserNamesToSelect
+//===================================================
 async function loadUserNamesToSelect(selectEl){
-  if(!selectEl) return;
+  if(!selectEl)return;
   selectEl.innerHTML= `<option value="">(Todos)</option>`;
   try{
     const snap= await getDocs(collection(db,"users"));
@@ -343,49 +336,50 @@ async function loadUserNamesToSelect(selectEl){
       const dt= docu.data();
       const nm= dt.name|| dt.email||"";
       if(nm){
-        const opt= document.createElement("option");
+        let opt=document.createElement("option");
         opt.value= nm;
         opt.textContent= nm;
         selectEl.appendChild(opt);
       }
     });
-  } catch(e){
+  }catch(e){
     console.error("Error loadUserNamesToSelect:", e);
   }
 }
 
-// ===========================================================
-//  CREAR / EDITAR TAREA
-// ===========================================================
-async function handleTaskForm() {
-  let respName= "";
+//===================================================
+// CREAR / EDITAR TAREA
+//===================================================
+async function handleTaskForm(){
+  // 1) Nombre responsable
+  let respName="";
   if(currentRole==="consultor"){
     // auto
     const userRef= doc(db,"users", currentUser.uid);
-    const userSnap= await getDoc(userRef);
-    if(userSnap.exists() && userSnap.data().name){
-      respName= userSnap.data().name;
+    const snap= await getDoc(userRef);
+    if(snap.exists() && snap.data().name){
+      respName= snap.data().name;
     } else {
       respName= currentUser.email;
     }
-  } else {
+  }else{
     respName= newUserSelect.value.trim();
   }
+  // 2) Nombre revisor
+  let revisorName= newRevisorSelect.value.trim();
 
-  const activityName= newTaskName.value.trim();
-  if(!activityName){
+  const act= newTaskName.value.trim();
+  if(!act){
     alert("Completa la 'Actividad'.");
     return;
   }
-
-  // valid horas => HH:MM
-  const horasVal= newHoras.value.trim();
-  if(!/^(\d{1,2}):(\d{2})$/.test(horasVal)) {
+  // Horas => HH:MM
+  const hhmm= newHoras.value.trim();
+  if(!/^(\d{1,2}):(\d{2})$/.test(hhmm)){
     alert("Las horas deben tener formato HH:MM.");
     return;
   }
-
-  try {
+  try{
     let assignedEmail=null;
     if(currentRole==="consultor"){
       assignedEmail= currentUser.email;
@@ -399,6 +393,12 @@ async function handleTaskForm() {
         alert("No existe un usuario con Nombre: "+respName);
         return;
       }
+    }
+    // revisor => email
+    let revisorEmail="";
+    if(revisorName){
+      const revEmail= await findEmailByName(revisorName);
+      if(revEmail) revisorEmail= revEmail;
     }
 
     const colRef= collection(db,"tasks");
@@ -419,18 +419,19 @@ async function handleTaskForm() {
     let nextId= oldId>0? oldId: maxId+1;
 
     if(editTaskId){
-      // Update
-      const oldSnap= await getDoc(doc(db,"tasks",editTaskId));
-      const oldData= oldSnap.exists()? oldSnap.data():{};
+      const oldDoc= await getDoc(doc(db,"tasks", editTaskId));
+      const oldData= oldDoc.exists()? oldDoc.data():{};
       const newData= {
         idTarea: nextId,
         userName: respName,
+        revisorName: revisorName,
+        revisorEmail: revisorEmail,
         assignedTo: assignedEmail,
-        name: activityName,
+        name: act,
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
-        horasAsignadas: horasVal,
+        horasAsignadas: hhmm,
         fechaEntrega: newFechaEntrega.value|| null
       };
       await updateDoc(doc(db,"tasks", editTaskId), newData);
@@ -438,64 +439,68 @@ async function handleTaskForm() {
 
       // Historial
       let changes=[];
-      for(let k of ["userName","name","empresa","grupoCliente","folioProyecto","horasAsignadas","fechaEntrega"]){
+      for(const k of ["userName","revisorName","name","empresa","grupoCliente","folioProyecto","horasAsignadas","fechaEntrega"]){
         const oldVal= oldData[k]||"";
         const newVal= newData[k]||"";
         if(oldVal!== newVal){
           changes.push(`${k}: "${oldVal}" => "${newVal}"`);
         }
       }
-      if(changes.length===0) changes.push("Sin cambios detectados");
+      if(changes.length===0) changes.push("Sin cambios");
       await addDoc(collection(db,"history"), {
         taskId: nextId,
         responsible: respName,
-        activity: activityName,
+        activity: act,
         company: newData.empresa,
         group: newData.grupoCliente,
-        action: `Editó la tarea (${changes.join(", ")})`,
+        action:`Editó la tarea (${changes.join(", ")})`,
         date: new Date(),
         userEmail: currentUser.email
       });
 
       clearTaskForm();
     } else {
-      // Create
+      // create
       const newTask= {
         idTarea: nextId,
         fechaAsignacion: new Date().toLocaleDateString("es-CL"),
         fechaEntrega: newFechaEntrega.value|| null,
         userName: respName,
+        revisorName: revisorName,
+        revisorEmail: revisorEmail,
         assignedTo: assignedEmail,
-        name: activityName,
+        name: act,
         empresa: newEmpresa.value.trim(),
         grupoCliente: newGrupo.value.trim(),
         folioProyecto: newFolio.value.trim(),
-        horasAsignadas: horasVal,
-        status: "Asignado",
-        createdAt: new Date(),
+        horasAsignadas: hhmm,
+        status:"Asignado",
+        createdAt:new Date(),
         createdBy: currentUser.uid
       };
-      await addDoc(colRef,newTask);
+      await addDoc(colRef, newTask);
       alert("Tarea creada.");
 
-      await addDoc(collection(db,"history"), {
+      await addDoc(collection(db,"history"),{
         taskId: nextId,
         responsible: respName,
-        activity: activityName,
+        activity: act,
         company: newTask.empresa,
         group: newTask.grupoCliente,
-        action: "Creó la tarea",
-        date: new Date(),
+        action:"Creó la tarea",
+        date:new Date(),
         userEmail: currentUser.email
       });
       clearTaskForm();
     }
-  } catch(e){
+
+  }catch(e){
     console.error("Error al crear/editar tarea:", e);
   }
 }
 function clearTaskForm(){
   newUserSelect.value="";
+  newRevisorSelect.value="";
   newTaskName.value="";
   newEmpresa.value="";
   newGrupo.value="";
@@ -509,22 +514,22 @@ function clearTaskForm(){
 async function findEmailByName(name){
   const snap= await getDocs(collection(db,"users"));
   for(const docu of snap.docs){
-    const dt= docu.data();
-    if((dt.name||"").toLowerCase()=== name.toLowerCase()){
-      return dt.email;
+    const d= docu.data();
+    if((d.name||"").toLowerCase()=== name.toLowerCase()){
+      return d.email;
     }
   }
   return null;
 }
 
-// ===========================================================
-//  LISTEN TASKS
-// ===========================================================
+//===================================================
+// LISTEN
+//===================================================
 function listenTasks(){
   const colRef= collection(db,"tasks");
-  onSnapshot(colRef, snapshot=>{
+  onSnapshot(colRef, snap=>{
     let temp=[];
-    snapshot.forEach(docu=>{
+    snap.forEach(docu=>{
       temp.push({...docu.data(), docId: docu.id});
     });
     allTasks= temp;
@@ -533,9 +538,9 @@ function listenTasks(){
   });
 }
 
-// ===========================================================
-//  RENDER TASKS (no finalizadas)
-// ===========================================================
+//===================================================
+// RENDER TAREAS
+//===================================================
 export function renderTasks(tasksArray){
   tasksTableBody.innerHTML="";
   let arr= tasksArray.filter(t=> t.status!=="Finalizado");
@@ -545,8 +550,8 @@ export function renderTasks(tasksArray){
   let sorted= arr.slice();
   if(currentSortKey){
     sorted= sorted.sort((a,b)=>{
-      let va=a[currentSortKey];
-      let vb=b[currentSortKey];
+      let va= a[currentSortKey];
+      let vb= b[currentSortKey];
       if(va && va.toDate) va= va.toDate();
       if(vb && vb.toDate) vb= vb.toDate();
       if(typeof va==="string") va= va.toLowerCase();
@@ -556,56 +561,59 @@ export function renderTasks(tasksArray){
       return 0;
     });
   }
-  const filtered= filtrarDash(sorted);
-  filtered.forEach(task=>{
+  const fil= filtrarDash(sorted);
+
+  fil.forEach(task=>{
     const tr= document.createElement("tr");
 
-    // col1 => Responsable
-    const tdResp= document.createElement("td");
-    if(currentRole==="consultor"){
-      tdResp.textContent= "";
-    } else {
-      tdResp.textContent= task.userName||"";
-    }
-    tr.appendChild(tdResp);
+    // col1 => responsable
+    let td1= document.createElement("td");
+    if(currentRole==="consultor") td1.textContent= "";
+    else td1.textContent= task.userName||"";
+    tr.appendChild(td1);
 
-    // ID
-    const tdId= document.createElement("td");
-    tdId.textContent= task.idTarea||"N/A";
-    tr.appendChild(tdId);
+    // col2 => revisor
+    let td2= document.createElement("td");
+    td2.textContent= task.revisorName||"";
+    tr.appendChild(td2);
 
-    // Fecha asig
-    const tdFA= document.createElement("td");
-    tdFA.textContent= task.fechaAsignacion||"--";
-    tr.appendChild(tdFA);
+    // col3 => id
+    let td3= document.createElement("td");
+    td3.textContent= task.idTarea||"N/A";
+    tr.appendChild(td3);
 
-    // Fecha ent
-    const tdFE= document.createElement("td");
+    // col4 => asig
+    let td4= document.createElement("td");
+    td4.textContent= task.fechaAsignacion||"--";
+    tr.appendChild(td4);
+
+    // col5 => ent
+    let td5= document.createElement("td");
     if(task.fechaEntrega){
-      const formatted= formatDDMMYYYY(task.fechaEntrega);
+      const f= formatDDMMYYYY(task.fechaEntrega);
       let diff=0;
       if(task.status==="Finalizado"){
         diff=0;
-        tdFE.textContent=`${formatted} (0)`;
+        td5.textContent= `${f} (0)`;
       } else {
-        diff= calcBusinessDaysDiff(new Date(), parseDateDMY(formatted));
-        tdFE.textContent=`${formatted} (${diff})`;
-        if(diff<=2) tdFE.classList.add("fecha-rojo");
-        else if(diff<=5) tdFE.classList.add("fecha-naranjo");
-        else if(diff<=8) tdFE.classList.add("fecha-amarillo");
-        else if(diff<=11) tdFE.classList.add("fecha-verde");
-        else tdFE.classList.add("fecha-azul");
+        diff= calcBusinessDaysDiff(new Date(), parseDateDMY(f));
+        td5.textContent= `${f} (${diff})`;
+        if(diff<=2) td5.classList.add("fecha-rojo");
+        else if(diff<=5) td5.classList.add("fecha-naranjo");
+        else if(diff<=8) td5.classList.add("fecha-amarillo");
+        else if(diff<=11) td5.classList.add("fecha-verde");
+        else td5.classList.add("fecha-azul");
       }
-    } else tdFE.textContent="";
-    tr.appendChild(tdFE);
+    } else td5.textContent="";
+    tr.appendChild(td5);
 
-    // Actividad
-    let tdAct= document.createElement("td");
-    tdAct.textContent= task.name||"";
-    tr.appendChild(tdAct);
+    // col6 => actividad
+    let td6= document.createElement("td");
+    td6.textContent= task.name||"";
+    tr.appendChild(td6);
 
-    // Estado
-    let tdEst= document.createElement("td");
+    // col7 => estado
+    let td7= document.createElement("td");
     let sel= document.createElement("select");
     let possible= TASK_STATES.slice();
     if(currentRole==="consultor"){
@@ -622,20 +630,19 @@ export function renderTasks(tasksArray){
       }
     }
     possible.forEach(st=>{
-      let o=document.createElement("option");
+      let o= document.createElement("option");
       o.value= st;
       o.textContent= st;
-      if(st=== task.status) o.selected=true;
+      if(st=== task.status) o.selected= true;
       sel.appendChild(o);
     });
     sel.addEventListener("change", async()=>{
       const newSt= sel.value;
       if(newSt==="Finalizado" && task.status!=="Finalizado"){
         if(!confirm("¿Estás seguro de poner estado Finalizado?")){
-          sel.value= task.status;
-          return;
+          sel.value= task.status; return;
         }
-        await updateDoc(doc(db,"tasks",task.docId), { lastCommentAt:new Date() });
+        await updateDoc(doc(db,"tasks", task.docId), { lastCommentAt:new Date() });
       }
       if(currentRole==="consultor" && newSt==="Por revisar" && task.status!=="Por revisar"){
         if(!confirm("¿Pasar a 'Por revisar'?")) {
@@ -643,78 +650,84 @@ export function renderTasks(tasksArray){
         }
       }
       if(currentRole==="senior" && newSt==="Reportar" && task.status!=="Reportar"){
-        if(!confirm("¿Pasar a 'Reportar'?")){
+        if(!confirm("¿Pasar a 'Reportar'?")) {
           sel.value= task.status; return;
         }
       }
       if(newSt==="SII"){
         alert("Recuerda anotar Folio y Fiscalizador en comentarios");
-        let baseDate=new Date();
-        if(task.lastCommentAt && task.lastCommentAt.toDate) baseDate= task.lastCommentAt.toDate();
+        let baseDate= new Date();
+        if(task.lastCommentAt && task.lastCommentAt.toDate){
+          baseDate= task.lastCommentAt.toDate();
+        }
         const nm= getNextMonday(baseDate);
         const y= nm.getFullYear();
         const m= String(nm.getMonth()+1).padStart(2,'0');
         const d= String(nm.getDate()).padStart(2,'0');
-        const iso=`${y}-${m}-${d}`;
-        await updateDoc(doc(db,"tasks",task.docId), { fechaEntrega: iso });
+        await updateDoc(doc(db,"tasks", task.docId), {
+          fechaEntrega: `${y}-${m}-${d}`
+        });
       }
       if(newSt==="Tesoreria"){
         alert("Recuerda revisar cada semana");
-        let baseDate=new Date();
-        if(task.lastCommentAt && task.lastCommentAt.toDate) baseDate= task.lastCommentAt.toDate();
+        let baseDate= new Date();
+        if(task.lastCommentAt && task.lastCommentAt.toDate){
+          baseDate= task.lastCommentAt.toDate();
+        }
         const nm= getNextMonday(baseDate);
         const y= nm.getFullYear();
         const m= String(nm.getMonth()+1).padStart(2,'0');
         const d= String(nm.getDate()).padStart(2,'0');
-        const iso=`${y}-${m}-${d}`;
-        await updateDoc(doc(db,"tasks",task.docId), { fechaEntrega: iso });
+        await updateDoc(doc(db,"tasks", task.docId), {
+          fechaEntrega: `${y}-${m}-${d}`
+        });
       }
 
       if(!canChangeStatus(currentRole, task.status, newSt)){
         alert("No tienes permiso para ese cambio.");
         sel.value= task.status;
       } else {
-        await updateDoc(doc(db,"tasks",task.docId), { status:newSt });
+        await updateDoc(doc(db,"tasks", task.docId),{ status:newSt });
       }
     });
-    tdEst.appendChild(sel);
+    td7.appendChild(sel);
     let ind= document.createElement("span");
     ind.classList.add("status-indicator");
     let lowered= (task.status||"").toLowerCase().replace(" ","-");
     ind.classList.add(`status-${lowered}`);
-    tdEst.appendChild(ind);
-    tr.appendChild(tdEst);
+    td7.appendChild(ind);
+    tr.appendChild(td7);
 
-    // Empresa
-    let tdE= document.createElement("td");
-    tdE.textContent= task.empresa||"";
-    tr.appendChild(tdE);
+    // col8 => empresa
+    let td8= document.createElement("td");
+    td8.textContent= task.empresa||"";
+    tr.appendChild(td8);
 
-    // Grupo
-    let tdG= document.createElement("td");
-    tdG.textContent= task.grupoCliente||"";
-    tr.appendChild(tdG);
+    // col9 => grupo
+    let td9= document.createElement("td");
+    td9.textContent= task.grupoCliente||"";
+    tr.appendChild(td9);
 
-    // Folio
-    let tdF= document.createElement("td");
-    tdF.textContent= task.folioProyecto||"";
-    tr.appendChild(tdF);
+    // col10 => folio
+    let td10= document.createElement("td");
+    td10.textContent= task.folioProyecto||"";
+    tr.appendChild(td10);
 
-    // Horas
-    let tdH= document.createElement("td");
-    tdH.textContent= task.horasAsignadas||"";
-    tr.appendChild(tdH);
+    // col11 => horas
+    let td11= document.createElement("td");
+    td11.textContent= task.horasAsignadas||"";
+    tr.appendChild(td11);
 
-    // ultima => solo fecha
-    let tdU= document.createElement("td");
+    // col12 => ultima
+    let td12= document.createElement("td");
     if(task.lastCommentAt && task.lastCommentAt.toDate){
-      let dd= task.lastCommentAt.toDate();
-      tdU.textContent= dd.toLocaleDateString("es-CL");
-    } else tdU.textContent="--";
-    tr.appendChild(tdU);
+      td12.textContent= task.lastCommentAt.toDate().toLocaleDateString("es-CL");
+    } else td12.textContent="--";
+    tr.appendChild(td12);
 
-    // Acciones => consultor tambien ve
-    let tdC= document.createElement("td");
+    // col13 => acciones
+    let td13= document.createElement("td");
+    // Edit
     let bEd= document.createElement("button");
     bEd.classList.add("action-btn");
     bEd.innerHTML="✎";
@@ -725,6 +738,7 @@ export function renderTasks(tasksArray){
       createTaskBtn.textContent= "Actualizar Tarea";
 
       newUserSelect.value= task.userName||"";
+      newRevisorSelect.value= task.revisorName||"";
       newTaskName.value= task.name||"";
       newEmpresa.value= task.empresa||"";
       newGrupo.value= task.grupoCliente||"";
@@ -732,13 +746,13 @@ export function renderTasks(tasksArray){
       newHoras.value= task.horasAsignadas||"";
       newFechaEntrega.value= task.fechaEntrega||"";
     });
-    tdC.appendChild(bEd);
-
+    td13.appendChild(bEd);
+    // Del
     let bDel= document.createElement("button");
     bDel.classList.add("action-btn");
     bDel.innerHTML="🗑";
-    bDel.title="Eliminar Tarea";
     bDel.style.marginLeft="5px";
+    bDel.title="Eliminar Tarea";
     bDel.addEventListener("click", async()=>{
       if(!confirm("¿Deseas eliminar la tarea?"))return;
       await addDoc(collection(db,"history"),{
@@ -753,27 +767,24 @@ export function renderTasks(tasksArray){
       });
       await deleteDoc(doc(db,"tasks",task.docId));
     });
-    tdC.appendChild(bDel);
-
+    td13.appendChild(bDel);
+    // Comments
     let bCom= document.createElement("button");
     bCom.classList.add("action-btn");
     bCom.innerHTML="💬";
-    bCom.title="Comentarios";
     bCom.style.marginLeft="5px";
-    bCom.addEventListener("click", ()=>{
+    bCom.title="Comentarios";
+    bCom.addEventListener("click",()=>{
       openCommentsPanel(task.docId, task.idTarea);
     });
-    tdC.appendChild(bCom);
+    td13.appendChild(bCom);
+    tr.appendChild(td13);
 
-    tr.appendChild(tdC);
-
+    // col14 => assigned email => hidden
     tasksTableBody.appendChild(tr);
   });
 }
 
-// ===========================================================
-//  RENDER FINAL
-// ===========================================================
 export function renderFinalTasks(tasksArray){
   finalTasksBody.innerHTML="";
   let arr= tasksArray.filter(t=> t.status==="Finalizado");
@@ -783,8 +794,8 @@ export function renderFinalTasks(tasksArray){
   let sorted= arr.slice();
   if(currentSortKey){
     sorted= sorted.sort((a,b)=>{
-      let va=a[currentSortKey];
-      let vb=b[currentSortKey];
+      let va= a[currentSortKey];
+      let vb= b[currentSortKey];
       if(va && va.toDate) va= va.toDate();
       if(vb && vb.toDate) vb= vb.toDate();
       if(typeof va==="string") va= va.toLowerCase();
@@ -797,84 +808,99 @@ export function renderFinalTasks(tasksArray){
   sorted.forEach(task=>{
     let tr= document.createElement("tr");
 
-    let tdR= document.createElement("td");
-    if(currentRole==="consultor") tdR.textContent="";
-    else tdR.textContent= task.userName||"";
-    tr.appendChild(tdR);
+    // resp
+    let td1= document.createElement("td");
+    if(currentRole==="consultor") td1.textContent="";
+    else td1.textContent= task.userName||"";
+    tr.appendChild(td1);
 
-    let tdI= document.createElement("td");
-    tdI.textContent= task.idTarea||"N/A";
-    tr.appendChild(tdI);
+    // revisor
+    let td2= document.createElement("td");
+    td2.textContent= task.revisorName||"";
+    tr.appendChild(td2);
 
-    let tdFA= document.createElement("td");
-    tdFA.textContent= task.fechaAsignacion||"--";
-    tr.appendChild(tdFA);
+    // id
+    let td3= document.createElement("td");
+    td3.textContent= task.idTarea||"N/A";
+    tr.appendChild(td3);
 
-    let tdFE= document.createElement("td");
+    // asig
+    let td4= document.createElement("td");
+    td4.textContent= task.fechaAsignacion||"--";
+    tr.appendChild(td4);
+
+    // ent
+    let td5= document.createElement("td");
     if(task.fechaEntrega){
-      const formatted= formatDDMMYYYY(task.fechaEntrega);
-      tdFE.textContent= `${formatted} (0)`;
-    } else {
-      tdFE.textContent="";
-    }
-    tr.appendChild(tdFE);
+      const f= formatDDMMYYYY(task.fechaEntrega);
+      td5.textContent= `${f} (0)`;
+    }else td5.textContent="";
+    tr.appendChild(td5);
 
-    let tdAc= document.createElement("td");
-    tdAc.textContent= task.name||"";
-    tr.appendChild(tdAc);
+    // act
+    let td6= document.createElement("td");
+    td6.textContent= task.name||"";
+    tr.appendChild(td6);
 
-    let tdEs= document.createElement("td");
+    // est
+    let td7= document.createElement("td");
     let sel= document.createElement("select");
     TASK_STATES.forEach(st=>{
       let o= document.createElement("option");
       o.value= st;
       o.textContent= st;
-      if(st===task.status) o.selected=true;
+      if(st=== task.status) o.selected=true;
       sel.appendChild(o);
     });
     sel.addEventListener("change", async()=>{
       const newSt= sel.value;
       if(newSt!=="Finalizado"){
-        if(!canChangeStatus(currentRole,"Finalizado", newSt)){
+        if(!canChangeStatus(currentRole,"Finalizado",newSt)){
           alert("No tienes permiso para ese cambio.");
           sel.value="Finalizado";
           return;
         }
-        await updateDoc(doc(db,"tasks", task.docId), { status:newSt });
+        await updateDoc(doc(db,"tasks",task.docId), {status:newSt});
         showSection("dashboard");
       }
     });
-    tdEs.appendChild(sel);
+    td7.appendChild(sel);
     let ind= document.createElement("span");
     ind.classList.add("status-indicator");
     let lowered= (task.status||"").toLowerCase().replace(" ","-");
     ind.classList.add(`status-${lowered}`);
-    tdEs.appendChild(ind);
-    tr.appendChild(tdEs);
+    td7.appendChild(ind);
+    tr.appendChild(td7);
 
-    let tdEm= document.createElement("td");
-    tdEm.textContent= task.empresa||"";
-    tr.appendChild(tdEm);
+    // emp
+    let td8= document.createElement("td");
+    td8.textContent= task.empresa||"";
+    tr.appendChild(td8);
 
-    let tdG= document.createElement("td");
-    tdG.textContent= task.grupoCliente||"";
-    tr.appendChild(tdG);
+    // grp
+    let td9= document.createElement("td");
+    td9.textContent= task.grupoCliente||"";
+    tr.appendChild(td9);
 
-    let tdF= document.createElement("td");
-    tdF.textContent= task.folioProyecto||"";
-    tr.appendChild(tdF);
+    // folio
+    let td10= document.createElement("td");
+    td10.textContent= task.folioProyecto||"";
+    tr.appendChild(td10);
 
-    let tdH= document.createElement("td");
-    tdH.textContent= task.horasAsignadas||"";
-    tr.appendChild(tdH);
+    // hrs
+    let td11= document.createElement("td");
+    td11.textContent= task.horasAsignadas||"";
+    tr.appendChild(td11);
 
-    let tdU= document.createElement("td");
+    // last comm
+    let td12= document.createElement("td");
     if(task.lastCommentAt && task.lastCommentAt.toDate){
-      tdU.textContent= task.lastCommentAt.toDate().toLocaleDateString("es-CL");
-    } else tdU.textContent="--";
-    tr.appendChild(tdU);
+      td12.textContent= task.lastCommentAt.toDate().toLocaleDateString("es-CL");
+    } else td12.textContent="--";
+    tr.appendChild(td12);
 
-    let tdC= document.createElement("td");
+    // acciones
+    let td13= document.createElement("td");
     let bEd= document.createElement("button");
     bEd.classList.add("action-btn");
     bEd.innerHTML="✎";
@@ -885,6 +911,7 @@ export function renderFinalTasks(tasksArray){
       createTaskBtn.textContent= "Actualizar Tarea";
 
       newUserSelect.value= task.userName||"";
+      newRevisorSelect.value= task.revisorName||"";
       newTaskName.value= task.name||"";
       newEmpresa.value= task.empresa||"";
       newGrupo.value= task.grupoCliente||"";
@@ -894,28 +921,28 @@ export function renderFinalTasks(tasksArray){
 
       showSection("dashboard");
     });
-    tdC.appendChild(bEd);
+    td13.appendChild(bEd);
 
     let bDel= document.createElement("button");
     bDel.classList.add("action-btn");
     bDel.innerHTML="🗑";
     bDel.title="Eliminar Tarea";
     bDel.style.marginLeft="5px";
-    bDel.addEventListener("click",async()=>{
-      if(!confirm("¿Deseas eliminar la tarea?"))return;
-      await addDoc(collection(db,"history"),{
+    bDel.addEventListener("click", async()=>{
+      if(!confirm("¿Deseas eliminar la tarea?")) return;
+      await addDoc(collection(db,"history"), {
         taskId: task.idTarea||-1,
         responsible: task.userName,
         activity: task.name,
         company: task.empresa,
         group: task.grupoCliente,
-        action:"Eliminó la tarea",
+        action: "Eliminó la tarea",
         date:new Date(),
         userEmail: currentUser.email
       });
       await deleteDoc(doc(db,"tasks", task.docId));
     });
-    tdC.appendChild(bDel);
+    td13.appendChild(bDel);
 
     let bCom= document.createElement("button");
     bCom.classList.add("action-btn");
@@ -925,17 +952,17 @@ export function renderFinalTasks(tasksArray){
     bCom.addEventListener("click",()=>{
       openCommentsPanel(task.docId, task.idTarea);
     });
-    tdC.appendChild(bCom);
+    td13.appendChild(bCom);
 
-    tr.appendChild(tdC);
+    tr.appendChild(td13);
 
     finalTasksBody.appendChild(tr);
   });
 }
 
-// ===========================================================
-//  FILTROS
-// ===========================================================
+//===================================================
+// Filtrar
+//===================================================
 export function aplicarFiltros(){
   renderTasks(allTasks);
 }
@@ -959,44 +986,43 @@ function filtrarDash(arr){
   const exEmp= chkExcludeEmpresa.checked;
   const valGru= filterGrupo.value.trim().toLowerCase();
   const exGru= chkExcludeGrupo.checked;
-
   return arr.filter(t=>{
     if(valResp){
-      const match=(t.userName||"").toLowerCase().includes(valResp);
-      if(exResp && match) return false;
-      if(!exResp && !match) return false;
+      const match= (t.userName||"").toLowerCase().includes(valResp);
+      if(exResp && match)return false;
+      if(!exResp && !match)return false;
     }
     if(valEst){
-      const match=(t.status||"").toLowerCase().includes(valEst);
-      if(exEst && match) return false;
-      if(!exEst && !match) return false;
+      const match= (t.status||"").toLowerCase().includes(valEst);
+      if(exEst && match)return false;
+      if(!exEst && !match)return false;
     }
     if(valEmp){
-      const match=(t.empresa||"").toLowerCase().includes(valEmp);
-      if(exEmp && match) return false;
-      if(!exEmp && !match) return false;
+      const match= (t.empresa||"").toLowerCase().includes(valEmp);
+      if(exEmp && match)return false;
+      if(!exEmp && !match)return false;
     }
     if(valGru){
-      const match=(t.grupoCliente||"").toLowerCase().includes(valGru);
-      if(exGru && match) return false;
-      if(!exGru && !match) return false;
+      const match= (t.grupoCliente||"").toLowerCase().includes(valGru);
+      if(exGru && match)return false;
+      if(!exGru && !match)return false;
     }
     return true;
   });
 }
 
-// ===========================================================
-//  canChangeStatus
-// ===========================================================
-function canChangeStatus(role, currentSt, newSt){
+//===================================================
+// canChangeStatus
+//===================================================
+function canChangeStatus(role,currentSt,newSt){
   if(role==="senior"){
-    if(newSt==="Finalizado" && currentSt!=="Finalizado") return false;
-    if(["Finalizado","Reportar"].includes(currentSt)) return false;
+    if(newSt==="Finalizado" && currentSt!=="Finalizado")return false;
+    if(["Finalizado","Reportar"].includes(currentSt))return false;
     return true;
   }
   if(role==="consultor"){
-    if(["Finalizado","Reportar","Por revisar"].includes(currentSt)) return false;
-    if(["Finalizado","Reportar"].includes(newSt)) return false;
+    if(["Finalizado","Reportar","Por revisar"].includes(currentSt))return false;
+    if(["Finalizado","Reportar"].includes(newSt))return false;
     return true;
   }
   return true;
@@ -1039,13 +1065,13 @@ function calcBusinessDaysDiff(fromDate,toDate){
   return (days-1)*invert;
 }
 
-// ===========================================================
-//  COMENTARIOS
-// ===========================================================
+//===================================================
+// COMENTARIOS
+//===================================================
 export function openCommentsPanel(taskDocId, tareaId){
   currentCommentTaskId= taskDocId;
   commentTaskIdSpan.textContent= tareaId||"N/A";
-  commentsPanel.style.display= "block";
+  commentsPanel.style.display="block";
   loadComments(taskDocId);
 }
 async function loadComments(taskDocId){
@@ -1055,36 +1081,41 @@ async function loadComments(taskDocId){
   const snap= await getDocs(qRef);
   let commentData=[];
   snap.forEach(docu=>{
-    commentData.push({ id: docu.id, ...docu.data()});
+    commentData.push({ id: docu.id, ...docu.data() });
   });
+  if(commentData.length===0){
+    commentsListDiv.innerHTML="<p>Sin comentarios</p>";
+    return;
+  }
   let html="";
   commentData.forEach(c=>{
-    const dateStr= c.createdAt? new Date(c.createdAt.toDate()).toLocaleDateString("es-CL") : "";
+    const dateStr= c.createdAt? new Date(c.createdAt.toDate()).toLocaleDateString("es-CL"):"";
     const cStat= c.commentStatus|| "pendiente";
     let commentIndicator= `<span class="status-comment-${cStat.replace(" ","-")}"></span>`;
-
-    let selCommentStatus= `<select data-cid="${c.id}" onchange="changeCommentStatus(this)">`;
+    let selState= `<select data-cid="${c.id}" onchange="changeCommentStatus(this)">`;
     COMMENT_STATES.forEach(st=>{
-      selCommentStatus += `<option value="${st}" ${st===cStat?"selected":""}>${st}</option>`;
+      selState+= `<option value="${st}" ${st===cStat?"selected":""}>${st}</option>`;
     });
-    selCommentStatus += `</select>`;
+    selState+="</select>";
 
-    let isAuthor= (c.authorUid=== (currentUser?.uid||""));
-    let canEditDelete= isAuthor;
+    const isAuthor=(c.authorUid=== (currentUser?.uid||""));
+    let canEditDel=isAuthor;  // senior, sup, admin => verButtons => se vuelve a permitir
+    if(["senior","supervisor","admin"].includes(currentRole)) canEditDel=true;
 
     html+= `<div class="comment-item">`;
-    html+= `<div class="comment-author">${commentIndicator}<b>${c.authorEmail||"?"}</b> - ${selCommentStatus}</div>`;
+    html+= `<div class="comment-author">${commentIndicator}<b>${c.authorEmail||"?"}</b> - ${selState}</div>`;
     html+= `<div class="comment-text" style="margin-left:1rem;">${c.text||""}</div>`;
     html+= `<div class="comment-date" style="font-size:0.8rem;color:#888; margin-left:1rem;">${dateStr}</div>`;
-    if(canEditDelete){
+    if(canEditDel){
       html+= `<div class="comment-actions" style="margin-left:1rem;">`;
-      html+= `<button onclick="editComment('${c.id}')">Editar</button>`;
+      if(isAuthor){
+        html+= `<button onclick="editComment('${c.id}')">Editar</button>`;
+      }
       html+= `<button style="margin-left:5px;" onclick="deleteComment('${c.id}')">Eliminar</button>`;
-      html+=`</div>`;
+      html+= `</div>`;
     }
-    html+=`</div>`;
+    html+= `</div>`;
   });
-  if(!html) html="<p>Sin comentarios</p>";
   commentsListDiv.innerHTML= html;
 }
 export async function addNewComment(){
@@ -1095,23 +1126,22 @@ export async function addNewComment(){
     return;
   }
   try{
-    let userName= currentUser.email;
-    let userUid= currentUser.uid;
-    const userSnap= await getDoc(doc(db,"users", currentUser.uid));
-    if(userSnap.exists()){
-      const dt= userSnap.data();
-      if(dt.name) userName= dt.name;
+    let authorEmail= currentUser.email;
+    let authorUid= currentUser.uid;
+    const usr= await getDoc(doc(db,"users", authorUid));
+    if(usr.exists() && usr.data().name){
+      authorEmail= usr.data().name;
     }
     const cRef= collection(db,"tasks", currentCommentTaskId,"comments");
     await addDoc(cRef,{
       text,
-      authorEmail: userName,
-      authorUid: userUid,
+      authorEmail,
+      authorUid,
       createdAt:new Date(),
       commentStatus:"pendiente"
     });
-    await updateDoc(doc(db,"tasks", currentCommentTaskId),{
-      lastCommentAt:new Date()
+    await updateDoc(doc(db,"tasks", currentCommentTaskId), {
+      lastCommentAt: new Date()
     });
     commentTextArea.value="";
     loadComments(currentCommentTaskId);
@@ -1122,18 +1152,17 @@ export async function addNewComment(){
 export function closeCommentsPanel(){
   commentsPanel.style.display="none";
   currentCommentTaskId=null;
-  commentsListDiv.innerHTML="";
   commentTextArea.value="";
+  commentsListDiv.innerHTML="";
 }
 window.closeCommentsPanel= closeCommentsPanel;
 window.addNewComment= addNewComment;
-
 window.editComment= async function(commentId){
   if(!currentCommentTaskId)return;
-  const newText= prompt("Editar comentario:");
+  let newText= prompt("Editar comentario:");
   if(!newText)return;
   try{
-    await updateDoc(doc(db,"tasks", currentCommentTaskId,"comments",commentId),{
+    await updateDoc(doc(db,"tasks", currentCommentTaskId,"comments", commentId),{
       text:newText
     });
     await updateDoc(doc(db,"tasks", currentCommentTaskId),{
@@ -1141,7 +1170,7 @@ window.editComment= async function(commentId){
     });
     loadComments(currentCommentTaskId);
   }catch(e){
-    console.error("Error editando comentario:", e);
+    console.error("Error al editar comentario:", e);
     alert("Error al editar: "+ e.message);
   }
 };
@@ -1149,98 +1178,86 @@ window.deleteComment= async function(commentId){
   if(!currentCommentTaskId)return;
   if(!confirm("¿Eliminar este comentario?"))return;
   try{
-    await deleteDoc(doc(db,"tasks", currentCommentTaskId,"comments",commentId));
+    await deleteDoc(doc(db,"tasks", currentCommentTaskId,"comments", commentId));
     loadComments(currentCommentTaskId);
   }catch(e){
     console.error("Error al eliminar comentario:", e);
     alert("Error al eliminar: "+ e.message);
   }
 };
-window.changeCommentStatus= async function(selectEl){
+window.changeCommentStatus= async function(selEl){
   if(!currentCommentTaskId)return;
-  const cid= selectEl.getAttribute("data-cid");
-  const newVal= selectEl.value;
+  const cid= selEl.getAttribute("data-cid");
+  const newVal= selEl.value;
   try{
     await updateDoc(doc(db,"tasks", currentCommentTaskId,"comments",cid),{
       commentStatus:newVal
     });
     loadComments(currentCommentTaskId);
   }catch(e){
-    console.error("Error al cambiar estado cmt:", e);
-    alert("Error al cambiar estado: "+ e.message);
+    console.error("Error al cambiar estado comentario:", e);
+    alert("Error al cambiar estado cmt: "+ e.message);
   }
 };
 
-// ===========================================================
-//  ADMIN => loadAllUsers
-// ===========================================================
+//===================================================
+// ADMIN => loadAllUsers
+//===================================================
 async function loadAllUsers(){
-  usersTableBody.innerHTML="";
+  usersTableBody.innerHTML="Cargando...";
   try{
     const snap= await getDocs(collection(db,"users"));
+    let html="";
     snap.forEach(docu=>{
-      const data= docu.data();
-      const tr= document.createElement("tr");
-
-      // Email
-      const tdEmail= document.createElement("td");
-      tdEmail.textContent= data.email||docu.id;
-      tr.appendChild(tdEmail);
-
-      // Nombre => input c/confirm
-      const tdName= document.createElement("td");
-      const inp= document.createElement("input");
-      inp.type="text";
-      inp.value= data.name||"";
-      inp.addEventListener("change", async()=>{
-        if(!confirm("¿Cambiar Nombre Usuario?")){
-          inp.value= data.name||"";
-          return;
-        }
-        await updateDoc(doc(db,"users",docu.id), { name: inp.value });
-        data.name= inp.value;
-      });
-      tdName.appendChild(inp);
-      tr.appendChild(tdName);
-
-      // Rol
-      const tdRole= document.createElement("td");
-      tdRole.textContent= data.role||"consultor";
-      tr.appendChild(tdRole);
-
-      // Cambiar Rol
-      const tdChange= document.createElement("td");
-      const sRole= document.createElement("select");
-      ["consultor","senior","supervisor","admin"].forEach(r=>{
-        const opt= document.createElement("option");
-        opt.value= r;
-        opt.textContent= r;
-        if(r=== data.role) opt.selected=true;
-        sRole.appendChild(opt);
-      });
-      sRole.addEventListener("change", async()=>{
-        if(!confirm("¿Cambiar Rol de Usuario?")){
-          sRole.value= data.role;
-          return;
-        }
-        await updateDoc(doc(db,"users",docu.id), { role: sRole.value });
-        data.role= sRole.value;
-        tdRole.textContent= sRole.value;
-      });
-      tdChange.appendChild(sRole);
-      tr.appendChild(tdChange);
-
-      usersTableBody.appendChild(tr);
+      const dt= docu.data();
+      const e= dt.email||docu.id;
+      const n= dt.name|| dt.email||"";
+      const r= dt.role||"consultor";
+      html+= `<tr>
+        <td>${e}</td>
+        <td><input type="text" value="${n}" onchange="changeUserName('${docu.id}', this.value, '${n}')"/></td>
+        <td>${r}</td>
+        <td><select onchange="changeUserRole('${docu.id}', this.value, '${r}')">
+          <option value="consultor" ${r==="consultor"?"selected":""}>consultor</option>
+          <option value="senior" ${r==="senior"?"selected":""}>senior</option>
+          <option value="supervisor" ${r==="supervisor"?"selected":""}>supervisor</option>
+          <option value="admin" ${r==="admin"?"selected":""}>admin</option>
+        </select></td>
+      </tr>`;
     });
+    if(!html) html="<tr><td colspan='4'>Sin Usuarios</td></tr>";
+    usersTableBody.innerHTML= html;
   }catch(e){
     console.error("Error loadAllUsers:", e);
     usersTableBody.innerHTML=`<tr><td colspan="4">Error: ${e.message}</td></tr>`;
   }
 }
+window.changeUserName= async function(uid, newVal, oldVal){
+  if(!confirm("¿Cambiar Nombre de Usuario?")){
+    return;
+  }
+  try{
+    await updateDoc(doc(db,"users", uid),{ name:newVal });
+  }catch(e){
+    console.error("Error actualizando name:", e);
+    alert("Error: "+ e.message);
+  }
+};
+window.changeUserRole= async function(uid, newVal, oldVal){
+  if(!confirm("¿Cambiar Rol de Usuario?")){
+    return;
+  }
+  try{
+    await updateDoc(doc(db,"users", uid),{ role:newVal });
+  }catch(e){
+    console.error("Error cambiando rol:", e);
+    alert("Error: "+ e.message);
+  }
+};
 
-// ===========================================================
-//  HISTORIAL
-// ===========================================================
+//===================================================
+// HISTORIAL
+//===================================================
 async function loadHistory(){
   historyTableBody.innerHTML="Cargando...";
   try{
@@ -1250,8 +1267,7 @@ async function loadHistory(){
     snap.forEach(docu=>{
       const h= docu.data();
       const dStr= h.date? new Date(h.date.toDate()).toLocaleDateString("es-CL"):"";
-      html+=`
-      <tr>
+      html+= `<tr>
         <td>${h.taskId||""}</td>
         <td>${h.responsible||""}</td>
         <td>${h.activity||""}</td>
@@ -1284,155 +1300,10 @@ async function clearHistory(){
   }
 }
 
-// ===========================================================
-//  CARGAS HORARIAS
-// ===========================================================
-export async function buildCargasHorarias(){
-  cargasSectionContainer.innerHTML="Cargando Cargas Horarias...";
-  extrasTableContainer.innerHTML="";
-  // 1) Leer todos los usuarios
-  const usersSnap= await getDocs(collection(db,"users"));
-  let allUsers=[];
-  usersSnap.forEach(d=>{
-    const dt= d.data();
-    allUsers.push({ uid: d.id, email: dt.email||"", name: dt.name||dt.email||"", role: dt.role||"consultor" });
-  });
-  // 2) Summar hours from allTasks (not final), by user email
-  let userHoursMap={}; // key => sum en minutos
-  allUsers.forEach(u=>{
-    userHoursMap[u.email.toLowerCase()] = 0; // init
-  });
-  allTasks.forEach(t=>{
-    if(t.status!=="Finalizado"){
-      const assignedEmail= (t.assignedTo||"").toLowerCase();
-      if(typeof userHoursMap[assignedEmail]!=="undefined"){
-        let totalMin= parseHHMMtoMinutes(t.horasAsignadas||"0:00");
-        userHoursMap[assignedEmail]+= totalMin;
-      }
-    }
-  });
-
-  // 3) Con totalMin convert => hours => 44 + extras
-  let html=`<table><thead><tr><th>Usuario</th>`;
-  for(let i=1;i<=44;i++){
-    html+=`<th>${i}</th>`;
-  }
-  html+=`</tr></thead><tbody>`;
-  let chartDataMain=[]; // para el grafico horizontal principal
-  allUsers.forEach(u=>{
-    html+=`<tr><td>${u.name}</td>`;
-    let totalMin= userHoursMap[u.email.toLowerCase()]||0;
-    let hoursCount= Math.floor(totalMin/60);
-
-    chartDataMain.push({ user:u.name, hours:(hoursCount>44?44:hoursCount) });
-
-    for(let i=1;i<=44;i++){
-      if(i<=hoursCount){
-        html+=`<td style="background:#7ecae7;"></td>`;
-      } else {
-        html+=`<td></td>`;
-      }
-    }
-    html+=`</tr>`;
-  });
-  html+=`</tbody></table>`;
-  cargasSectionContainer.innerHTML= html;
-
-  // Horas Extras => 1..12
-  let html2=`<table><thead><tr><th>Usuarios</th>`;
-  for(let i=1;i<=12;i++){
-    html2+=`<th>${i}</th>`;
-  }
-  html2+=`</tr></thead><tbody>`;
-  let chartDataExtras=[];
-  allUsers.forEach(u=>{
-    let totalMin= userHoursMap[u.email.toLowerCase()]||0;
-    let hoursCount= Math.floor(totalMin/60);
-    let extras= hoursCount>44? (hoursCount-44) : 0;
-
-    html2+=`<tr><td>${u.name}</td>`;
-    chartDataExtras.push({ user:u.name, hours: extras});
-    for(let i=1;i<=12;i++){
-      if(i<=extras){
-        html2+=`<td style="background:#fa8ecb;"></td>`;
-      } else {
-        html2+=`<td></td>`;
-      }
-    }
-    html2+=`</tr>`;
-  });
-  html2+=`</tbody></table>`;
-  extrasTableContainer.innerHTML= html2;
-
-  // Render horizontal bar charts
-  buildCargasBarChart(chartDataMain, chartDataExtras);
-}
-function parseHHMMtoMinutes(hhmm){
-  if(!hhmm)return 0;
-  let [h,m]= hhmm.split(":");
-  let hh= parseInt(h)||0, mm= parseInt(m)||0;
-  return hh*60 + mm;
-}
-
-// ===========================================================
-//  HORIZONTAL BARS => CARGAS
-// ===========================================================
-function buildCargasBarChart(mainData, extrasData){
-  // mainData => array of { user, hours }
-  // extrasData => array of { user, hours }
-  const ctxMain= document.getElementById("cargasBarCanvas");
-  const ctxExtras= document.getElementById("extrasBarCanvas");
-  if(!ctxMain || !ctxExtras)return;
-
-  // Para un bar horizontal => "indexAxis: 'y'"
-  let labels1= mainData.map(x=> x.user);
-  let data1= mainData.map(x=> x.hours);
-  new Chart(ctxMain, {
-    type:"bar",
-    data:{
-      labels: labels1,
-      datasets:[{
-        label: "Horas (0..44)",
-        data: data1,
-        backgroundColor:"#7ecae7"
-      }]
-    },
-    options:{
-      indexAxis:"y",
-      responsive:true,
-      scales:{
-        x:{ min:0, max:44}
-      }
-    }
-  });
-
-  let labels2= extrasData.map(x=> x.user);
-  let data2= extrasData.map(x=> x.hours);
-  new Chart(ctxExtras, {
-    type:"bar",
-    data:{
-      labels: labels2,
-      datasets:[{
-        label:"Horas Extras (1..12)",
-        data: data2,
-        backgroundColor:"#fa8ecb"
-      }]
-    },
-    options:{
-      indexAxis:"y",
-      responsive:true,
-      scales:{
-        x:{ min:0, max:12}
-      }
-    }
-  });
-}
-
-// ===========================================================
-//  FILTROS => Export
-// ===========================================================
+//===================================================
+//  toggle filters / taskbox
+//===================================================
 export function toggleFilters(){
-  if(!filtersContainer)return;
   if(filtersContainer.style.display==="none"){
     filtersContainer.style.display="flex";
     toggleFiltersBtn.textContent="-";
@@ -1442,7 +1313,6 @@ export function toggleFilters(){
   }
 }
 export function toggleTaskBox(){
-  if(!taskCreationDiv)return;
   if(taskCreationDiv.style.display==="none"){
     taskCreationDiv.style.display="block";
     toggleTaskBoxBtn.textContent="-";
@@ -1452,4 +1322,133 @@ export function toggleTaskBox(){
   }
 }
 
+//===================================================
+//  CARGAS => sin tablas, solo stacked bars
+//===================================================
+export async function buildCargasStacked(){
+  // leer usuarios
+  let userList=[];
+  const snap= await getDocs(collection(db,"users"));
+  snap.forEach(d=>{
+    const dt= d.data();
+    userList.push({
+      email: dt.email||d.id,
+      name: dt.name|| dt.email||"",
+      role: dt.role||"consultor"
+    });
+  });
+  // Filtrar tasks que no esten final
+  let tasksActivas= allTasks.filter(t=> t.status!=="Finalizado");
+  // para cada user => un stacked con las sumas en min
+  // divididas por estado
 
+  // *Armar un diccionario: user => {estado => totalMin}
+  let userMap={};
+  userList.forEach(u=>{
+    userMap[u.email.toLowerCase()]= {};
+    TASK_STATES.forEach(st=>{
+      userMap[u.email.toLowerCase()][st]=0;
+    });
+  });
+
+  tasksActivas.forEach(t=>{
+    const assigned= (t.assignedTo||"").toLowerCase();
+    if(userMap[assigned]){
+      let st= t.status||"Asignado";
+      let totalMin= parseHHMMtoMin(t.horasAsignadas||"0:00");
+      userMap[assigned][st]+= totalMin;
+    }
+  });
+  // *Pasar a dataset => ejes horizontales
+  // Queremos un stacked => indexAxis:'y'
+  // ejes => users en Y, las "series" => cada estado (except Finalizado)
+  let statesToShow= TASK_STATES.filter(s=> s!=="Finalizado");
+  let userLabels= userList.map(u=> u.name);
+  // data => 1 dataset por estado
+  let datasets= statesToShow.map(st=>{
+    let dataRow= userList.map(u=>{
+      const assigned= u.email.toLowerCase();
+      return userMap[assigned][st]/60; // hrs
+    });
+    return {
+      label: st,
+      data: dataRow,
+      backgroundColor: stateColor(st)
+    };
+  });
+
+  // chart 1 => ancho 150% => en index.html se puso style
+  const canvas1= document.getElementById("cargasStackedCanvas");
+  if(!canvas1)return;
+  new Chart(canvas1, {
+    type:"bar",
+    data:{
+      labels: userLabels,
+      datasets: datasets
+    },
+    options:{
+      responsive:true,
+      indexAxis:"y",
+      scales:{
+        x:{ stacked:true },
+        y:{ stacked:true }
+      }
+    }
+  });
+
+  // Horas Extras => 50% smaller => "extrasStackedCanvas"
+  // Similar => si pasa de 44 => extras
+  let userExtras= userList.map(u=>{
+    let sumMin=0; // sum all states
+    for(const s of statesToShow){
+      sumMin+= userMap[u.email.toLowerCase()][s];
+    }
+    let hrs= sumMin/60;
+    let extras= hrs>44? hrs-44: 0;
+    return extras;
+  });
+  let extrasDS= {
+    label: "Horas Extras",
+    data: userExtras,
+    backgroundColor:"#fa8ecb"
+  };
+  const canvas2= document.getElementById("extrasStackedCanvas");
+  if(canvas2){
+    new Chart(canvas2, {
+      type:"bar",
+      data:{
+        labels: userLabels,
+        datasets:[ extrasDS ]
+      },
+      options:{
+        indexAxis:"y",
+        responsive:true,
+        scales:{
+          x:{ min:0 },
+          y:{ }
+        }
+      }
+    });
+  }
+}
+function parseHHMMtoMin(str){
+  if(!str)return 0;
+  let [h,m]= str.split(":");
+  let hh= parseInt(h)||0;
+  let mm= parseInt(m)||0;
+  return hh*60+ mm;
+}
+function stateColor(st){
+  switch(st){
+    case "Asignado": return "#cccccc";
+    case "En proceso": return "#00bfff";
+    case "Por revisar": return "#ffc107";
+    case "Reportar": return "#ff5722";
+    case "SII": return "#3f51b5";
+    case "Municipalidad": return "#9c27b0";
+    case "Tesoreria": return "#8bc34a";
+    case "BPO": return "#795548";
+    case "Cliente": return "#8b8b8b";
+  }
+  return "#999";
+}

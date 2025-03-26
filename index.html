@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Control Tarea GQ</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Chart.js CDN -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -32,7 +32,7 @@
       </div>
     </section>
 
-    <!-- Barra lateral (sticky) -->
+    <!-- Barra lateral -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">📁 Tareas</button>
       <button id="btnFinalizadas" style="display:none;">✅ Tareas Finalizadas</button>
@@ -59,9 +59,7 @@
         <div class="filters-container" id="filtersContainer">
           <div class="filter-row" id="rowFilterResponsable">
             <div class="form-inline">
-              <select id="filterResponsableSelect">
-                <option value="">(Todos)</option>
-              </select>
+              <select id="filterResponsableSelect"></select>
               <label><input type="checkbox" id="chkExcludeAsignado" />Excluir</label>
             </div>
             <div class="form-inline">
@@ -93,13 +91,24 @@
           <button id="toggleTaskBoxBtn">-</button>
         </div>
         <div id="taskCreation" style="display:block; margin-top:0.5rem;">
-          <!-- Responsable (solo si NO es consultor se muestra) -->
+
+          <!-- (1) Responsable -->
           <div class="form-inline" id="rowRespInput">
             <label id="lblResp" style="width:90px;">Responsable:</label>
             <select id="newUserSelect" style="width:130px;">
               <option value="">Seleccione</option>
             </select>
           </div>
+
+          <!-- (2) Revisor (similar a newUserSelect) -->
+          <div class="form-inline" id="rowRevisorInput">
+            <label style="width:90px;">Revisor:</label>
+            <select id="newRevisorSelect" style="width:130px;">
+              <option value="">Seleccione</option>
+            </select>
+          </div>
+
+          <!-- Actividad, Empresa, Grupo, Folio, Horas, FechaEnt -->
           <div class="form-inline">
             <label style="width:70px;">Actividad:</label>
             <input type="text" id="newTaskName" style="width:120px;" />
@@ -126,19 +135,33 @@
         <table id="tasksTable">
           <thead>
             <tr>
+              <!-- 1) Responsable -->
               <th data-sortkey="userName" id="thRespHeader">Responsable</th>
+              <!-- 2) Revisor -->
+              <th data-sortkey="revisorName" id="thRevisorHeader">Revisor</th>
+              <!-- 3) ID Tarea -->
               <th data-sortkey="idTarea">ID Tarea</th>
+              <!-- 4) Fecha Asignación -->
               <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
+              <!-- 5) Fecha Entrega -->
               <th data-sortkey="fechaEntrega">Fecha de Entrega</th>
+              <!-- 6) Actividad -->
               <th data-sortkey="name">Actividad</th>
+              <!-- 7) Estado -->
               <th data-sortkey="status">Estado</th>
+              <!-- 8) Empresa -->
               <th data-sortkey="empresa">Empresa</th>
+              <!-- 9) Grupo -->
               <th data-sortkey="grupoCliente">Grupo</th>
+              <!-- 10) Folio -->
               <th data-sortkey="folioProyecto">Folio</th>
+              <!-- 11) Horas -->
               <th data-sortkey="horasAsignadas">Horas</th>
+              <!-- 12) Ultima Actividad -->
               <th data-sortkey="lastCommentAt">Última actividad</th>
+              <!-- 13) Acciones -->
               <th>Acciones</th>
-              <!-- colAsignado oculta a todos -->
+              <!-- col Asignado a -->
               <th class="colAsignado" style="display:none;">Asignado (email)</th>
             </tr>
           </thead>
@@ -155,6 +178,7 @@
           <thead>
             <tr>
               <th data-sortkey="userName" id="thRespHeaderFinal">Responsable</th>
+              <th data-sortkey="revisorName" id="thRevisorHeaderFinal">Revisor</th>
               <th data-sortkey="idTarea">ID Tarea</th>
               <th data-sortkey="fechaAsignacion">Fecha Asignación</th>
               <th data-sortkey="fechaEntrega">Fecha de Entrega</th>
@@ -173,58 +197,36 @@
       </div>
     </section>
 
-    <!-- Informe (3 gráficos con chart.js) -->
+    <!-- Informe -->
     <section class="dashboard" id="reportSection" style="display:none;">
       <h2>Informe de Tareas</h2>
       <div class="charts-container">
-        <!-- 1) Tareas por estado de finalización (sin finalizadas) -->
+        <!-- 1) Tareas por estado (sin finalizadas) -->
         <div class="chart-box">
-          <h3>Tareas por estado de finalización</h3>
           <canvas id="chartEstados"></canvas>
         </div>
         <!-- 2) Próximas tareas por responsable -->
         <div class="chart-box">
-          <h3>Próximas tareas por responsable</h3>
           <canvas id="chartResponsables"></canvas>
         </div>
         <!-- 3) Tareas sin finalizar por Grupo (top 5) -->
         <div class="chart-box">
-          <h3>Tareas sin finalizar por Grupo</h3>
           <canvas id="chartGrupos"></canvas>
         </div>
-      </div>
-      <!-- Relleno para no dejar espacio vacío -->
-      <div style="margin-top:1rem;">
-        <p>Información adicional sobre proyectos, responsables y fechas próximas se podrá visualizar aquí en reportes futuros, además de la posibilidad de exportar en PDF.</p>
+        <!-- 4) Urgencia de Tareas (fechaEntrega) -->
+        <div class="chart-box">
+          <canvas id="chartUrgencia"></canvas>
+        </div>
       </div>
     </section>
 
-    <!-- Cargas Horarias -->
+    <!-- Cargas Horarias: se eliminan las tablas, dejamos 2 gráficos -->
     <section class="dashboard" id="cargasSection" style="display:none;">
-      <h2>Cargas Horarias (0 a 44 horas)</h2>
-      <p>Simbologia (excepto Finalizado):</p>
-      <ul>
-        <li><span style="background:#cccccc; padding:0 10px; border-radius:3px;"></span> Asignado</li>
-        <li><span style="background:#00bfff; padding:0 10px; border-radius:3px;"></span> En proceso</li>
-        <li><span style="background:#3f51b5; padding:0 10px; border-radius:3px;"></span> SII</li>
-        <li><span style="background:#9c27b0; padding:0 10px; border-radius:3px;"></span> Municipalidad</li>
-        <li><span style="background:#8bc34a; padding:0 10px; border-radius:3px;"></span> Tesoreria</li>
-        <li><span style="background:#ff5722; padding:0 10px; border-radius:3px;"></span> Reportar</li>
-        <li><span style="background:#ffc107; padding:0 10px; border-radius:3px;"></span> Por revisar</li>
-        <li><span style="background:#795548; padding:0 10px; border-radius:3px;"></span> BPO</li>
-        <li><span style="background:#8b8b8b; padding:0 10px; border-radius:3px;"></span> Cliente</li>
-      </ul>
-
-      <div id="cargasTableContainer"></div>
-      <!-- Nueva tabla de Horas Extras (1..12) -->
-      <div id="extrasTableContainer" style="margin-top:1rem;"></div>
-
-      <!-- Gráficos horizontales para la misma info -->
-      <h3 style="margin-top:1rem;">Gráfico de Cargas Horarias</h3>
-      <canvas id="cargasBarCanvas" style="max-width:600px;"></canvas>
-
-      <h3 style="margin-top:1rem;">Gráfico de Horas Extras</h3>
-      <canvas id="extrasBarCanvas" style="max-width:600px;"></canvas>
+      <h2>Cargas Horarias</h2>
+      <p>Simbología (excepto Finalizado) se usará en el stacked bar:</p>
+      <canvas id="cargasStackedCanvas" style="width:150%;max-width:900px;"></canvas>
+      <h3>Horas Extras</h3>
+      <canvas id="extrasStackedCanvas" style="width:50%;max-width:400px;"></canvas>
     </section>
 
     <!-- Sección de Administración de Usuarios (solo Admin) -->
@@ -243,7 +245,7 @@
       </table>
     </section>
 
-    <!-- Historial (Senior, Supervisor, Admin) -->
+    <!-- Historial -->
     <section class="dashboard" id="historySection" style="display:none;">
       <h2>Historial de Tareas</h2>
       <button id="btnClearHistory" style="display:none;">Borrar Historial</button>
@@ -264,7 +266,7 @@
     </section>
   </div>
 
-  <!-- Panel de Comentarios => estilo checklist -->
+  <!-- Panel de Comentarios -->
   <div id="commentsPanel" class="comments-panel" style="display:none;">
     <div class="comments-header">
       <h3>Comentarios de la Tarea <span id="commentTaskId"></span></h3>
@@ -277,13 +279,12 @@
     </div>
   </div>
 
-  <!-- Footer en login -->
+  <!-- Footer solo login -->
   <footer id="loginFooter">
     <p>© 2025 Control Tarea GQ</p>
   </footer>
 
   <script type="module" src="script.js"></script>
-  <!-- Nuestro chart.js local (interfaz con Chart.js) -->
   <script type="module" src="chart.js"></script>
 </body>
 </html>
