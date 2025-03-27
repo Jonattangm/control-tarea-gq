@@ -131,8 +131,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const authForm= document.getElementById("authForm");
   authForm.addEventListener("submit", e=> e.preventDefault());
 
-  btnRegister.addEventListener("click", registerUser);
-  btnLogin.addEventListener("click", loginUser);
+  document.getElementById("btnRegister").addEventListener("click", registerUser);
+  document.getElementById("btnLogin").addEventListener("click", loginUser);
   btnLogout.addEventListener("click", ()=> signOut(auth));
 
   createTaskBtn.addEventListener("click", handleTaskForm);
@@ -658,39 +658,39 @@ export function renderTasks(tasksArray){
           sel.value= task.status; return;
         }
       }
-      if(newSt==="SII"){
-        alert("Recuerda anotar Folio y Fiscalizador en comentarios");
-        let baseDate= new Date();
-        if(task.lastCommentAt && task.lastCommentAt.toDate){
-          baseDate= task.lastCommentAt.toDate();
-        }
-        const nm= getNextMonday(baseDate);
-        const y= nm.getFullYear();
-        const m= String(nm.getMonth()+1).padStart(2,'0');
-        const d= String(nm.getDate()).padStart(2,'0');
-        await updateDoc(doc(db,"tasks", task.docId), {
-          fechaEntrega: `${y}-${m}-${d}`
-        });
-      }
-      if(newSt==="Tesoreria"){
-        alert("Recuerda revisar cada semana");
-        let baseDate= new Date();
-        if(task.lastCommentAt && task.lastCommentAt.toDate){
-          baseDate= task.lastCommentAt.toDate();
-        }
-        const nm= getNextMonday(baseDate);
-        const y= nm.getFullYear();
-        const mm= String(nm.getMonth()+1).padStart(2,'0');
-        const dd= String(nm.getDate()).padStart(2,'0');
-        await updateDoc(doc(db,"tasks", task.docId), {
-          fechaEntrega: `${y}-${mm}-${dd}`
-        });
-      }
-
       if(!canChangeStatus(currentRole, task.status, newSt)){
         alert("No tienes permiso para ese cambio.");
         sel.value= task.status;
       } else {
+        if(newSt==="SII"){
+          alert("Recuerda anotar Folio y Fiscalizador en comentarios");
+          let baseDate= new Date();
+          if(task.lastCommentAt && task.lastCommentAt.toDate){
+            baseDate= task.lastCommentAt.toDate();
+          }
+          const nm= getNextMonday(baseDate);
+          const y= nm.getFullYear();
+          const m= String(nm.getMonth()+1).padStart(2,'0');
+          const d= String(nm.getDate()).padStart(2,'0');
+          await updateDoc(doc(db,"tasks", task.docId), {
+            fechaEntrega: `${y}-${m}-${d}`
+          });
+        }
+        if(newSt==="Tesoreria"){
+          alert("Recuerda revisar cada semana");
+          let baseDate= new Date();
+          if(task.lastCommentAt && task.lastCommentAt.toDate){
+            baseDate= task.lastCommentAt.toDate();
+          }
+          const nm= getNextMonday(baseDate);
+          const yy= nm.getFullYear();
+          const mm= String(nm.getMonth()+1).padStart(2,'0');
+          const dd= String(nm.getDate()).padStart(2,'0');
+          await updateDoc(doc(db,"tasks", task.docId), {
+            fechaEntrega: `${yy}-${mm}-${dd}`
+          });
+        }
+
         await updateDoc(doc(db,"tasks", task.docId),{ status:newSt });
       }
     });
@@ -1236,6 +1236,7 @@ async function loadAllUsers(){
     usersTableBody.innerHTML=`<tr><td colspan='4'>Error: ${e.message}</td></tr>`;
   }
 }
+window.loadAllUsers= loadAllUsers;
 window.changeUserName= async function(uid, newVal, oldVal){
   if(!confirm("¿Cambiar Nombre de Usuario?")){
     return;
@@ -1303,9 +1304,11 @@ async function clearHistory(){
     alert("Error al borrar historial: "+ e.message);
   }
 }
+window.loadHistory= loadHistory;
+window.clearHistory= clearHistory;
 
 //===================================================
-//  toggle filters / taskbox
+// toggle filters / taskbox
 //===================================================
 export function toggleFilters(){
   if(filtersContainer.style.display==="none"){
@@ -1327,23 +1330,9 @@ export function toggleTaskBox(){
 }
 window.toggleFilters= toggleFilters;
 window.toggleTaskBox= toggleTaskBox;
-export function aplicarFiltros(){ renderTasks(allTasks); }
-export function limpiarFiltros(){
-  filterResponsableSelect.value="";
-  chkExcludeAsignado.checked=false;
-  filterEstado.value="";
-  chkExcludeEstado.checked=false;
-  filterEmpresa.value="";
-  chkExcludeEmpresa.checked=false;
-  filterGrupo.value="";
-  chkExcludeGrupo.checked=false;
-  renderTasks(allTasks);
-}
-window.aplicarFiltros= aplicarFiltros;
-window.limpiarFiltros= limpiarFiltros;
 
 //===================================================
-//  CARGAS => sin tablas, con stacked bar
+// CARGAS => sin tablas, con stacked bar
 //===================================================
 export async function buildCargasStacked(){
   // Cargar usuarios
@@ -1369,13 +1358,10 @@ export async function buildCargasStacked(){
 
   // userMap => { [email]: array(57).fill("") } => slots 1..56
   let userMap={};
-  let leftoverMinutesMap={}; // para la "distorsión" >30
   userList.forEach(u=>{
     userMap[u.email]= new Array(57).fill("");
-    leftoverMinutesMap[u.email]= 0;
   });
 
-  // Para cada tarea => parsear HH:MM => totalMin => revisor => +1/4 => sum => redondeo 30 => 1 slot de color #999
   tasksSorted.forEach(t=>{
     let assigned= (t.assignedTo||"").toLowerCase();
     let rev= (t.revisorEmail||"").toLowerCase();
@@ -1385,16 +1371,10 @@ export async function buildCargasStacked(){
       revMin= Math.ceil(baseMin/4);
     }
     let totalMin= baseMin+ revMin;
-
-    // Asignar al assigned => baseMin
-    fillUserSlots(assigned, baseMin, t.status);
-    // Asignar al rev => revMin
-    if(rev){
-      fillUserSlots(rev, revMin, t.status);
-    }
+    fillUserSlots(userMap, assigned, baseMin, t.status);
+    if(rev) fillUserSlots(userMap, rev, revMin, t.status);
   });
 
-  // build chart => 1..44 (main), 45..56 (extras)
   drawStackedCargasChart("cargasStackedCanvas", userMap, userList, 1,44,[9,18,27,36,44], false);
   drawStackedCargasChart("extrasStackedCanvas", userMap, userList, 45,56,[], true);
 }
@@ -1408,11 +1388,12 @@ function getDiffOrder(t){
   return calcDiffDays2(new Date(), dd);
 }
 function calcDiffDays2(fromDate,toDate){
+  if(!fromDate||!toDate)return 9999;
   let start= new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
   let end= new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
   let sign=1;
   if(end<start){
-    sign=-1; [start,end]= [end,start];
+    sign=-1;[start,end]=[end,start];
   }
   let diff=0; let cur= new Date(start);
   while(cur<=end){
@@ -1422,7 +1403,6 @@ function calcDiffDays2(fromDate,toDate){
   }
   return (diff-1)*sign;
 }
-
 function parseHHMMtoMin(str){
   if(!str)return 0;
   let [hh,mm]= str.split(":");
@@ -1430,31 +1410,23 @@ function parseHHMMtoMin(str){
   let m= parseInt(mm)||0;
   return h*60+ m;
 }
-
-// Lógica para rellenar => si sum >=30 => +1 slot con color "#999"
-function fillUserSlots(userEmail, totalMin, statusStr){
-  if(!userEmail)return;
-  if(!userMap[userEmail])return;
-  let leftover=0;
-  // sum hours int + partial
-  // recorre => mientras totalMin>=60 => fill 1 slot de "statusColor", totalMin-=60
+function fillUserSlots(mapObj, userEmail, totalMin, statusStr){
+  if(!userEmail || !mapObj[userEmail])return;
   let color= stateColor(statusStr);
+  let leftover=0;
   while(totalMin>=60){
-    let slot= findNextEmptySlot(userMap[userEmail]);
+    let slot= findNextEmptySlot(mapObj[userEmail]);
     if(slot===-1)break;
-    userMap[userEmail][slot]= color;
+    mapObj[userEmail][slot]= color;
     totalMin-=60;
   }
-  // sobran <60 => definimos si >=30 => slot "#999"
   if(totalMin>=30){
-    let slot= findNextEmptySlot(userMap[userEmail]);
+    let slot= findNextEmptySlot(mapObj[userEmail]);
     if(slot!==-1){
-      userMap[userEmail][slot]="#999"; // distorsión color
+      mapObj[userEmail][slot]="#999";
     }
   }
 }
-
-// busca hueco libre en array 1..56
 function findNextEmptySlot(arr){
   for(let i=1;i< arr.length;i++){
     if(!arr[i]){
@@ -1477,8 +1449,6 @@ function stateColor(st){
   }
   return "#999";
 }
-
-// Dibuja
 function drawStackedCargasChart(canvasId, userMap, userList, fromX, toX, dayCuts, extrasMode){
   const can= document.getElementById(canvasId);
   if(!can)return;
@@ -1499,15 +1469,11 @@ function drawStackedCargasChart(canvasId, userMap, userList, fromX, toX, dayCuts
   let cellH= 20;
   let rowGap= 5;
 
-  // Pintamos rows => user
   userList.forEach((u,ui)=>{
     let y= marginTop+ ui*(cellH+rowGap);
-
-    // label user
     ctx.fillStyle="#000";
     ctx.fillText(u.name, 5, y+ cellH*0.75);
 
-    // col fromX.. toX => dibujamos
     for(let slot= fromX; slot<=toX; slot++){
       let color= userMap[u.email][slot]|| "";
       let x= marginLeft+ (slot-fromX)* cellW;
@@ -1515,42 +1481,38 @@ function drawStackedCargasChart(canvasId, userMap, userList, fromX, toX, dayCuts
       ctx.fillRect(x, y, cellW, cellH);
 
       ctx.strokeStyle="#000";
-      ctx.strokeRect(x,y, cellW, cellH);
+      ctx.strokeRect(x,y, cellW,cellH);
 
-      // eje X => numeración
       if(ui===0){
-        // solo dibujamos en la parte superior
         ctx.fillStyle="#666";
         ctx.font="10px Arial";
         ctx.fillText(`${slot}`, x+2, marginTop-5);
-
-        // Día
-        // Lunes=1..9, Martes=10..18, Mier=19..27, Juev=28..36, Vier=37..44
-        if(!extrasMode && slot===5){
-          ctx.fillStyle="#000";
-          ctx.fillText("Lunes", x-15, marginTop-15);
-        }
-        if(!extrasMode && slot===14){
-          ctx.fillStyle="#000";
-          ctx.fillText("Martes", x-15, marginTop-15);
-        }
-        if(!extrasMode && slot===23){
-          ctx.fillStyle="#000";
-          ctx.fillText("Miércoles", x-20, marginTop-15);
-        }
-        if(!extrasMode && slot===32){
-          ctx.fillStyle="#000";
-          ctx.fillText("Jueves", x-15, marginTop-15);
-        }
-        if(!extrasMode && slot===40){
-          ctx.fillStyle="#000";
-          ctx.fillText("Viernes", x-15, marginTop-15);
+        if(!extrasMode){
+          if(slot===5){
+            ctx.fillStyle="#000";
+            ctx.fillText("Lunes", x-15, marginTop-15);
+          }
+          if(slot===14){
+            ctx.fillStyle="#000";
+            ctx.fillText("Martes", x-15, marginTop-15);
+          }
+          if(slot===23){
+            ctx.fillStyle="#000";
+            ctx.fillText("Miércoles", x-20, marginTop-15);
+          }
+          if(slot===32){
+            ctx.fillStyle="#000";
+            ctx.fillText("Jueves", x-15, marginTop-15);
+          }
+          if(slot===40){
+            ctx.fillStyle="#000";
+            ctx.fillText("Viernes", x-15, marginTop-15);
+          }
         }
       }
     }
   });
 
-  // dayCuts => lineas rojas
   dayCuts.forEach(dc=>{
     if(dc>=fromX && dc<=toX){
       let offset= (dc - fromX)* cellW;
@@ -1565,10 +1527,62 @@ function drawStackedCargasChart(canvasId, userMap, userList, fromX, toX, dayCuts
 }
 
 //===================================================
-// Export
+// Comentarios => references
+//===================================================
+window.closeCommentsPanel= closeCommentsPanel;
+window.addNewComment= addNewComment;
+window.editComment= async function(commentId){
+  if(!currentCommentTaskId)return;
+  let newText= prompt("Editar comentario:");
+  if(!newText)return;
+  try{
+    await updateDoc(doc(db,"tasks", currentCommentTaskId,"comments", commentId),{
+      text:newText
+    });
+    await updateDoc(doc(db,"tasks", currentCommentTaskId),{
+      lastCommentAt:new Date()
+    });
+    loadComments(currentCommentTaskId);
+  }catch(e){
+    console.error("Error al editar comentario:", e);
+    alert("Error al editar: "+ e.message);
+  }
+};
+window.deleteComment= async function(commentId){
+  if(!currentCommentTaskId)return;
+  if(!confirm("¿Eliminar este comentario?"))return;
+  try{
+    await deleteDoc(doc(db,"tasks", currentCommentTaskId,"comments", commentId));
+    loadComments(currentCommentTaskId);
+  }catch(e){
+    console.error("Error al eliminar comentario:", e);
+    alert("Error al eliminar: "+ e.message);
+  }
+};
+window.changeCommentStatus= async function(selEl){
+  if(!currentCommentTaskId)return;
+  const cid= selEl.getAttribute("data-cid");
+  const newVal= selEl.value;
+  try{
+    await updateDoc(doc(db,"tasks", currentCommentTaskId,"comments",cid),{
+      commentStatus:newVal
+    });
+    loadComments(currentCommentTaskId);
+  }catch(e){
+    console.error("Error al cambiar estado comentario:", e);
+    alert("Error al cambiar estado cmt: "+ e.message);
+  }
+};
+
+//===================================================
+// Export leftover
 //===================================================
 window.toggleFilters= toggleFilters;
 window.toggleTaskBox= toggleTaskBox;
 window.aplicarFiltros= aplicarFiltros;
 window.limpiarFiltros= limpiarFiltros;
+window.loadAllUsers= loadAllUsers;
+window.loadHistory= loadHistory;
+window.clearHistory= clearHistory;
 
+//===================================================

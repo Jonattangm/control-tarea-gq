@@ -2,10 +2,10 @@ import { allTasks } from "./script.js";
 
 /**
  * Ajustamos:
- * - “Tareas por estado” (en lugar de “(sin finalizadas)”).
- * - Eliminamos la leyenda inferior duplicada en “Urgencia de Tareas”.
- * - Mantenemos colores intensos SOLO en la gráfica de urgencia
- *   (para <3, 3-5, 6-8, 9-11, +11).
+ * - “Tareas por estado” .
+ * - “Próximas tareas por responsable”
+ * - “Tareas sin finalizar por Grupo (top 5)”
+ * - “Urgencia de Tareas”
  */
 
 const colorMap = {
@@ -39,8 +39,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 function updateCharts(ctx1, ctx2, ctx3, ctx4){
-  // Tareas => no estamos filtrando finalizadas, ahora lo haremos “tal cual”
-  let tasksArr= allTasks.slice(); 
+  let tasksArr= allTasks.slice();
+
   // A) Tareas por estado (todas)
   let countsEst={};
   tasksArr.forEach(t=>{
@@ -196,7 +196,7 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
       options:{
         responsive:true,
         plugins:{
-          legend:{ display:false }, // Se quita para no duplicar la info
+          legend:{ display:false }, // sin leyenda inferior
           tooltip:{
             callbacks:{
               label:function(ctx){
