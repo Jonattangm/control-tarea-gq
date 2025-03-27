@@ -1,10 +1,11 @@
 import { allTasks } from "./script.js";
 
 /**
- * Se añaden los títulos en los gráficos,
- * se hacen colores intensos en Urgencia,
- * y se muestra la leyenda con rangos (<3, 3-5, etc.).
- * Se eliminó relleno “sobrante”.
+ * Ajustamos:
+ * - “Tareas por estado” (en lugar de “(sin finalizadas)”).
+ * - Eliminamos la leyenda inferior duplicada en “Urgencia de Tareas”.
+ * - Mantenemos colores intensos SOLO en la gráfica de urgencia
+ *   (para <3, 3-5, 6-8, 9-11, +11).
  */
 
 const colorMap = {
@@ -38,12 +39,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 function updateCharts(ctx1, ctx2, ctx3, ctx4){
-  // Tareas sin final
-  let notFinal= allTasks.filter(t=> t.status!=="Finalizado");
-
-  // A) Tareas por estado
+  // Tareas => no estamos filtrando finalizadas, ahora lo haremos “tal cual”
+  let tasksArr= allTasks.slice(); 
+  // A) Tareas por estado (todas)
   let countsEst={};
-  notFinal.forEach(t=>{
+  tasksArr.forEach(t=>{
     const st= t.status||"Asignado";
     countsEst[st]=(countsEst[st]||0)+1;
   });
@@ -86,7 +86,8 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
     chartEstadosObj.update();
   }
 
-  // B) Responsables
+  // B) Próximas tareas por responsable => sin finalizadas
+  let notFinal= tasksArr.filter(t=> t.status!=="Finalizado");
   let countsResp={};
   notFinal.forEach(t=>{
     const r= t.userName||"Desconocido";
@@ -122,7 +123,7 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
     chartRespObj.update();
   }
 
-  // C) Grupos => top5
+  // C) Tareas sin finalizar por Grupo (top 5)
   let groupCounts={};
   notFinal.forEach(t=>{
     const g= t.grupoCliente||"Sin grupo";
@@ -161,7 +162,6 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
   }
 
   // D) Urgencia => color intensos
-  // rojos(<=2) naranjo(<=5) amarillo(<=8) verde(<=11) azul(+11)
   let urgCounts={
     rojo:0,
     naranjo:0,
@@ -173,7 +173,7 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
     if(!t.fechaEntrega)return;
     const dd= parseDateDMY( formatDDMMYYYY(t.fechaEntrega) );
     if(!dd)return;
-    let dif= calcDiffDays(new Date(), dd);
+    let dif= calcDiffDays2(new Date(), dd);
     if(dif<=2) urgCounts.rojo++;
     else if(dif<=5) urgCounts.naranjo++;
     else if(dif<=8) urgCounts.amarillo++;
@@ -196,7 +196,7 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
       options:{
         responsive:true,
         plugins:{
-          legend:{ position:"bottom"},
+          legend:{ display:false }, // Se quita para no duplicar la info
           tooltip:{
             callbacks:{
               label:function(ctx){
@@ -220,7 +220,7 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
 }
 
 // parse days sin sabDom
-function calcDiffDays(fromDate,toDate){
+function calcDiffDays2(fromDate,toDate){
   if(!fromDate||!toDate)return 9999;
   let start= new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
   let end= new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());

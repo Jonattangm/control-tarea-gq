@@ -201,9 +201,9 @@
     <section class="dashboard" id="reportSection" style="display:none;">
       <h2>Informe de Tareas</h2>
       <div class="charts-container">
-        <!-- 1) Tareas por estado (sin finalizadas) -->
+        <!-- 1) Tareas por estado -->
         <div class="chart-box">
-          <h3>Tareas por estado (sin finalizadas)</h3>
+          <h3>Tareas por estado</h3>
           <canvas id="chartEstados"></canvas>
         </div>
         <!-- 2) Próximas tareas por responsable -->
@@ -220,7 +220,7 @@
         <div class="chart-box">
           <h3>Urgencia de Tareas</h3>
           <canvas id="chartUrgencia"></canvas>
-          <!-- Leyenda del color intensos -->
+          <!-- Leyenda color intensos (se quita la leyenda duplicada) -->
           <div style="margin-top:0.5rem;">
             <span style="display:inline-block;width:15px;height:15px;background:#f00;margin-right:4px;"></span>&lt;3 días
             <span style="display:inline-block;width:15px;height:15px;background:#ff7e00;margin-left:1rem;margin-right:4px;"></span>3-5 días
@@ -232,17 +232,16 @@
       </div>
     </section>
 
-    <!-- Cargas Horarias => sin tablas, con stacked bar -->
+    <!-- Cargas Horarias => solo gráficos -->
     <section class="dashboard" id="cargasSection" style="display:none;">
       <h2>Cargas Horarias</h2>
-      <p>Simbología</p>
-      <!-- Bloques de 1 a 44 => con lineas para Lunes, Martes, etc.
-           Extra => 45 a 56 + col final tot
-      -->
-      <canvas id="cargasStackedCanvas" style="width:120%;max-width:1100px;"></canvas>
+      <p>Simbología: (Asignado = gris, En proceso = celeste, Por revisar = amarillo, Reportar = rojo, SII = morado, Municipio = violeta, Tesoreria = verde, BPO = café, Cliente= gris, Distorsión = #999)</p>
+
+      <!-- Bloques 1..44 con lineas, 45..56 + total en extras, todo en un stacked bar custom -->
+      <canvas id="cargasStackedCanvas" style="width:120%; max-width:1100px; margin-bottom:1rem;"></canvas>
 
       <h3 style="margin-top:1rem;">Horas Extras</h3>
-      <canvas id="extrasStackedCanvas" style="width:90%;max-width:800px;"></canvas>
+      <canvas id="extrasStackedCanvas" style="width:130%; max-width:1200px;"></canvas>
     </section>
 
     <!-- Sección de Administración de Usuarios (solo Admin) -->

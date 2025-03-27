@@ -22,7 +22,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 //===================================================
-// Config
+// CONFIG
 //===================================================
 const firebaseConfig = {
   apiKey: "AIzaSyCFoalSasV17k812nXbCSjO9xCsnAJJRnE",
@@ -128,7 +128,6 @@ const btnClearHistory = document.getElementById("btnClearHistory");
 // DOMContentLoaded
 //===================================================
 document.addEventListener("DOMContentLoaded", ()=>{
-  // Auth form
   const authForm= document.getElementById("authForm");
   authForm.addEventListener("submit", e=> e.preventDefault());
 
@@ -139,7 +138,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   createTaskBtn.addEventListener("click", handleTaskForm);
 
   btnTareas.addEventListener("click", ()=> showSection("dashboard"));
-  btnFinalizadas.addEventListener("click", ()=> {
+  btnFinalizadas.addEventListener("click", ()=>{
     showSection("finalTasks");
     renderFinalTasks(allTasks);
   });
@@ -370,6 +369,7 @@ async function handleTaskForm(){
   }
   // 2) Revisor
   let revisorName= newRevisorSelect.value.trim();
+  if(!revisorName) revisorName="N/A";
 
   const act= newTaskName.value.trim();
   if(!act){
@@ -399,7 +399,7 @@ async function handleTaskForm(){
     }
     // revisor => email
     let revisorEmail="";
-    if(revisorName && revisorName!=="Sin revisión"){
+    if(revisorName!=="N/A" && revisorName!=="Sin revisión"){
       const revEmail= await findEmailByName(revisorName);
       if(revEmail) revisorEmail= revEmail;
     }
@@ -428,7 +428,7 @@ async function handleTaskForm(){
       const newData= {
         idTarea: nextId,
         userName: respName,
-        revisorName: revisorName==="Sin revisión"?"":revisorName,
+        revisorName: revisorName,
         revisorEmail: revisorEmail,
         assignedTo: assignedEmail,
         name: act,
@@ -441,7 +441,7 @@ async function handleTaskForm(){
       await updateDoc(doc(db,"tasks", editTaskId), newData);
       alert("Tarea actualizada.");
 
-      // Historial
+      // Historial => sin registrar cambio de estado
       let changes=[];
       for(const k of ["userName","revisorName","name","empresa","grupoCliente","folioProyecto","horasAsignadas","fechaEntrega"]){
         const oldVal= oldData[k]||"";
@@ -470,7 +470,7 @@ async function handleTaskForm(){
         fechaAsignacion: new Date().toLocaleDateString("es-CL"),
         fechaEntrega: newFechaEntrega.value|| null,
         userName: respName,
-        revisorName: revisorName==="Sin revisión"?"":revisorName,
+        revisorName: revisorName,
         revisorEmail: revisorEmail,
         assignedTo: assignedEmail,
         name: act,
@@ -497,7 +497,6 @@ async function handleTaskForm(){
       });
       clearTaskForm();
     }
-
   }catch(e){
     console.error("Error al crear/editar tarea:", e);
   }
@@ -528,7 +527,7 @@ async function findEmailByName(name){
 }
 
 //===================================================
-// LISTEN
+// LISTEN tasks
 //===================================================
 function listenTasks(){
   const colRef= collection(db,"tasks");
@@ -579,7 +578,7 @@ export function renderTasks(tasksArray){
 
     // col2 => revisor
     let td2= document.createElement("td");
-    td2.textContent= task.revisorName||"";
+    td2.textContent= task.revisorName? task.revisorName:"N/A";
     tr.appendChild(td2);
 
     // col3 => id
@@ -681,10 +680,10 @@ export function renderTasks(tasksArray){
         }
         const nm= getNextMonday(baseDate);
         const y= nm.getFullYear();
-        const m= String(nm.getMonth()+1).padStart(2,'0');
-        const d= String(nm.getDate()).padStart(2,'0');
+        const mm= String(nm.getMonth()+1).padStart(2,'0');
+        const dd= String(nm.getDate()).padStart(2,'0');
         await updateDoc(doc(db,"tasks", task.docId), {
-          fechaEntrega: `${y}-${m}-${d}`
+          fechaEntrega: `${y}-${mm}-${dd}`
         });
       }
 
@@ -743,13 +742,14 @@ export function renderTasks(tasksArray){
       createTaskBtn.textContent= "Actualizar Tarea";
 
       newUserSelect.value= task.userName||"";
-      newRevisorSelect.value= task.revisorName||"Sin revisión";
+      newRevisorSelect.value= task.revisorName? task.revisorName:"Sin revisión";
       newTaskName.value= task.name||"";
       newEmpresa.value= task.empresa||"";
       newGrupo.value= task.grupoCliente||"";
       newFolio.value= task.folioProyecto||"";
       newHoras.value= task.horasAsignadas||"";
       newFechaEntrega.value= task.fechaEntrega||"";
+      showSection("dashboard");
     });
     td13.appendChild(bEd);
     // Del
@@ -812,28 +812,28 @@ export function renderFinalTasks(tasksArray){
   sorted.forEach(task=>{
     let tr= document.createElement("tr");
 
-    // resp
+    // 1 => resp
     let td1= document.createElement("td");
     if(currentRole==="consultor") td1.textContent="";
     else td1.textContent= task.userName||"";
     tr.appendChild(td1);
 
-    // revisor
+    // 2 => revisor
     let td2= document.createElement("td");
-    td2.textContent= task.revisorName||"";
+    td2.textContent= task.revisorName? task.revisorName:"N/A";
     tr.appendChild(td2);
 
-    // id
+    // 3 => id
     let td3= document.createElement("td");
     td3.textContent= task.idTarea||"N/A";
     tr.appendChild(td3);
 
-    // asig
+    // 4 => asig
     let td4= document.createElement("td");
     td4.textContent= task.fechaAsignacion||"--";
     tr.appendChild(td4);
 
-    // ent
+    // 5 => ent
     let td5= document.createElement("td");
     if(task.fechaEntrega){
       const f= formatDDMMYYYY(task.fechaEntrega);
@@ -841,12 +841,12 @@ export function renderFinalTasks(tasksArray){
     }else td5.textContent="";
     tr.appendChild(td5);
 
-    // act
+    // 6 => act
     let td6= document.createElement("td");
     td6.textContent= task.name||"";
     tr.appendChild(td6);
 
-    // est
+    // 7 => est
     let td7= document.createElement("td");
     let sel= document.createElement("select");
     TASK_STATES.forEach(st=>{
@@ -876,34 +876,34 @@ export function renderFinalTasks(tasksArray){
     td7.appendChild(ind);
     tr.appendChild(td7);
 
-    // emp
+    // 8 => emp
     let td8= document.createElement("td");
     td8.textContent= task.empresa||"";
     tr.appendChild(td8);
 
-    // grp
+    // 9 => grp
     let td9= document.createElement("td");
     td9.textContent= task.grupoCliente||"";
     tr.appendChild(td9);
 
-    // folio
+    // 10 => folio
     let td10= document.createElement("td");
     td10.textContent= task.folioProyecto||"";
     tr.appendChild(td10);
 
-    // hrs
+    // 11 => horas
     let td11= document.createElement("td");
     td11.textContent= task.horasAsignadas||"";
     tr.appendChild(td11);
 
-    // last comm
+    // 12 => last
     let td12= document.createElement("td");
     if(task.lastCommentAt && task.lastCommentAt.toDate){
       td12.textContent= task.lastCommentAt.toDate().toLocaleDateString("es-CL");
     } else td12.textContent="--";
     tr.appendChild(td12);
 
-    // acciones
+    // 13 => actions
     let td13= document.createElement("td");
     let bEd= document.createElement("button");
     bEd.classList.add("action-btn");
@@ -915,7 +915,7 @@ export function renderFinalTasks(tasksArray){
       createTaskBtn.textContent= "Actualizar Tarea";
 
       newUserSelect.value= task.userName||"";
-      newRevisorSelect.value= task.revisorName||"Sin revisión";
+      newRevisorSelect.value= task.revisorName? task.revisorName:"Sin revisión";
       newTaskName.value= task.name||"";
       newEmpresa.value= task.empresa||"";
       newGrupo.value= task.grupoCliente||"";
@@ -1018,7 +1018,7 @@ function filtrarDash(arr){
 //===================================================
 // canChangeStatus
 //===================================================
-function canChangeStatus(role,currentSt,newSt){
+function canChangeStatus(role, currentSt, newSt){
   if(role==="senior"){
     if(newSt==="Finalizado" && currentSt!=="Finalizado")return false;
     if(["Finalizado","Reportar"].includes(currentSt))return false;
@@ -1233,7 +1233,7 @@ async function loadAllUsers(){
     usersTableBody.innerHTML= html;
   }catch(e){
     console.error("Error loadAllUsers:", e);
-    usersTableBody.innerHTML=`<tr><td colspan="4">Error: ${e.message}</td></tr>`;
+    usersTableBody.innerHTML=`<tr><td colspan='4'>Error: ${e.message}</td></tr>`;
   }
 }
 window.changeUserName= async function(uid, newVal, oldVal){
@@ -1327,104 +1327,141 @@ export function toggleTaskBox(){
 }
 window.toggleFilters= toggleFilters;
 window.toggleTaskBox= toggleTaskBox;
+export function aplicarFiltros(){ renderTasks(allTasks); }
+export function limpiarFiltros(){
+  filterResponsableSelect.value="";
+  chkExcludeAsignado.checked=false;
+  filterEstado.value="";
+  chkExcludeEstado.checked=false;
+  filterEmpresa.value="";
+  chkExcludeEmpresa.checked=false;
+  filterGrupo.value="";
+  chkExcludeGrupo.checked=false;
+  renderTasks(allTasks);
+}
+window.aplicarFiltros= aplicarFiltros;
+window.limpiarFiltros= limpiarFiltros;
 
 //===================================================
 //  CARGAS => sin tablas, con stacked bar
 //===================================================
 export async function buildCargasStacked(){
-  // leer usuarios
+  // Cargar usuarios
   let userList=[];
   const snap= await getDocs(collection(db,"users"));
   snap.forEach(d=>{
     const dt= d.data();
     userList.push({
-      email: dt.email||d.id,
+      email: (dt.email||d.id).toLowerCase(),
       name: dt.name|| dt.email||"",
       role: dt.role||"consultor"
     });
   });
 
-  // Tareas Activas => no final
+  // Tareas
   let tasksActivas= allTasks.filter(t=> t.status!=="Finalizado");
-
-  // Para fraccionar: primero calculamos "fecha de entrega" => días
-  // Se ordenan de menor a mayor
+  // Ordenar por fecha de entrega "dif" asc
   let tasksSorted= tasksActivas.slice().sort((a,b)=>{
-    let aDiff= calcDiffDaysOrder(a);
-    let bDiff= calcDiffDaysOrder(b);
+    let aDiff= getDiffOrder(a);
+    let bDiff= getDiffOrder(b);
     return aDiff- bDiff;
   });
 
-  // Para cada "bloque" de horas => iremos de left to right => -neg => 0 => ...
-  // Asignamos "slots" 1..44 => si pasa de 44 => en extras 45..56
-  // userMap => email => array(57).fill(null)
+  // userMap => { [email]: array(57).fill("") } => slots 1..56
   let userMap={};
+  let leftoverMinutesMap={}; // para la "distorsión" >30
   userList.forEach(u=>{
-    userMap[u.email.toLowerCase()]= new Array(57).fill("");
+    userMap[u.email]= new Array(57).fill("");
+    leftoverMinutesMap[u.email]= 0;
   });
 
-  // iremos sumando horas => 1 hr=1 slot. 
-  // revisor => 1/4 => redondeamos al alza => si 3h => 0.75 => sum 1 slot?
-  // h = parse hh/mm => total. + revisor => + (1/4 * total)
-  // total => redondear? => h+ revisor => sum => fill from earliest ?
-
-  let curSlot=1; // Empezamos en 1 => vamos incrementado
+  // Para cada tarea => parsear HH:MM => totalMin => revisor => +1/4 => sum => redondeo 30 => 1 slot de color #999
   tasksSorted.forEach(t=>{
     let assigned= (t.assignedTo||"").toLowerCase();
     let rev= (t.revisorEmail||"").toLowerCase();
     let baseMin= parseHHMMtoMin(t.horasAsignadas||"0:00");
     let revMin=0;
-    if(rev){
+    if(rev && rev!==""){
       revMin= Math.ceil(baseMin/4);
     }
     let totalMin= baseMin+ revMin;
-    let totalH= Math.ceil(totalMin/60);
-    // Asumamos 1hr= 1slot (no sub-horario)
-    let totalSlots= totalH;
-    // Rellenar en userMap[assigned], userMap[rev], con colors
 
-    // primero assigned => color del state => totalSlots - revSlots
-    let assignedSlots= Math.floor(baseMin/60);
-    // Podríamos fragmentar 1 hr => si sobran min => sub-bloque. Para simplificar => redondeo
-    for(let i=0;i<assignedSlots;i++){
-      let slot= findNextSlot(userMap[assigned], t.status);
-      if(slot<=44){
-        userMap[assigned][slot]= stateColor(t.status);
-      } else if(slot<=56){
-        // va en extras
-        userMap[assigned][slot]= stateColor(t.status);
-      }
-    }
-    // revisor
-    let revisorSlots= Math.floor(revMin/60);
-    if(revMin>0 && revisorSlots<1) revisorSlots=1;
-    for(let i=0;i<revisorSlots;i++){
-      let slot= findNextSlot(userMap[rev], t.status);
-      if(slot<=44){
-        userMap[rev][slot]= stateColor(t.status);
-      } else if(slot<=56){
-        userMap[rev][slot]= stateColor(t.status);
-      }
+    // Asignar al assigned => baseMin
+    fillUserSlots(assigned, baseMin, t.status);
+    // Asignar al rev => revMin
+    if(rev){
+      fillUserSlots(rev, revMin, t.status);
     }
   });
 
-  // Construimos un stacked? O multiple bar? 
-  // Se solicitó un parted chart con "vertical lines" en x=9, x=18, x=27, x=36, x=44
-  // Usaremos un custom plugin para dibujar lineas
-  buildStackedCargasChart("cargasStackedCanvas", userMap, userList, 1,44, [9,18,27,36,44], 1.2);
-  // Extras => 45..56 => final col => total
-  buildStackedCargasChart("extrasStackedCanvas", userMap, userList, 45,56, [], 0.5, true);
+  // build chart => 1..44 (main), 45..56 (extras)
+  drawStackedCargasChart("cargasStackedCanvas", userMap, userList, 1,44,[9,18,27,36,44], false);
+  drawStackedCargasChart("extrasStackedCanvas", userMap, userList, 45,56,[], true);
 }
 
-// local function
-function findNextSlot(arr, color){
+function getDiffOrder(t){
+  if(!t.fechaEntrega)return 9999;
+  if(t.status==="Finalizado")return 9999;
+  let f= formatDDMMYYYY(t.fechaEntrega);
+  let dd= parseDateDMY(f);
+  if(!dd)return 9999;
+  return calcDiffDays2(new Date(), dd);
+}
+function calcDiffDays2(fromDate,toDate){
+  let start= new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  let end= new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+  let sign=1;
+  if(end<start){
+    sign=-1; [start,end]= [end,start];
+  }
+  let diff=0; let cur= new Date(start);
+  while(cur<=end){
+    let dw= cur.getDay();
+    if(dw!==0 && dw!==6) diff++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return (diff-1)*sign;
+}
+
+function parseHHMMtoMin(str){
+  if(!str)return 0;
+  let [hh,mm]= str.split(":");
+  let h= parseInt(hh)||0;
+  let m= parseInt(mm)||0;
+  return h*60+ m;
+}
+
+// Lógica para rellenar => si sum >=30 => +1 slot con color "#999"
+function fillUserSlots(userEmail, totalMin, statusStr){
+  if(!userEmail)return;
+  if(!userMap[userEmail])return;
+  let leftover=0;
+  // sum hours int + partial
+  // recorre => mientras totalMin>=60 => fill 1 slot de "statusColor", totalMin-=60
+  let color= stateColor(statusStr);
+  while(totalMin>=60){
+    let slot= findNextEmptySlot(userMap[userEmail]);
+    if(slot===-1)break;
+    userMap[userEmail][slot]= color;
+    totalMin-=60;
+  }
+  // sobran <60 => definimos si >=30 => slot "#999"
+  if(totalMin>=30){
+    let slot= findNextEmptySlot(userMap[userEmail]);
+    if(slot!==-1){
+      userMap[userEmail][slot]="#999"; // distorsión color
+    }
+  }
+}
+
+// busca hueco libre en array 1..56
+function findNextEmptySlot(arr){
   for(let i=1;i< arr.length;i++){
     if(!arr[i]){
-      arr[i]= color; // asign
       return i;
     }
   }
-  return arr.length-1;
+  return -1;
 }
 function stateColor(st){
   switch(st){
@@ -1440,115 +1477,98 @@ function stateColor(st){
   }
   return "#999";
 }
-function parseHHMMtoMin(str){
-  if(!str)return 0;
-  let [h,m]= str.split(":");
-  let hh= parseInt(h)||0;
-  let mm= parseInt(m)||0;
-  return hh*60+ mm;
-}
-function calcDiffDaysOrder(t){
-  if(!t.fechaEntrega)return 9999;
-  if(t.status==="Finalizado")return 9999;
-  let f= formatDDMMYYYY(t.fechaEntrega);
-  let dd= parseDateDMY(f);
-  if(!dd)return 9999;
-  return calcDiffDays(new Date(), dd);
-}
-function calcDiffDays(fromDate,toDate){
-  let start= new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
-  let end= new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
-  let diff=0; let sign=1;
-  if(end<start){
-    sign=-1; [start,end]=[end,start];
-  }
-  let cur= new Date(start);
-  while(cur<=end){
-    let dw= cur.getDay();
-    if(dw!==0 && dw!==6){
-      diff++;
-    }
-    cur.setDate(cur.getDate()+1);
-  }
-  return (diff-1)*sign;
-}
 
-// Build the custom "bars" from userMap
-function buildStackedCargasChart(canvasId, userMap, userList, fromX, toX, dayCuts, wFactor, extrasMode=false){
+// Dibuja
+function drawStackedCargasChart(canvasId, userMap, userList, fromX, toX, dayCuts, extrasMode){
   const can= document.getElementById(canvasId);
   if(!can)return;
   let ctx= can.getContext("2d");
   ctx.clearRect(0,0, can.width, can.height);
 
-  can.width= 1000; 
-  can.height= 300 * wFactor;
+  if(!extrasMode){
+    can.width= 1200; 
+    can.height= 350;
+  } else {
+    can.width= 1200; 
+    can.height= 400;
+  }
 
-  // margin
   let marginLeft= 80;
   let marginTop= 30;
   let cellW= 20;
   let cellH= 20;
-  let rowGap=5;
+  let rowGap= 5;
 
-  // draw users => Y => row i => i*(cellH+ rowGap)
+  // Pintamos rows => user
   userList.forEach((u,ui)=>{
     let y= marginTop+ ui*(cellH+rowGap);
 
-    // row label
+    // label user
     ctx.fillStyle="#000";
     ctx.fillText(u.name, 5, y+ cellH*0.75);
 
-    // fromX..toX => col
-    for(let xSlot= fromX; xSlot<= toX; xSlot++){
-      let color= userMap[u.email.toLowerCase()][xSlot]||"";
-      let x= marginLeft+ (xSlot - fromX)*(cellW);
-      let hcolor= color|| "#fff";
-      ctx.fillStyle= hcolor;
+    // col fromX.. toX => dibujamos
+    for(let slot= fromX; slot<=toX; slot++){
+      let color= userMap[u.email][slot]|| "";
+      let x= marginLeft+ (slot-fromX)* cellW;
+      ctx.fillStyle= color||"#fff";
       ctx.fillRect(x, y, cellW, cellH);
 
-      // grid stroke
       ctx.strokeStyle="#000";
-      ctx.strokeRect(x, y, cellW, cellH);
-    }
-    if(extrasMode){
-      // la ultima col => total
-      if(toX===56){
-        let sum=0;
-        for(let s= fromX;s<=56;s++){
-          if(userMap[u.email.toLowerCase()][s]){
-            sum++;
-          }
+      ctx.strokeRect(x,y, cellW, cellH);
+
+      // eje X => numeración
+      if(ui===0){
+        // solo dibujamos en la parte superior
+        ctx.fillStyle="#666";
+        ctx.font="10px Arial";
+        ctx.fillText(`${slot}`, x+2, marginTop-5);
+
+        // Día
+        // Lunes=1..9, Martes=10..18, Mier=19..27, Juev=28..36, Vier=37..44
+        if(!extrasMode && slot===5){
+          ctx.fillStyle="#000";
+          ctx.fillText("Lunes", x-15, marginTop-15);
         }
-        let x= marginLeft+ (toX-fromX+1)*cellW+10;
-        ctx.fillStyle="#000";
-        ctx.fillText(`${sum}`, x, y+ cellH*0.75);
+        if(!extrasMode && slot===14){
+          ctx.fillStyle="#000";
+          ctx.fillText("Martes", x-15, marginTop-15);
+        }
+        if(!extrasMode && slot===23){
+          ctx.fillStyle="#000";
+          ctx.fillText("Miércoles", x-20, marginTop-15);
+        }
+        if(!extrasMode && slot===32){
+          ctx.fillStyle="#000";
+          ctx.fillText("Jueves", x-15, marginTop-15);
+        }
+        if(!extrasMode && slot===40){
+          ctx.fillStyle="#000";
+          ctx.fillText("Viernes", x-15, marginTop-15);
+        }
       }
     }
   });
 
-  // dayCuts => lines
+  // dayCuts => lineas rojas
   dayCuts.forEach(dc=>{
     if(dc>=fromX && dc<=toX){
       let offset= (dc - fromX)* cellW;
+      let totalH= userList.length*(cellH+ rowGap);
       ctx.strokeStyle="red";
       ctx.beginPath();
       ctx.moveTo(marginLeft+ offset, marginTop);
-      let totalH= userList.length*(cellH+ rowGap);
       ctx.lineTo(marginLeft+ offset, marginTop+ totalH);
       ctx.stroke();
     }
   });
-
-  // axis labels => Lunes(1-9), Martes(10-18), ...
-  // omit for brevity or we can do small text
 }
 
 //===================================================
-// Export 
+// Export
 //===================================================
 window.toggleFilters= toggleFilters;
 window.toggleTaskBox= toggleTaskBox;
 window.aplicarFiltros= aplicarFiltros;
 window.limpiarFiltros= limpiarFiltros;
 
-//===================================================

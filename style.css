@@ -92,7 +92,7 @@ body {
   border-radius: 5px;
 }
 
-/* Filtros */
+/* Filtros / Task creation*/
 .filters-box {
   background: #fdfdfd;
   border: 1px solid #ccc;
@@ -128,7 +128,6 @@ body {
   width: 160px;
 }
 
-/* Creación de Tarea */
 .task-creation-box {
   background: #fdfdfd;
   border: 1px solid #ccc;
@@ -208,26 +207,21 @@ th[data-sortkey] {
   background: #8b8b8b;
 }
 
-/* Colores para Fecha de Entrega => intensos */
+/* Colores suaves para Fecha de Entrega (Dashboard) */
 .fecha-rojo {
-  background: #f00 !important;
-  color: #fff !important;
+  background: #ffcccc !important;
 }
 .fecha-naranjo {
-  background: #ff7e00 !important;
-  color: #fff !important;
+  background: #ffe1bc !important;
 }
 .fecha-amarillo {
-  background: #fff100 !important;
-  color: #000 !important;
+  background: #fff8b5 !important;
 }
 .fecha-verde {
-  background: #61ff61 !important;
-  color: #000 !important;
+  background: #d0ffd0 !important;
 }
 .fecha-azul {
-  background: #3a7eff !important;
-  color: #fff !important;
+  background: #cce4ff !important;
 }
 
 /* Panel de Comentarios */
@@ -309,6 +303,8 @@ th[data-sortkey] {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px,1fr));
   gap: 1rem;
+  /* Eliminar relleno extra */
+  margin-bottom: 0;
 }
 .chart-box {
   background: #fafafa;
