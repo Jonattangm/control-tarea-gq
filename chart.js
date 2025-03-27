@@ -1,11 +1,9 @@
 import { allTasks } from "./script.js";
 
 /**
- * Ajustamos:
- * - “Tareas por estado” .
- * - “Próximas tareas por responsable”
- * - “Tareas sin finalizar por Grupo (top 5)”
- * - “Urgencia de Tareas”
+ * Ajustes:
+ * - Se excluye “Finalizado” del gráfico “Tareas por estado”.
+ * - “Urgencia de Tareas” se le da un width/height similar
  */
 
 const colorMap = {
@@ -32,7 +30,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const ctxUrg= document.getElementById("chartUrgencia")?.getContext("2d");
   if(!ctxEstados||!ctxResp||!ctxGrupos||!ctxUrg)return;
 
-  // Actualizamos cada 2 seg
   setInterval(()=>{
     updateCharts(ctxEstados, ctxResp, ctxGrupos, ctxUrg);
   },2000);
@@ -41,9 +38,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
 function updateCharts(ctx1, ctx2, ctx3, ctx4){
   let tasksArr= allTasks.slice();
 
-  // A) Tareas por estado (todas)
+  // A) Tareas por estado (excluyendo “Finalizado”)
   let countsEst={};
   tasksArr.forEach(t=>{
+    if(t.status==="Finalizado") return;
     const st= t.status||"Asignado";
     countsEst[st]=(countsEst[st]||0)+1;
   });
@@ -196,7 +194,7 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
       options:{
         responsive:true,
         plugins:{
-          legend:{ display:false }, // sin leyenda inferior
+          legend:{ display:false },
           tooltip:{
             callbacks:{
               label:function(ctx){

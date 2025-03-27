@@ -41,7 +41,7 @@
       <button id="btnUsuarios" style="display:none;">👤 Administrar Usuarios</button>
       <button id="btnHistorial" style="display:none;">📅 Historial</button>
       <div class="sidebar-bottom">
-        <button id="btnLogout">Cerrar Sesión</button>
+        <button id="btnLogout">⏏ Cerrar Sesión</button>
       </div>
     </div>
 
@@ -201,27 +201,27 @@
     <section class="dashboard" id="reportSection" style="display:none;">
       <h2>Informe de Tareas</h2>
       <div class="charts-container">
-        <!-- 1) Tareas por estado -->
+        <!-- 1) Tareas por estado (sin finalizado) -->
         <div class="chart-box">
           <h3>Tareas por estado</h3>
-          <canvas id="chartEstados"></canvas>
+          <canvas id="chartEstados" width="400" height="400"></canvas>
         </div>
         <!-- 2) Próximas tareas por responsable -->
         <div class="chart-box">
           <h3>Próximas tareas por responsable</h3>
-          <canvas id="chartResponsables"></canvas>
+          <canvas id="chartResponsables" width="400" height="400"></canvas>
         </div>
         <!-- 3) Tareas sin finalizar por Grupo (top 5) -->
         <div class="chart-box">
           <h3>Tareas sin finalizar por Grupo</h3>
-          <canvas id="chartGrupos"></canvas>
+          <canvas id="chartGrupos" width="400" height="400"></canvas>
         </div>
-        <!-- 4) Urgencia de Tareas -->
+        <!-- 4) Urgencia de Tareas, tamaño similar -->
         <div class="chart-box">
           <h3>Urgencia de Tareas</h3>
-          <canvas id="chartUrgencia"></canvas>
-          <!-- Leyenda color intensos (se quita la leyenda duplicada) -->
+          <canvas id="chartUrgencia" width="400" height="400"></canvas>
           <div style="margin-top:0.5rem;">
+            <!-- Sin leyenda duplicada -->
             <span style="display:inline-block;width:15px;height:15px;background:#f00;margin-right:4px;"></span>&lt;3 días
             <span style="display:inline-block;width:15px;height:15px;background:#ff7e00;margin-left:1rem;margin-right:4px;"></span>3-5 días
             <span style="display:inline-block;width:15px;height:15px;background:#fff100;margin-left:1rem;margin-right:4px;"></span>6-8 días
@@ -235,13 +235,24 @@
     <!-- Cargas Horarias => solo gráficos -->
     <section class="dashboard" id="cargasSection" style="display:none;">
       <h2>Cargas Horarias</h2>
-      <p>Simbología: (Asignado = gris, En proceso = celeste, Por revisar = amarillo, Reportar = rojo, SII = morado, Municipio = violeta, Tesoreria = verde, BPO = café, Cliente= gris, Distorsión = #999)</p>
+      <p>Simbología:
+        <span style="display:inline-block;width:15px;height:15px;background:#cccccc;margin-left:1rem;"></span> Asignado
+        <span style="display:inline-block;width:15px;height:15px;background:#00bfff;margin-left:1rem;"></span> En proceso
+        <span style="display:inline-block;width:15px;height:15px;background:#ffc107;margin-left:1rem;"></span> Por revisar
+        <span style="display:inline-block;width:15px;height:15px;background:#ff5722;margin-left:1rem;"></span> Reportar
+        <span style="display:inline-block;width:15px;height:15px;background:#3f51b5;margin-left:1rem;"></span> SII
+        <span style="display:inline-block;width:15px;height:15px;background:#9c27b0;margin-left:1rem;"></span> Municipio
+        <span style="display:inline-block;width:15px;height:15px;background:#8bc34a;margin-left:1rem;"></span> Tesoreria
+        <span style="display:inline-block;width:15px;height:15px;background:#795548;margin-left:1rem;"></span> BPO
+        <span style="display:inline-block;width:15px;height:15px;background:#8b8b8b;margin-left:1rem;"></span> Cliente
+        <span style="display:inline-block;width:15px;height:15px;background:#999;margin-left:1rem;"></span> Distorsión
+      </p>
 
-      <!-- Bloques 1..44 con lineas, 45..56 + total en extras, todo en un stacked bar custom -->
-      <canvas id="cargasStackedCanvas" style="width:120%; max-width:1100px; margin-bottom:1rem;"></canvas>
+      <!-- Bloques 1..44 => graphic bigger, day cuts => 9,18,27,36 -->
+      <canvas id="cargasStackedCanvas" style="width:1400px; height:400px; margin-bottom:1rem;"></canvas>
 
       <h3 style="margin-top:1rem;">Horas Extras</h3>
-      <canvas id="extrasStackedCanvas" style="width:130%; max-width:1200px;"></canvas>
+      <canvas id="extrasStackedCanvas" style="width:1500px; height:450px;"></canvas>
     </section>
 
     <!-- Sección de Administración de Usuarios (solo Admin) -->

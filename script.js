@@ -619,6 +619,7 @@ export function renderTasks(tasksArray){
     // col7 => estado
     let td7= document.createElement("td");
     let sel= document.createElement("select");
+    // El chart no mostrará finalizado => pero en la UI si está
     let possible= TASK_STATES.slice();
     if(currentRole==="consultor"){
       if(["Finalizado","Reportar","Por revisar"].includes(task.status)){
@@ -1330,6 +1331,8 @@ export function toggleTaskBox(){
 }
 window.toggleFilters= toggleFilters;
 window.toggleTaskBox= toggleTaskBox;
+window.aplicarFiltros= aplicarFiltros;
+window.limpiarFiltros= limpiarFiltros;
 
 //===================================================
 // CARGAS => sin tablas, con stacked bar
@@ -1375,7 +1378,7 @@ export async function buildCargasStacked(){
     if(rev) fillUserSlots(userMap, rev, revMin, t.status);
   });
 
-  drawStackedCargasChart("cargasStackedCanvas", userMap, userList, 1,44,[9,18,27,36,44], false);
+  drawStackedCargasChart("cargasStackedCanvas", userMap, userList, 1,44,[9,18,27,36], false);
   drawStackedCargasChart("extrasStackedCanvas", userMap, userList, 45,56,[], true);
 }
 
@@ -1413,7 +1416,6 @@ function parseHHMMtoMin(str){
 function fillUserSlots(mapObj, userEmail, totalMin, statusStr){
   if(!userEmail || !mapObj[userEmail])return;
   let color= stateColor(statusStr);
-  let leftover=0;
   while(totalMin>=60){
     let slot= findNextEmptySlot(mapObj[userEmail]);
     if(slot===-1)break;
@@ -1423,7 +1425,7 @@ function fillUserSlots(mapObj, userEmail, totalMin, statusStr){
   if(totalMin>=30){
     let slot= findNextEmptySlot(mapObj[userEmail]);
     if(slot!==-1){
-      mapObj[userEmail][slot]="#999";
+      mapObj[userEmail][slot]="#999"; // distorsión
     }
   }
 }
@@ -1456,11 +1458,11 @@ function drawStackedCargasChart(canvasId, userMap, userList, fromX, toX, dayCuts
   ctx.clearRect(0,0, can.width, can.height);
 
   if(!extrasMode){
-    can.width= 1200; 
-    can.height= 350;
-  } else {
-    can.width= 1200; 
+    can.width= 1400; 
     can.height= 400;
+  } else {
+    can.width= 1500; 
+    can.height= 450;
   }
 
   let marginLeft= 80;
@@ -1488,6 +1490,9 @@ function drawStackedCargasChart(canvasId, userMap, userList, fromX, toX, dayCuts
         ctx.font="10px Arial";
         ctx.fillText(`${slot}`, x+2, marginTop-5);
         if(!extrasMode){
+          // new day cuts => between 9–10, 18–19, 27–28, 36–37
+          // we handle them below in dayCuts
+          // draw day label near the midpoint
           if(slot===5){
             ctx.fillStyle="#000";
             ctx.fillText("Lunes", x-15, marginTop-15);
@@ -1504,7 +1509,7 @@ function drawStackedCargasChart(canvasId, userMap, userList, fromX, toX, dayCuts
             ctx.fillStyle="#000";
             ctx.fillText("Jueves", x-15, marginTop-15);
           }
-          if(slot===40){
+          if(slot===41){
             ctx.fillStyle="#000";
             ctx.fillText("Viernes", x-15, marginTop-15);
           }
@@ -1513,17 +1518,19 @@ function drawStackedCargasChart(canvasId, userMap, userList, fromX, toX, dayCuts
     }
   });
 
-  dayCuts.forEach(dc=>{
-    if(dc>=fromX && dc<=toX){
-      let offset= (dc - fromX)* cellW;
-      let totalH= userList.length*(cellH+ rowGap);
-      ctx.strokeStyle="red";
-      ctx.beginPath();
-      ctx.moveTo(marginLeft+ offset, marginTop);
-      ctx.lineTo(marginLeft+ offset, marginTop+ totalH);
-      ctx.stroke();
-    }
-  });
+  if(dayCuts && dayCuts.length>0){
+    dayCuts.forEach(dc=>{
+      if(dc>=fromX && dc<=toX){
+        let offset= (dc - fromX)* cellW;
+        let totalH= userList.length*(cellH+ rowGap);
+        ctx.strokeStyle="red";
+        ctx.beginPath();
+        ctx.moveTo(marginLeft+ offset, marginTop);
+        ctx.lineTo(marginLeft+ offset, marginTop+ totalH);
+        ctx.stroke();
+      }
+    });
+  }
 }
 
 //===================================================
@@ -1584,5 +1591,3 @@ window.limpiarFiltros= limpiarFiltros;
 window.loadAllUsers= loadAllUsers;
 window.loadHistory= loadHistory;
 window.clearHistory= clearHistory;
-
-//===================================================
