@@ -32,7 +32,7 @@
       </div>
     </section>
 
-    <!-- Barra lateral -->
+    <!-- Barra lateral (sticky) -->
     <div class="sidebar" id="sidebar" style="display:none;">
       <button id="btnTareas">📁 Tareas</button>
       <button id="btnFinalizadas" style="display:none;">✅ Tareas Finalizadas</button>
@@ -100,11 +100,11 @@
             </select>
           </div>
 
-          <!-- (2) Revisor (similar a newUserSelect) -->
+          <!-- (2) Revisor -->
           <div class="form-inline" id="rowRevisorInput">
             <label style="width:90px;">Revisor:</label>
             <select id="newRevisorSelect" style="width:130px;">
-              <option value="">Seleccione</option>
+              <option value="">Sin revisión</option>
             </select>
           </div>
 
@@ -203,30 +203,46 @@
       <div class="charts-container">
         <!-- 1) Tareas por estado (sin finalizadas) -->
         <div class="chart-box">
+          <h3>Tareas por estado (sin finalizadas)</h3>
           <canvas id="chartEstados"></canvas>
         </div>
         <!-- 2) Próximas tareas por responsable -->
         <div class="chart-box">
+          <h3>Próximas tareas por responsable</h3>
           <canvas id="chartResponsables"></canvas>
         </div>
         <!-- 3) Tareas sin finalizar por Grupo (top 5) -->
         <div class="chart-box">
+          <h3>Tareas sin finalizar por Grupo</h3>
           <canvas id="chartGrupos"></canvas>
         </div>
-        <!-- 4) Urgencia de Tareas (fechaEntrega) -->
+        <!-- 4) Urgencia de Tareas -->
         <div class="chart-box">
+          <h3>Urgencia de Tareas</h3>
           <canvas id="chartUrgencia"></canvas>
+          <!-- Leyenda del color intensos -->
+          <div style="margin-top:0.5rem;">
+            <span style="display:inline-block;width:15px;height:15px;background:#f00;margin-right:4px;"></span>&lt;3 días
+            <span style="display:inline-block;width:15px;height:15px;background:#ff7e00;margin-left:1rem;margin-right:4px;"></span>3-5 días
+            <span style="display:inline-block;width:15px;height:15px;background:#fff100;margin-left:1rem;margin-right:4px;"></span>6-8 días
+            <span style="display:inline-block;width:15px;height:15px;background:#61ff61;margin-left:1rem;margin-right:4px;"></span>9-11 días
+            <span style="display:inline-block;width:15px;height:15px;background:#3a7eff;margin-left:1rem;margin-right:4px;"></span>+11 días
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Cargas Horarias: se eliminan las tablas, dejamos 2 gráficos -->
+    <!-- Cargas Horarias => sin tablas, con stacked bar -->
     <section class="dashboard" id="cargasSection" style="display:none;">
       <h2>Cargas Horarias</h2>
-      <p>Simbología (excepto Finalizado) se usará en el stacked bar:</p>
-      <canvas id="cargasStackedCanvas" style="width:150%;max-width:900px;"></canvas>
-      <h3>Horas Extras</h3>
-      <canvas id="extrasStackedCanvas" style="width:50%;max-width:400px;"></canvas>
+      <p>Simbología</p>
+      <!-- Bloques de 1 a 44 => con lineas para Lunes, Martes, etc.
+           Extra => 45 a 56 + col final tot
+      -->
+      <canvas id="cargasStackedCanvas" style="width:120%;max-width:1100px;"></canvas>
+
+      <h3 style="margin-top:1rem;">Horas Extras</h3>
+      <canvas id="extrasStackedCanvas" style="width:90%;max-width:800px;"></canvas>
     </section>
 
     <!-- Sección de Administración de Usuarios (solo Admin) -->

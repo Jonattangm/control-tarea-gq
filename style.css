@@ -208,21 +208,26 @@ th[data-sortkey] {
   background: #8b8b8b;
 }
 
-/* Colores para Fecha de Entrega */
+/* Colores para Fecha de Entrega => intensos */
 .fecha-rojo {
-  background: #ffcccc;
+  background: #f00 !important;
+  color: #fff !important;
 }
 .fecha-naranjo {
-  background: #ffe1bc;
+  background: #ff7e00 !important;
+  color: #fff !important;
 }
 .fecha-amarillo {
-  background: #fff8b5;
+  background: #fff100 !important;
+  color: #000 !important;
 }
 .fecha-verde {
-  background: #d0ffd0;
+  background: #61ff61 !important;
+  color: #000 !important;
 }
 .fecha-azul {
-  background: #cce4ff;
+  background: #3a7eff !important;
+  color: #fff !important;
 }
 
 /* Panel de Comentarios */

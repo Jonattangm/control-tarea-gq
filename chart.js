@@ -1,6 +1,12 @@
 import { allTasks } from "./script.js";
 
-// Mapa de estados -> color
+/**
+ * Se añaden los títulos en los gráficos,
+ * se hacen colores intensos en Urgencia,
+ * y se muestra la leyenda con rangos (<3, 3-5, etc.).
+ * Se eliminó relleno “sobrante”.
+ */
+
 const colorMap = {
   "Asignado": "#cccccc",
   "En proceso": "#00bfff",
@@ -11,15 +17,6 @@ const colorMap = {
   "Tesoreria": "#8bc34a",
   "BPO": "#795548",
   "Cliente": "#8b8b8b"
-};
-
-// Para la urgencia => color segun días
-const urgencyColors = {
-  rojo:"#ffcccc",
-  naranjo:"#ffe1bc",
-  amarillo:"#fff8b5",
-  verde:"#d0ffd0",
-  azul:"#cce4ff"
 };
 
 let chartEstadosObj=null;
@@ -34,13 +31,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const ctxUrg= document.getElementById("chartUrgencia")?.getContext("2d");
   if(!ctxEstados||!ctxResp||!ctxGrupos||!ctxUrg)return;
 
+  // Actualizamos cada 2 seg
   setInterval(()=>{
     updateCharts(ctxEstados, ctxResp, ctxGrupos, ctxUrg);
   },2000);
 });
 
 function updateCharts(ctx1, ctx2, ctx3, ctx4){
-  // 1) Tareas sin final
+  // Tareas sin final
   let notFinal= allTasks.filter(t=> t.status!=="Finalizado");
 
   // A) Tareas por estado
@@ -73,8 +71,8 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
                 const ds= context.dataset;
                 const total= ds.data.reduce((a,b)=>a+b,0);
                 const val= ds.data[context.dataIndex];
-                const pct= ((val/total)*100).toFixed(1)+"%";
-                return context.label+": "+ val +" ("+pct+")";
+                const pct= (total>0? (val/total*100):0).toFixed(1)+"%";
+                return context.label+": "+val+" ("+pct+")";
               }
             }
           }
@@ -103,6 +101,7 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
       data:{
         labels: lr,
         datasets:[{
+          label: "Tareas Activas",
           data: dr,
           backgroundColor:"#2196f3"
         }]
@@ -140,6 +139,7 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
       data:{
         labels: labG,
         datasets:[{
+          label: "Tareas",
           data: datG,
           backgroundColor:"#ff9800"
         }]
@@ -160,8 +160,8 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
     chartGruposObj.update();
   }
 
-  // D) Urgencia de Tareas => con la fechaEntrega
-  //  contaremos rojos(<=2), naranjo(<=5), amarillo(<=8), verde(<=11), azul(+11)
+  // D) Urgencia => color intensos
+  // rojos(<=2) naranjo(<=5) amarillo(<=8) verde(<=11) azul(+11)
   let urgCounts={
     rojo:0,
     naranjo:0,
@@ -170,28 +170,19 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
     azul:0
   };
   notFinal.forEach(t=>{
-    if(!t.fechaEntrega) return;
-    // calculamos diff
-    // si es final => no.  Ya filtrado
-    const f= t.fechaEntrega;
-    let dd= parseDateDMY( formatDDMMYYYY(f) );
-    if(!dd) return;
-    let diff= calcDiffDays(new Date(), dd);
-    if(diff<=2) urgCounts.rojo++;
-    else if(diff<=5) urgCounts.naranjo++;
-    else if(diff<=8) urgCounts.amarillo++;
-    else if(diff<=11) urgCounts.verde++;
+    if(!t.fechaEntrega)return;
+    const dd= parseDateDMY( formatDDMMYYYY(t.fechaEntrega) );
+    if(!dd)return;
+    let dif= calcDiffDays(new Date(), dd);
+    if(dif<=2) urgCounts.rojo++;
+    else if(dif<=5) urgCounts.naranjo++;
+    else if(dif<=8) urgCounts.amarillo++;
+    else if(dif<=11) urgCounts.verde++;
     else urgCounts.azul++;
   });
-  let labelsUrg= Object.keys(urgCounts);
-  let dataUrg= Object.values(urgCounts);
-  let colUrg= [
-    urgencyColors.rojo,
-    urgencyColors.naranjo,
-    urgencyColors.amarillo,
-    urgencyColors.verde,
-    urgencyColors.azul
-  ];
+  let labelsUrg=["<3 días","3-5 días","6-8 días","9-11 días","+11 días"];
+  let dataUrg=[ urgCounts.rojo,urgCounts.naranjo,urgCounts.amarillo,urgCounts.verde,urgCounts.azul ];
+  let colUrg=["#f00","#ff7e00","#fff100","#61ff61","#3a7eff"];
   if(!chartUrgenciaObj){
     chartUrgenciaObj= new Chart(ctx4, {
       type:"pie",
@@ -228,22 +219,22 @@ function updateCharts(ctx1, ctx2, ctx3, ctx4){
   }
 }
 
-// parse days sin sabDom?
+// parse days sin sabDom
 function calcDiffDays(fromDate,toDate){
   if(!fromDate||!toDate)return 9999;
   let start= new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
   let end= new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
-  if(end<start)return 0; // o negativo
-  let days=0;
-  let cur= new Date(start);
+  let sign=1;
+  if(end<start){
+    sign=-1;[start,end]=[end,start];
+  }
+  let diff=0; let cur= new Date(start);
   while(cur<=end){
-    let d= cur.getDay();
-    if(d!==0 && d!==6){
-      days++;
-    }
+    let dw= cur.getDay();
+    if(dw!==0 && dw!==6) diff++;
     cur.setDate(cur.getDate()+1);
   }
-  return days-1;
+  return (diff-1)*sign;
 }
 function parseDateDMY(dd_mm_yyyy){
   if(!dd_mm_yyyy)return null;
